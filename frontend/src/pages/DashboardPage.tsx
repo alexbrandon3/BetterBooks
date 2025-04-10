@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -20,6 +20,12 @@ import {
   Tooltip,
   useMediaQuery,
   useTheme,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -48,7 +54,7 @@ import {
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from 'chart.js';
 
@@ -58,7 +64,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend
 );
 
@@ -87,6 +93,7 @@ const DashboardPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [isLoading, setIsLoading] = useState(true);
 
   const chartData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -149,6 +156,23 @@ const DashboardPage: React.FC = () => {
     { id: 2, type: 'filing', description: 'Monthly Sales Tax Return', date: '2023-07-15' },
     { id: 3, type: 'suggestion', description: 'Consider increasing marketing budget', date: '2023-07-01' },
   ];
+
+  useEffect(() => {
+    // Simulate loading data
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -322,32 +346,24 @@ const DashboardPage: React.FC = () => {
                 }
               />
               <CardContent>
-                <List>
-                  {recentTransactions.map((transaction) => (
-                    <React.Fragment key={transaction.id}>
-                      <ListItem>
-                        <ListItemIcon>
-                          {transaction.type === 'income' ? (
-                            <TrendingUpIcon color="success" />
-                          ) : (
-                            <TrendingDownIcon color="error" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={transaction.description}
-                          secondary={transaction.date}
-                        />
-                        <Typography
-                          variant="body1"
-                          color={transaction.type === 'income' ? 'success.main' : 'error.main'}
-                        >
-                          ${Math.abs(transaction.amount).toLocaleString()}
-                        </Typography>
-                      </ListItem>
-                      <Divider />
-                    </React.Fragment>
-                  ))}
-                </List>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Recent Transactions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recentTransactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>
+                            {transaction.description}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </CardContent>
             </StyledCard>
           </Grid>

@@ -203,42 +203,36 @@ const LoginPage: React.FC = () => {
                     Forgot password?
                   </Link>
                 </Box>
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  sx={{ mt: 3, mb: 2 }}
-                >
-                  Sign In
-                </Button>
-                <Divider sx={{ my: 2 }}>OR</Divider>
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                  >
+                    Sign In
+                  </Button>
+                </Box>
+
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Link href="#" variant="body2">
+                    Forgot password?
+                  </Link>
+                  <Link href="/register" variant="body2">
+                    Create an account
+                  </Link>
+                </Box>
+
+                <Divider sx={{ my: 3 }}>or</Divider>
+
                 <Button
                   fullWidth
                   variant="outlined"
-                  color="primary"
-                  size="large"
-                  sx={{ 
-                    mb: 2,
-                    borderColor: '#ddd',
-                    '&:hover': {
-                      borderColor: '#ccc',
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                  }}
                   startIcon={<GoogleIcon />}
+                  onClick={() => navigate('/google-signin')}
                 >
                   Sign in with Google
                 </Button>
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Typography variant="body2" color="textSecondary">
-                    Don't have an account?{' '}
-                    <Link href="#" onClick={() => navigate('/register')}>
-                      Sign up
-                    </Link>
-                  </Typography>
-                </Box>
               </Box>
             </StyledPaper>
           </Grid>

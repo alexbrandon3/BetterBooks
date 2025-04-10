@@ -27,6 +27,7 @@ import {
   Divider,
   Alert,
   Snackbar,
+  FormHelperText,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -108,6 +109,8 @@ const ChartOfAccountsPage: React.FC = () => {
   ]);
 
   const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
   const [newAccount, setNewAccount] = useState<Partial<Account>>({
     name: '',
     type: 'Asset',
@@ -117,38 +120,55 @@ const ChartOfAccountsPage: React.FC = () => {
     isCustom: true,
   });
 
-  const [editingAccount, setEditingAccount] = useState<{
-    id: string;
-    field: 'name' | 'type' | 'subtype';
-    value: string;
-  } | null>(null);
+  const [editingAccount, setEditingAccount] = useState<string | null>(null);
 
   const [warnings, setWarnings] = useState<ValidationWarning[]>([]);
   const [showWarning, setShowWarning] = useState(false);
 
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    type?: string;
+  }>({});
+
   const handleAddAccount = () => {
-    if (newAccount.name) {
-      setAccounts([
-        ...accounts,
-        {
-          ...newAccount,
-          id: Date.now().toString(),
-        } as Account,
-      ]);
-      setIsAddingAccount(false);
-      setNewAccount({
-        name: '',
-        type: 'Asset',
-        subtype: '',
-        isActive: true,
-        description: '',
-        isCustom: true,
-      });
+    if (!newAccount.name || !newAccount.type) {
+      return;
     }
+
+    setAccounts([
+      ...accounts,
+      {
+        ...newAccount,
+        id: Date.now().toString(),
+      } as Account,
+    ]);
+    setIsAddingAccount(false);
+    setNewAccount({
+      name: '',
+      type: 'Asset',
+      subtype: '',
+      isActive: true,
+      description: '',
+      isCustom: true,
+    });
   };
 
   const handleDeleteAccount = (id: string) => {
-    setAccounts(accounts.filter(account => account.id !== id));
+    setAccountToDelete(id);
+    setIsDeletingAccount(true);
+  };
+
+  const confirmDelete = () => {
+    if (accountToDelete) {
+      setAccounts(accounts.filter(account => account.id !== accountToDelete));
+      setIsDeletingAccount(false);
+      setAccountToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setIsDeletingAccount(false);
+    setAccountToDelete(null);
   };
 
   const handleRestoreDefaults = () => {
@@ -174,27 +194,32 @@ const ChartOfAccountsPage: React.FC = () => {
   };
 
   const handleEditStart = (accountId: string, field: 'name' | 'type' | 'subtype', value: string) => {
-    setEditingAccount({ id: accountId, field, value });
+    setEditingAccount(accountId);
   };
 
   const handleEditSave = () => {
     if (editingAccount) {
       const newAccounts = accounts.map(account => {
-        if (account.id === editingAccount.id) {
+        if (account.id === editingAccount) {
           const updatedAccount = {
             ...account,
-            [editingAccount.field]: editingAccount.value,
+            name: newAccount.name,
+            type: newAccount.type,
+            subtype: newAccount.subtype,
           };
-          const warning = validateAccount(updatedAccount);
-          if (warning) {
-            setWarnings([...warnings, warning]);
-            setShowWarning(true);
-          }
           return updatedAccount;
         }
         return account;
       });
       setAccounts(newAccounts);
+      setEditingAccount(null);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleEditSave();
+    } else if (e.key === 'Escape') {
       setEditingAccount(null);
     }
   };
@@ -214,7 +239,7 @@ const ChartOfAccountsPage: React.FC = () => {
       <Container maxWidth="lg">
         <StyledPaper elevation={3}>
           <Typography variant="h4" gutterBottom>
-            Review Your Chart of Accounts
+            Chart of Accounts
           </Typography>
           <Typography variant="body1" color="textSecondary" paragraph>
             These accounts were generated based on your business. You can edit or add more as needed.
@@ -242,7 +267,7 @@ const ChartOfAccountsPage: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Account Name</TableCell>
-                  <TableCell>Type</TableCell>
+                  <TableCell>Account Type</TableCell>
                   <TableCell>Subtype</TableCell>
                   <TableCell>Active</TableCell>
                   <TableCell>Description</TableCell>
@@ -253,42 +278,43 @@ const ChartOfAccountsPage: React.FC = () => {
                 {accounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AccountTypeIcon type={account.type} />
-                        {editingAccount?.id === account.id && editingAccount.field === 'name' ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TextField
-                              value={editingAccount.value}
-                              onChange={(e) => setEditingAccount({ ...editingAccount, value: e.target.value })}
-                              size="small"
-                              autoFocus
-                            />
-                            <IconButton size="small" onClick={handleEditSave}>
-                              <CheckIcon />
-                            </IconButton>
-                            <IconButton size="small" onClick={handleEditCancel}>
-                              <CloseIcon />
-                            </IconButton>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {account.name}
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditStart(account.id, 'name', account.name)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        )}
-                      </Box>
+                      {editingAccount === account.id ? (
+                        <TextField
+                          value={account.name}
+                          onChange={(e) => {
+                            const updatedAccounts = accounts.map((a) =>
+                              a.id === account.id ? { ...a, name: e.target.value || a.name } : a
+                            );
+                            setAccounts(updatedAccounts);
+                          }}
+                          onKeyDown={handleKeyDown}
+                          size="small"
+                          autoFocus
+                        />
+                      ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AccountTypeIcon type={account.type} />
+                          {account.name}
+                          <IconButton
+                            aria-label="Edit account"
+                            onClick={() => handleEditStart(account.id, 'name', account.name)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Box>
+                      )}
                     </TableCell>
                     <TableCell>
-                      {editingAccount?.id === account.id && editingAccount.field === 'type' ? (
+                      {editingAccount === account.id ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Select
-                            value={editingAccount.value}
-                            onChange={(e) => setEditingAccount({ ...editingAccount, value: e.target.value })}
+                            value={account.type}
+                            onChange={(e) => {
+                              const updatedAccounts = accounts.map((a) =>
+                                a.id === account.id ? { ...a, type: e.target.value } : a
+                              );
+                              setAccounts(updatedAccounts);
+                            }}
                             size="small"
                           >
                             <MenuItem value="Asset">Asset</MenuItem>
@@ -308,10 +334,10 @@ const ChartOfAccountsPage: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {account.type}
                           <IconButton
-                            size="small"
+                            aria-label="Edit account"
                             onClick={() => handleEditStart(account.id, 'type', account.type)}
                           >
-                            <EditIcon fontSize="small" />
+                            <EditIcon />
                           </IconButton>
                         </Box>
                       )}
@@ -336,14 +362,18 @@ const ChartOfAccountsPage: React.FC = () => {
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">
-                      {account.isCustom && (
-                        <IconButton
-                          onClick={() => handleDeleteAccount(account.id)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
+                      <IconButton
+                        aria-label="Edit account"
+                        onClick={() => handleEditStart(account.id, 'name', account.name)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        aria-label="Delete account"
+                        onClick={() => handleDeleteAccount(account.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -389,13 +419,15 @@ const ChartOfAccountsPage: React.FC = () => {
               value={newAccount.name}
               onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
               fullWidth
+              error={!!formErrors.name}
+              helperText={formErrors.name}
             />
-            <FormControl fullWidth>
-              <InputLabel>Type</InputLabel>
+            <FormControl fullWidth error={!!formErrors.type}>
+              <InputLabel>Account Type</InputLabel>
               <Select
                 value={newAccount.type}
                 onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value })}
-                label="Type"
+                label="Account Type"
               >
                 <MenuItem value="Asset">Asset</MenuItem>
                 <MenuItem value="Liability">Liability</MenuItem>
@@ -403,6 +435,9 @@ const ChartOfAccountsPage: React.FC = () => {
                 <MenuItem value="Income">Income</MenuItem>
                 <MenuItem value="Expense">Expense</MenuItem>
               </Select>
+              {formErrors.type && (
+                <FormHelperText>{formErrors.type}</FormHelperText>
+              )}
             </FormControl>
             <TextField
               label="Description"
@@ -417,7 +452,22 @@ const ChartOfAccountsPage: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setIsAddingAccount(false)}>Cancel</Button>
           <Button onClick={handleAddAccount} variant="contained">
-            Add Account
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={isDeletingAccount} onClose={cancelDelete}>
+        <DialogTitle>Delete Account</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this account? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
