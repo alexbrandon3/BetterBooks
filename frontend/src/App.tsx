@@ -7,6 +7,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AssetSetupPage from './pages/AssetSetupPage';
 import ChartOfAccountsPage from './pages/ChartOfAccountsPage';
+import TransactionEntryPage from './pages/TransactionEntryPage';
+import DashboardPage from './pages/DashboardPage';
 
 const App: React.FC = () => {
   return (
@@ -18,7 +20,9 @@ const App: React.FC = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/setup/assets" element={<AssetSetupPage />} />
           <Route path="/setup/chart-of-accounts" element={<ChartOfAccountsPage />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/transactions" element={<TransactionEntryPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
     </ThemeProvider>
