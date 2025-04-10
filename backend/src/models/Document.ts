@@ -1,59 +1,36 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Account } from './Account';
-import { Transaction } from './Transaction';
-
-export enum DocumentType {
-  INVOICE = 'invoice',
-  RECEIPT = 'receipt',
-  STATEMENT = 'statement',
-  CONTRACT = 'contract',
-  OTHER = 'other',
-}
 
 @Entity('documents')
 export class Document {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  fileName: string;
+  name!: string;
 
   @Column()
-  fileKey: string; // S3 object key
-
-  @Column()
-  fileType: string;
-
-  @Column('int')
-  fileSize: number;
-
-  @Column({
-    type: 'enum',
-    enum: DocumentType,
-    default: DocumentType.OTHER,
-  })
-  type: DocumentType;
+  filePath!: string;
 
   @Column({ nullable: true })
-  description: string;
+  description!: string | null;
 
-  @ManyToOne(() => Account, account => account.documents, { nullable: true })
+  @Column()
+  mimeType!: string;
+
+  @Column()
+  size!: number;
+
+  @ManyToOne(() => Account, account => account.documents)
   @JoinColumn({ name: 'accountId' })
-  account: Account;
+  account!: Account;
 
-  @Column({ nullable: true })
-  accountId: string;
-
-  @ManyToOne(() => Transaction, transaction => transaction.documents, { nullable: true })
-  @JoinColumn({ name: 'transactionId' })
-  transaction: Transaction;
-
-  @Column({ nullable: true })
-  transactionId: string;
+  @Column()
+  accountId!: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 

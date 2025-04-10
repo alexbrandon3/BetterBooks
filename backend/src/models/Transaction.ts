@@ -9,42 +9,42 @@ export enum TransactionType {
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  date: Date;
-
-  @Column('decimal', { precision: 19, scale: 4 })
-  amount: number;
+  description!: string;
 
   @Column({
     type: 'enum',
     enum: TransactionType,
   })
-  type: TransactionType;
+  type!: TransactionType;
 
-  @Column()
-  description: string;
+  @Column('decimal', { precision: 19, scale: 4 })
+  amount!: number;
+
+  @Column({ type: 'timestamp' })
+  date!: Date;
 
   @ManyToOne(() => Account, account => account.transactions)
   @JoinColumn({ name: 'accountId' })
-  account: Account;
+  account!: Account;
 
   @Column()
-  accountId: string;
+  accountId!: string;
 
   @Column({ nullable: true })
-  referenceNumber: string;
+  referenceNumber!: string | null;
 
   @Column({ nullable: true })
-  notes: string;
+  notes!: string | null;
 
   @Column({ default: false })
-  isReconciled: boolean;
+  isReconciled!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 
