@@ -1,73 +1,93 @@
+import { Account } from './account';
+
 export type TransactionType = 'EXPENSE' | 'INCOME' | 'TRANSFER' | 'JOURNAL';
 export type EntryStatus = 'PENDING' | 'REVIEWED' | 'ADJUSTED';
 
+export interface LedgerEntry {
+  id: string;
+  transactionId: string;
+  account: Account;
+  date: string;
+  description: string;
+  debit: number;
+  credit: number;
+  balanceAfter: number;
+  userId?: string;
+  timestamp: string;
+  isFlagged: boolean;
+  attachments?: Attachment[];
+  auditTrail: AuditLogEntry[];
+  transactionType?: string;
+}
+
+export interface Attachment {
+  type: 'receipt' | 'note';
+  name: string;
+  url?: string;
+}
+
 export interface AuditLogEntry {
   id: string;
-  timestamp: Date;
-  userId: string;
-  action: 'CREATE' | 'EDIT' | 'DELETE' | 'RESTORE';
-  entityType: 'TRANSACTION' | 'ACCOUNT';
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  entityType: string;
   entityId: string;
-  changes: {
+  timestamp: string;
+  userId?: string;
+  changes: Array<{
     field: string;
     oldValue: any;
     newValue: any;
-  }[];
-  metadata: {
-    deviceInfo?: string;
-    ipAddress?: string;
-    userAgent?: string;
-  };
+  }>;
+  metadata: Record<string, any>;
 }
 
-export interface LedgerEntry {
-  id: string;
-  date: Date;
-  description: string;
-  transactionType: TransactionType;
-  accountId: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  balance: number;
-  status: EntryStatus;
-  attachments: {
-    id: string;
-    type: 'RECEIPT' | 'INVOICE' | 'OTHER';
-    url: string;
-    filename: string;
-  }[];
-  metadata: {
-    createdAt: Date;
-    createdBy: string;
-    lastModifiedAt?: Date;
-    lastModifiedBy?: string;
-    aiSuggested?: boolean;
-    aiConfidence?: number;
-    flagged?: boolean;
-    flagReason?: string;
-  };
-  relatedAccounts: {
-    accountId: string;
-    accountName: string;
-    debit: number;
-    credit: number;
-  }[];
-  notes?: string;
-  auditTrail: AuditLogEntry[];
+export interface AccountLedger {
+  account: Account;
+  entries: LedgerEntry[];
+  currentBalance: number;
+}
+
+export interface GeneralLedger {
+  accounts: Record<string, AccountLedger>;
+  flaggedTransactions: LedgerEntry[];
+  lastUpdated: string;
 }
 
 export interface LedgerFilters {
   accountId?: string;
-  dateRange?: [Date | null, Date | null];
+  dateRange?: [number, number];
   transactionType?: TransactionType[];
   amountRange?: {
-    min?: number;
-    max?: number;
+    min: number;
+    max: number;
   };
   hasAttachment?: boolean;
-  status?: EntryStatus[];
+  isFlagged?: boolean;
   searchTerm?: string;
+}
+
+export interface LedgerValidationResult {
+  isValid: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
+
+export interface BalanceChange {
+  accountId: string;
+  amount: number;
+  isDebit: boolean;
+}
+
+export interface LedgerSummary {
+  totalDebits: number;
+  totalCredits: number;
+  netChange: number;
+  flaggedCount: number;
+  attachmentCount: number;
+  dateRange: {
+    start: number;
+    end: number;
+  };
 }
 
 export interface AuditTrailExport {
@@ -76,4 +96,39 @@ export interface AuditTrailExport {
   exportedAt: Date;
   exportedBy: string;
   entries: AuditLogEntry[];
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string;
+  description: string;
+  debits: Array<{
+    account: Account;
+    amount: number;
+  }>;
+  credits: Array<{
+    account: Account;
+    amount: number;
+  }>;
+  total: number;
+  status: 'valid' | 'error';
+  timestamp: string;
+  userId: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
+
+export interface LedgerContextType {
+  ledger: GeneralLedger;
+  postJournalEntry: (entry: JournalEntry) => Promise<ValidationResult>;
+  getAccountLedger: (accountId: string) => AccountLedger | undefined;
+  getFlaggedTransactions: () => LedgerEntry[];
+  filterLedgerEntries: (filters: LedgerFilters) => LedgerEntry[];
+  getLedgerSummary: () => LedgerSummary;
+  validateJournalEntry: (entry: JournalEntry) => ValidationResult;
+  detectUnusualActivity: (entry: JournalEntry) => boolean;
 } 

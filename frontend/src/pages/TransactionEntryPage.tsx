@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -19,6 +19,7 @@ import {
   FormControlLabel,
   Divider,
   Tooltip,
+  ButtonGroup,
 } from '@mui/material';
 import { AttachFile as AttachFileIcon, TrendingUp as IncomeIcon, TrendingDown as ExpenseIcon, Receipt as ReceiptIcon, SwapHoriz as TransferIcon, Business as AssetIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -27,6 +28,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Layout from '../components/Layout';
 import { useAccounts } from '../contexts/AccountsContext';
 import { useToast } from '../contexts/ToastContext';
+import { ManualJournalEntry } from '../components/ManualJournalEntry';
 
 // Constants
 const DEFAULT_SALES_TAX_RATE = 0.07; // 7% default sales tax rate
@@ -323,6 +325,8 @@ const ASSET_MAPPINGS: Record<string, AccountMapping[]> = {
 const TransactionEntryPage: React.FC = () => {
   const { accounts } = useAccounts();
   const { showToast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [transaction, setTransaction] = useState<Transaction>({
     date: new Date(),
     amount: 0,
@@ -337,7 +341,7 @@ const TransactionEntryPage: React.FC = () => {
   const [salesTaxRate, setSalesTaxRate] = useState(DEFAULT_SALES_TAX_RATE);
   const [otherSideAccount, setOtherSideAccount] = useState<string>('');
   const [assetType, setAssetType] = useState<string>('');
-  const [usefulLife, setUsefulLife] = useState<number>(5); // Default 5 years
+  const [usefulLife, setUsefulLife] = useState<number>(5);
   const [depreciationMethod, setDepreciationMethod] = useState<'Straight Line' | 'Double Declining' | 'Units of Production'>('Straight Line');
   const [industryContext, setIndustryContext] = useState<IndustryContext | null>(null);
   const [userCorrections, setUserCorrections] = useState<Array<{
@@ -345,39 +349,7 @@ const TransactionEntryPage: React.FC = () => {
     selectedAccount: string;
     timestamp: Date;
   }>>([]);
-
-  const calculateSalesTax = (total: number, rate: number): SalesTaxInfo => {
-    const revenue = total / (1 + rate);
-    const taxAmount = total - revenue;
-    return {
-      included: true,
-      rate,
-      amount: taxAmount,
-      revenue,
-    };
-  };
-
-  const validateTransaction = (): string | null => {
-    if (!transaction.description) {
-      return 'Please enter a description';
-    }
-    if (!transaction.businessAccount) {
-      return 'Please select a business account';
-    }
-    if (transaction.amount <= 0) {
-      return 'Amount must be greater than 0';
-    }
-    if (transactionType === 'transfer' && !otherSideAccount) {
-      return 'Please select a transfer destination account';
-    }
-    if (transactionType === 'transfer' && transaction.businessAccount === otherSideAccount) {
-      return 'Cannot transfer to the same account';
-    }
-    if (salesTaxIncluded && salesTaxRate <= 0) {
-      return 'Sales tax rate must be greater than 0';
-    }
-    return null;
-  };
+  const [entryMode, setEntryMode] = useState<'auto' | 'manual'>('auto');
 
   // Function to detect industry context from description
   const detectIndustryContext = (description: string): IndustryContext | null => {
@@ -481,85 +453,174 @@ const TransactionEntryPage: React.FC = () => {
     return bestMatch;
   };
 
-  const analyzeTransaction = async () => {
-    const validationError = validateTransaction();
-    if (validationError) {
-      showToast(validationError, 'warning');
-      return;
+  // Function to analyze transaction
+  const analyzeTransaction = (description: string, amount: number, type: 'expense' | 'income' | 'transfer' = 'expense') => {
+    // Validate input
+    if (!description) {
+      throw new Error('Transaction must have a description');
+    }
+    if (amount <= 0) {
+      throw new Error('Transaction amount must be greater than 0');
     }
 
-    setIsAnalyzing(true);
-    try {
-      const salesTax = salesTaxIncluded ? calculateSalesTax(transaction.amount, salesTaxRate) : undefined;
-      const suggestedAccount = getSuggestedAccount(transaction.description);
+    const suggestedAccount = getSuggestedAccount(description);
+    let debitAccount: string;
+    let creditAccount: string;
 
-      let debitAccount = '';
-      let creditAccount = '';
+    if (type === 'expense') {
+      debitAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.expenses.other;
+      creditAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.income.service_revenue;
+    } else if (type === 'income') {
+      debitAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.assets.cash;
+      creditAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.income.service_revenue;
+    } else {
+      // For transfers, use the selected accounts
+      debitAccount = assetType || suggestedAccount?.account || CHART_OF_ACCOUNTS.assets.equipment;
+      creditAccount = otherSideAccount || CHART_OF_ACCOUNTS.assets.cash;
+    }
 
-      switch (transactionType) {
-        case 'expense':
-          debitAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.expenses.other;
-          creditAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.income.service_revenue;
-          break;
-        case 'income':
-          debitAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.assets.cash;
-          creditAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.income.service_revenue;
-          break;
-        case 'transfer':
-          debitAccount = assetType || suggestedAccount?.account || CHART_OF_ACCOUNTS.assets.equipment;
-          creditAccount = otherSideAccount || CHART_OF_ACCOUNTS.assets.cash;
-          break;
-        case 'asset_purchase':
-          debitAccount = assetType || suggestedAccount?.account || CHART_OF_ACCOUNTS.assets.equipment;
-          creditAccount = transaction.businessAccount;
-          break;
+    return {
+      debit: {
+        account: debitAccount,
+        amount: type === 'income' ? amount : 0,
+      },
+      credit: {
+        account: creditAccount,
+        amount: type === 'expense' ? amount : 0,
+      },
+    };
+  };
+
+  // Validation function to check for hardcoded defaults
+  const validateAccountMappings = () => {
+    const errors: string[] = [];
+    
+    // Check for hardcoded account references in ACCOUNT_MAPPINGS
+    Object.entries(ACCOUNT_MAPPINGS).forEach(([type, mappings]) => {
+      mappings.forEach((mapping, index) => {
+        if (!mapping.keywords || mapping.keywords.length === 0) {
+          errors.push(`Error in ${type} mapping ${index}: No keywords defined`);
+        }
+        if (!mapping.patterns || mapping.patterns.length === 0) {
+          errors.push(`Error in ${type} mapping ${index}: No patterns defined`);
+        }
+        if (!mapping.account) {
+          console.warn(`Warning: No account defined for ${type} mapping ${index}. Using default account.`);
+          // Set a default account based on the type
+          if (type === 'expense') {
+            mapping.account = CHART_OF_ACCOUNTS.expenses.other;
+          } else if (type === 'income') {
+            mapping.account = CHART_OF_ACCOUNTS.income.other_income;
+          }
+        }
+      });
+    });
+
+    // Check for hardcoded defaults in analyzeTransaction
+    const testCases = [
+      { description: 'test transaction', amount: 100, type: 'expense' as const },
+      { description: 'random expense', amount: 100, type: 'expense' as const },
+      { description: 'unknown transaction', amount: 100, type: 'expense' as const },
+    ];
+
+    testCases.forEach(testCase => {
+      try {
+        const result = analyzeTransaction(testCase.description, testCase.amount, testCase.type);
+        if (result.debit.account === CHART_OF_ACCOUNTS.expenses.fuel) {
+          errors.push(`Error: Fuel expense used as default for description "${testCase.description}"`);
+        }
+        if (result.credit.account === CHART_OF_ACCOUNTS.expenses.fuel) {
+          errors.push(`Error: Fuel expense used as default for credit account with description "${testCase.description}"`);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          errors.push(`Error validating test case "${testCase.description}": ${error.message}`);
+        } else {
+          errors.push(`Error validating test case "${testCase.description}": Unknown error`);
+        }
       }
+    });
 
-      const mockResponse: TransactionAnalysis | AssetPurchaseAnalysis = {
-        journal_entry: {
-          date: transaction.date.toISOString().split('T')[0],
-          debit: {
-            account: debitAccount,
-            amount: transaction.amount,
-          },
-          credit: {
-            account: creditAccount,
-            amount: transaction.amount,
-          },
-        },
-        type: transactionType === 'asset_purchase' ? 'asset_purchase' : transactionType,
-        confidence: suggestedAccount?.confidence || 0.5,
-        explanation: suggestedAccount?.reasoning || 
-          `Based on the description "${transaction.description}" and amount $${transaction.amount}, this appears to be a ${transactionType}.`,
-        sales_tax: salesTax,
-        alternative_suggestions: ACCOUNT_MAPPINGS[transactionType]
-          ?.filter(mapping => mapping.account !== suggestedAccount?.account)
-          .map(mapping => ({
-            account: mapping.account,
-            confidence: 0.6,
-            explanation: `Could also be categorized as ${mapping.account} based on the description.`,
-          }))
-          .slice(0, 2),
-        ...(transactionType === 'asset_purchase' && {
-          asset_metadata: {
-            description: transaction.description,
-            useful_life_years: usefulLife,
-            depreciation_method: depreciationMethod,
-          },
-        }),
-      };
+    return errors;
+  };
 
-      setAnalysis(mockResponse);
-      setTransaction(prev => ({
-        ...prev,
-        journalEntry: mockResponse.journal_entry,
-        type: mockResponse.type,
-      }));
-    } catch (error) {
-      showToast('Error analyzing transaction', 'error');
-    } finally {
-      setIsAnalyzing(false);
+  // Initialize component
+  useEffect(() => {
+    try {
+      setIsLoading(false);
+    } catch (err) {
+      setError('Failed to initialize transaction page');
+      showToast('Failed to initialize transaction page', 'error');
+      setIsLoading(false);
     }
+  }, [showToast]);
+
+  // Validate account mappings
+  useEffect(() => {
+    try {
+      const validationErrors = validateAccountMappings();
+      if (validationErrors.length > 0) {
+        console.error('Validation errors found:');
+        validationErrors.forEach(error => console.error(error));
+        setError('Account mapping validation failed');
+      }
+    } catch (error) {
+      console.error('Error during account mapping validation:', error);
+      setError('Failed to validate account mappings');
+    }
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      </Layout>
+    );
+  }
+
+  const calculateSalesTax = (total: number, rate: number): SalesTaxInfo => {
+    const revenue = total / (1 + rate);
+    const taxAmount = total - revenue;
+    return {
+      included: true,
+      rate,
+      amount: taxAmount,
+      revenue,
+    };
+  };
+
+  const validateTransaction = (): string | null => {
+    if (!transaction.description) {
+      return 'Please enter a description';
+    }
+    if (!transaction.businessAccount) {
+      return 'Please select a business account';
+    }
+    if (transaction.amount <= 0) {
+      return 'Amount must be greater than 0';
+    }
+    if (transactionType === 'transfer' && !otherSideAccount) {
+      return 'Please select a transfer destination account';
+    }
+    if (transactionType === 'transfer' && transaction.businessAccount === otherSideAccount) {
+      return 'Cannot transfer to the same account';
+    }
+    if (salesTaxIncluded && salesTaxRate <= 0) {
+      return 'Sales tax rate must be greater than 0';
+    }
+    return null;
   };
 
   // Function to handle user corrections
@@ -625,6 +686,86 @@ const TransactionEntryPage: React.FC = () => {
     }
   };
 
+  const handleAnalyzeTransaction = () => {
+    if (!transaction.description || !transaction.businessAccount) {
+      showToast('Please enter a description and select a business account', 'warning');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const salesTax = salesTaxIncluded ? calculateSalesTax(transaction.amount, salesTaxRate) : undefined;
+      const suggestedAccount = getSuggestedAccount(transaction.description);
+
+      let debitAccount = '';
+      let creditAccount = '';
+
+      switch (transactionType) {
+        case 'expense':
+          debitAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.expenses.other;
+          creditAccount = transaction.businessAccount;
+          break;
+        case 'income':
+          debitAccount = transaction.businessAccount;
+          creditAccount = suggestedAccount?.account || CHART_OF_ACCOUNTS.income.service_revenue;
+          break;
+        case 'transfer':
+          debitAccount = assetType || CHART_OF_ACCOUNTS.assets.equipment;
+          creditAccount = otherSideAccount || CHART_OF_ACCOUNTS.assets.cash;
+          break;
+        case 'asset_purchase':
+          debitAccount = assetType || CHART_OF_ACCOUNTS.assets.equipment;
+          creditAccount = transaction.businessAccount;
+          break;
+      }
+
+      const mockResponse: TransactionAnalysis | AssetPurchaseAnalysis = {
+        journal_entry: {
+          date: transaction.date.toISOString().split('T')[0],
+          debit: {
+            account: debitAccount,
+            amount: transaction.amount,
+          },
+          credit: {
+            account: creditAccount,
+            amount: transaction.amount,
+          },
+        },
+        type: transactionType === 'asset_purchase' ? 'asset_purchase' : transactionType,
+        confidence: suggestedAccount?.confidence || 0.5,
+        explanation: suggestedAccount?.reasoning || 
+          `Based on the description "${transaction.description}" and amount $${transaction.amount}, this appears to be a ${transactionType}.`,
+        sales_tax: salesTax,
+        alternative_suggestions: ACCOUNT_MAPPINGS[transactionType]
+          ?.filter(mapping => mapping.account !== suggestedAccount?.account)
+          .map(mapping => ({
+            account: mapping.account,
+            confidence: 0.6,
+            explanation: `Could also be categorized as ${mapping.account} based on the description.`,
+          }))
+          .slice(0, 2),
+        ...(transactionType === 'asset_purchase' && {
+          asset_metadata: {
+            description: transaction.description,
+            useful_life_years: usefulLife,
+            depreciation_method: depreciationMethod,
+          },
+        }),
+      };
+
+      setAnalysis(mockResponse);
+      setTransaction(prev => ({
+        ...prev,
+        journalEntry: mockResponse.journal_entry,
+        type: mockResponse.type,
+      }));
+    } catch (error) {
+      showToast('Error analyzing transaction', 'error');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const getAvailableAccounts = (side: 'debit' | 'credit'): string[] => {
     switch (transactionType) {
       case 'expense':
@@ -659,416 +800,498 @@ const TransactionEntryPage: React.FC = () => {
     }
   };
 
+  // Function to get eligible business accounts
+  const getEligibleBusinessAccounts = () => {
+    const eligibleAccounts = accounts.filter(account => {
+      // Include asset accounts
+      if (account.category === 'assets') {
+        // Include specific asset types
+        const accountName = account.name.toLowerCase();
+        return (
+          accountName.includes('cash') ||
+          accountName.includes('checking') ||
+          accountName.includes('savings') ||
+          accountName.includes('credit card') ||
+          accountName.includes('petty cash') ||
+          accountName.includes('paypal') ||
+          accountName.includes('stripe') ||
+          accountName.includes('square') ||
+          accountName.includes('undeposited funds')
+        );
+      }
+      return false;
+    });
+
+    return eligibleAccounts;
+  };
+
+  // Function to get account icon
+  const getAccountIcon = (accountName: string) => {
+    const name = accountName.toLowerCase();
+    if (name.includes('checking')) return '🏦';
+    if (name.includes('savings')) return '🏦';
+    if (name.includes('credit card')) return '💳';
+    if (name.includes('petty cash')) return '💰';
+    if (name.includes('paypal') || name.includes('stripe') || name.includes('square')) return '🧾';
+    return '💰'; // Default icon for other cash accounts
+  };
+
   return (
     <Layout>
       <Box sx={{ p: 3 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Record Transaction
-          </Typography>
+        <Typography variant="h4" gutterBottom>
+          Transaction Entry
+        </Typography>
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Transaction Type
-                </Typography>
-                <ToggleButtonGroup
-                  value={transactionType}
-                  exclusive
-                  onChange={(_, newType) => newType && setTransactionType(newType)}
-                  fullWidth
-                >
-                  <ToggleButton value="expense">
-                    <ExpenseIcon sx={{ mr: 1 }} />
-                    Expense
-                  </ToggleButton>
-                  <ToggleButton value="income">
-                    <IncomeIcon sx={{ mr: 1 }} />
-                    Income
-                  </ToggleButton>
-                  <ToggleButton value="transfer">
-                    <TransferIcon sx={{ mr: 1 }} />
-                    Transfer
-                  </ToggleButton>
-                  <ToggleButton value="asset_purchase">
-                    <AssetIcon sx={{ mr: 1 }} />
-                    Asset Purchase
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+        <Box sx={{ mb: 3 }}>
+          <ButtonGroup>
+            <Button
+              variant={entryMode === 'auto' ? 'contained' : 'outlined'}
+              onClick={() => setEntryMode('auto')}
+            >
+              Automatic Entry
+            </Button>
+            <Button
+              variant={entryMode === 'manual' ? 'contained' : 'outlined'}
+              onClick={() => setEntryMode('manual')}
+            >
+              Manual Journal Entry
+            </Button>
+          </ButtonGroup>
+        </Box>
 
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
-                  label="Date"
-                  value={transaction.date}
-                  onChange={(newDate) => newDate && setTransaction({ ...transaction, date: newDate })}
-                  sx={{ width: '100%', mb: 2 }}
-                />
-              </LocalizationProvider>
+        {entryMode === 'auto' ? (
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Record Transaction
+            </Typography>
 
-              <TextField
-                label="Amount"
-                type="number"
-                value={transaction.amount}
-                onChange={(e) => setTransaction({ ...transaction, amount: parseFloat(e.target.value) })}
-                fullWidth
-                sx={{ mb: 2 }}
-                InputProps={{
-                  startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
-                }}
-              />
-
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Business Account</InputLabel>
-                <Select
-                  value={transaction.businessAccount}
-                  onChange={(e) => setTransaction({ ...transaction, businessAccount: e.target.value })}
-                  label="Business Account"
-                >
-                  {accounts.map((account) => (
-                    <MenuItem key={account.id} value={account.name}>
-                      {account.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="Description"
-                value={transaction.description}
-                onChange={(e) => setTransaction({ ...transaction, description: e.target.value })}
-                fullWidth
-                multiline
-                rows={2}
-                sx={{ mb: 2 }}
-              />
-
-              {transactionType === 'income' && (
-                <Box sx={{ mb: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={salesTaxIncluded}
-                        onChange={(e) => setSalesTaxIncluded(e.target.checked)}
-                      />
-                    }
-                    label="Sales tax included in amount"
-                  />
-                  {salesTaxIncluded && (
-                    <TextField
-                      label="Sales Tax Rate"
-                      type="number"
-                      value={salesTaxRate * 100}
-                      onChange={(e) => setSalesTaxRate(parseFloat(e.target.value) / 100)}
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      InputProps={{
-                        endAdornment: <Typography>%</Typography>,
-                      }}
-                      helperText={`Default rate: ${DEFAULT_SALES_TAX_RATE * 100}%`}
-                    />
-                  )}
-                </Box>
-              )}
-
-              {transactionType === 'transfer' && (
-                <Tooltip title="Select the account to transfer funds to">
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Transfer To Account</InputLabel>
-                    <Select
-                      value={otherSideAccount}
-                      onChange={(e) => setOtherSideAccount(e.target.value)}
-                      label="Transfer To Account"
-                      error={transaction.businessAccount === otherSideAccount}
-                    >
-                      {accounts.map((account) => (
-                        <MenuItem key={account.id} value={account.name}>
-                          {account.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {transaction.businessAccount === otherSideAccount && (
-                      <Typography color="error" variant="caption">
-                        Cannot transfer to the same account
-                      </Typography>
-                    )}
-                  </FormControl>
-                </Tooltip>
-              )}
-
-              {transactionType === 'asset_purchase' && (
-                <>
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Asset Type</InputLabel>
-                    <Select
-                      value={assetType}
-                      onChange={(e) => setAssetType(e.target.value)}
-                      label="Asset Type"
-                    >
-                      {Object.entries(ASSET_TYPES).map(([key, value]) => (
-                        <MenuItem key={key} value={value}>
-                          {value}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    label="Useful Life (years)"
-                    type="number"
-                    value={usefulLife}
-                    onChange={(e) => setUsefulLife(Number(e.target.value))}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    helperText="Used for depreciation calculations"
-                  />
-
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Depreciation Method</InputLabel>
-                    <Select
-                      value={depreciationMethod}
-                      onChange={(e) => setDepreciationMethod(e.target.value as any)}
-                      label="Depreciation Method"
-                    >
-                      <MenuItem value="Straight Line">Straight Line</MenuItem>
-                      <MenuItem value="Double Declining">Double Declining</MenuItem>
-                      <MenuItem value="Units of Production">Units of Production</MenuItem>
-                    </Select>
-                  </FormControl>
-                </>
-              )}
-
-              <input
-                accept="image/*,.pdf"
-                style={{ display: 'none' }}
-                id="receipt-upload"
-                type="file"
-                onChange={handleFileUpload}
-              />
-              <label htmlFor="receipt-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<AttachFileIcon />}
-                  sx={{ mb: 2 }}
-                >
-                  Attach Receipt
-                </Button>
-              </label>
-              {transaction.receipt && (
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  {transaction.receipt.name}
-                </Typography>
-              )}
-
-              <Button
-                variant="contained"
-                onClick={analyzeTransaction}
-                disabled={isAnalyzing || !transaction.description || !transaction.businessAccount}
-                startIcon={isAnalyzing ? <CircularProgress size={20} /> : null}
-                sx={{ mb: 2 }}
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze Transaction'}
-              </Button>
-            </Grid>
-
-            {analysis && (
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2, bgcolor: '#F8F9FA' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Journal Entry
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Transaction Type
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Tooltip title="The account receiving the funds">
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Debit
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body1">
-                            {analysis.journal_entry.debit.account}
-                          </Typography>
-                          <Chip
-                            label={`$${analysis.journal_entry.debit.amount.toFixed(2)}`}
-                            size="small"
-                            color="primary"
-                          />
-                        </Box>
-                        <FormControl fullWidth sx={{ mt: 1 }}>
-                          <InputLabel>Change Debit Account</InputLabel>
-                          <Select
-                            value={selectedAccount}
-                            onChange={(e) => handleAccountSelect(e.target.value, 'debit')}
-                            label="Change Debit Account"
-                          >
-                            {getAvailableAccounts('debit').map((account) => (
-                              <MenuItem key={account} value={account}>
-                                {account}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </Tooltip>
+                  <ToggleButtonGroup
+                    value={transactionType}
+                    exclusive
+                    onChange={(_, newType) => newType && setTransactionType(newType)}
+                    fullWidth
+                  >
+                    <ToggleButton value="expense">
+                      <ExpenseIcon sx={{ mr: 1 }} />
+                      Expense
+                    </ToggleButton>
+                    <ToggleButton value="income">
+                      <IncomeIcon sx={{ mr: 1 }} />
+                      Income
+                    </ToggleButton>
+                    <ToggleButton value="transfer">
+                      <TransferIcon sx={{ mr: 1 }} />
+                      Transfer
+                    </ToggleButton>
+                    <ToggleButton value="asset_purchase">
+                      <AssetIcon sx={{ mr: 1 }} />
+                      Asset Purchase
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
 
-                    <Tooltip title="The account providing the funds">
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Credit
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body1">
-                            {analysis.journal_entry.credit.account}
-                          </Typography>
-                          <Chip
-                            label={`$${analysis.journal_entry.credit.amount.toFixed(2)}`}
-                            size="small"
-                            color="primary"
-                          />
-                        </Box>
-                        <FormControl fullWidth sx={{ mt: 1 }}>
-                          <InputLabel>Change Credit Account</InputLabel>
-                          <Select
-                            value={otherSideAccount}
-                            onChange={(e) => handleAccountSelect(e.target.value, 'credit')}
-                            label="Change Credit Account"
-                          >
-                            {getAvailableAccounts('credit').map((account) => (
-                              <MenuItem key={account} value={account}>
-                                {account}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </Tooltip>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label="Date"
+                    value={transaction.date}
+                    onChange={(newDate) => newDate && setTransaction({ ...transaction, date: newDate })}
+                    sx={{ width: '100%', mb: 2 }}
+                  />
+                </LocalizationProvider>
 
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Type
-                      </Typography>
-                      <Chip
-                        label={analysis.type}
-                        color={analysis.type === 'income' ? 'success' : analysis.type === 'expense' ? 'error' : 'warning'}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Confidence
-                      </Typography>
-                      <Chip
-                        label={`${Math.round(analysis.confidence * 100)}%`}
-                        color={analysis.confidence > 0.8 ? 'success' : 'warning'}
-                      />
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Explanation
-                      </Typography>
-                      <Typography variant="body2">
-                        {analysis.explanation}
-                      </Typography>
-                    </Box>
+                <TextField
+                  label="Amount"
+                  type="number"
+                  value={transaction.amount}
+                  onChange={(e) => setTransaction({ ...transaction, amount: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => {
+                    if (transaction.amount === 0) {
+                      setTransaction({ ...transaction, amount: NaN });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (isNaN(transaction.amount)) {
+                      setTransaction({ ...transaction, amount: 0 });
+                    }
+                  }}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                  }}
+                />
 
-                    {analysis.sales_tax && (
-                      <>
-                        <Divider />
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">
-                            Sales Tax Breakdown
-                          </Typography>
-                          <Box sx={{ mt: 1 }}>
-                            <Typography variant="body2">
-                              Total Amount: ${transaction.amount.toFixed(2)}
-                            </Typography>
-                            <Typography variant="body2">
-                              Revenue: ${analysis.sales_tax.revenue.toFixed(2)}
-                            </Typography>
-                            <Typography variant="body2">
-                              Sales Tax ({analysis.sales_tax.rate * 100}%): ${analysis.sales_tax.amount.toFixed(2)}
-                            </Typography>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Business Account</InputLabel>
+                  <Select
+                    value={transaction.businessAccount}
+                    onChange={(e) => setTransaction({ ...transaction, businessAccount: e.target.value })}
+                    label="Business Account"
+                  >
+                    {getEligibleBusinessAccounts().length > 0 ? (
+                      getEligibleBusinessAccounts().map((account) => (
+                        <MenuItem key={account.id} value={account.name}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography>{getAccountIcon(account.name)}</Typography>
+                            <Typography>{account.name}</Typography>
                           </Box>
-                        </Box>
-                      </>
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled>
+                        <Typography color="text.secondary">
+                          Add a business account to begin recording transactions
+                        </Typography>
+                      </MenuItem>
                     )}
+                  </Select>
+                </FormControl>
 
-                    {analysis.alternative_suggestions && analysis.alternative_suggestions.length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          Alternative Suggestions
-                        </Typography>
-                        {analysis.alternative_suggestions.map((suggestion, index) => (
-                          <Box
-                            key={index}
-                            sx={{
-                              p: 1,
-                              mb: 1,
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              borderRadius: 1,
-                              cursor: 'pointer',
-                              '&:hover': {
-                                backgroundColor: 'action.hover',
-                              },
-                            }}
-                            onClick={() => handleAccountSelect(suggestion.account, 'debit')}
-                          >
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2">
-                                {suggestion.account}
-                              </Typography>
-                              <Chip
-                                label={`${Math.round(suggestion.confidence * 100)}%`}
-                                size="small"
-                                color={suggestion.confidence > 0.8 ? 'success' : 'warning'}
-                              />
-                            </Box>
-                            <Typography variant="caption" color="text.secondary">
-                              {suggestion.explanation}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
+                <TextField
+                  label="Description"
+                  value={transaction.description}
+                  onChange={(e) => setTransaction({ ...transaction, description: e.target.value })}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  sx={{ mb: 2 }}
+                />
 
-                    {analysis.type === 'asset_purchase' && (
-                      <>
-                        <Divider sx={{ my: 2 }} />
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">
-                            Asset Details
-                          </Typography>
-                          <Box sx={{ mt: 1 }}>
-                            <Typography variant="body2">
-                              Type: {(analysis as AssetPurchaseAnalysis).asset_metadata.description}
-                            </Typography>
-                            <Typography variant="body2">
-                              Useful Life: {(analysis as AssetPurchaseAnalysis).asset_metadata.useful_life_years} years
-                            </Typography>
-                            <Typography variant="body2">
-                              Depreciation Method: {(analysis as AssetPurchaseAnalysis).asset_metadata.depreciation_method}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </>
+                {transactionType === 'income' && (
+                  <Box sx={{ mb: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={salesTaxIncluded}
+                          onChange={(e) => setSalesTaxIncluded(e.target.checked)}
+                        />
+                      }
+                      label="Sales tax included in amount"
+                    />
+                    {salesTaxIncluded && (
+                      <TextField
+                        label="Sales Tax Rate"
+                        type="number"
+                        value={salesTaxRate * 100}
+                        onChange={(e) => setSalesTaxRate(parseFloat(e.target.value) / 100)}
+                        fullWidth
+                        sx={{ mt: 2 }}
+                        InputProps={{
+                          endAdornment: <Typography>%</Typography>,
+                        }}
+                        helperText={`Default rate: ${DEFAULT_SALES_TAX_RATE * 100}%`}
+                      />
                     )}
                   </Box>
-                </Paper>
+                )}
+
+                {transactionType === 'transfer' && (
+                  <Tooltip title="Select the account to transfer funds to">
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Transfer To Account</InputLabel>
+                      <Select
+                        value={otherSideAccount}
+                        onChange={(e) => setOtherSideAccount(e.target.value)}
+                        label="Transfer To Account"
+                        error={transaction.businessAccount === otherSideAccount}
+                      >
+                        {accounts.map((account) => (
+                          <MenuItem key={account.id} value={account.name}>
+                            {account.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {transaction.businessAccount === otherSideAccount && (
+                        <Typography color="error" variant="caption">
+                          Cannot transfer to the same account
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </Tooltip>
+                )}
+
+                {transactionType === 'asset_purchase' && (
+                  <>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Asset Type</InputLabel>
+                      <Select
+                        value={assetType}
+                        onChange={(e) => setAssetType(e.target.value)}
+                        label="Asset Type"
+                      >
+                        {Object.entries(ASSET_TYPES).map(([key, value]) => (
+                          <MenuItem key={key} value={value}>
+                            {value}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <TextField
+                      label="Useful Life (years)"
+                      type="number"
+                      value={usefulLife}
+                      onChange={(e) => setUsefulLife(Number(e.target.value))}
+                      fullWidth
+                      sx={{ mb: 2 }}
+                      helperText="Used for depreciation calculations"
+                    />
+
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Depreciation Method</InputLabel>
+                      <Select
+                        value={depreciationMethod}
+                        onChange={(e) => setDepreciationMethod(e.target.value as any)}
+                        label="Depreciation Method"
+                      >
+                        <MenuItem value="Straight Line">Straight Line</MenuItem>
+                        <MenuItem value="Double Declining">Double Declining</MenuItem>
+                        <MenuItem value="Units of Production">Units of Production</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </>
+                )}
+
+                <input
+                  accept="image/*,.pdf"
+                  style={{ display: 'none' }}
+                  id="receipt-upload"
+                  type="file"
+                  onChange={handleFileUpload}
+                />
+                <label htmlFor="receipt-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<AttachFileIcon />}
+                    sx={{ mb: 2 }}
+                  >
+                    Attach Receipt
+                  </Button>
+                </label>
+                {transaction.receipt && (
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    {transaction.receipt.name}
+                  </Typography>
+                )}
 
                 <Button
                   variant="contained"
-                  color="primary"
-                  fullWidth
-                  onClick={handleSubmit}
-                  sx={{ mt: 2 }}
+                  onClick={handleAnalyzeTransaction}
+                  disabled={isAnalyzing || !transaction.description || !transaction.businessAccount}
+                  startIcon={isAnalyzing ? <CircularProgress size={20} /> : null}
+                  sx={{ mb: 2 }}
                 >
-                  Record Transaction
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Transaction'}
                 </Button>
               </Grid>
-            )}
-          </Grid>
-        </Paper>
+
+              {analysis && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, bgcolor: '#F8F9FA' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Journal Entry
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Tooltip title="The account receiving the funds">
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Debit
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body1">
+                              {analysis.journal_entry.debit.account}
+                            </Typography>
+                            <Chip
+                              label={`$${analysis.journal_entry.debit.amount.toFixed(2)}`}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                          <FormControl fullWidth sx={{ mt: 1 }}>
+                            <InputLabel>Change Debit Account</InputLabel>
+                            <Select
+                              value={selectedAccount}
+                              onChange={(e) => handleAccountSelect(e.target.value, 'debit')}
+                              label="Change Debit Account"
+                            >
+                              {getAvailableAccounts('debit').map((account) => (
+                                <MenuItem key={account} value={account}>
+                                  {account}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </Tooltip>
+
+                      <Tooltip title="The account providing the funds">
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Credit
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body1">
+                              {analysis.journal_entry.credit.account}
+                            </Typography>
+                            <Chip
+                              label={`$${analysis.journal_entry.credit.amount.toFixed(2)}`}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                          <FormControl fullWidth sx={{ mt: 1 }}>
+                            <InputLabel>Change Credit Account</InputLabel>
+                            <Select
+                              value={otherSideAccount}
+                              onChange={(e) => handleAccountSelect(e.target.value, 'credit')}
+                              label="Change Credit Account"
+                            >
+                              {getAvailableAccounts('credit').map((account) => (
+                                <MenuItem key={account} value={account}>
+                                  {account}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </Tooltip>
+
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Type
+                        </Typography>
+                        <Chip
+                          label={analysis.type}
+                          color={analysis.type === 'income' ? 'success' : analysis.type === 'expense' ? 'error' : 'warning'}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Confidence
+                        </Typography>
+                        <Chip
+                          label={`${Math.round(analysis.confidence * 100)}%`}
+                          color={analysis.confidence > 0.8 ? 'success' : 'warning'}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Explanation
+                        </Typography>
+                        <Typography variant="body2">
+                          {analysis.explanation}
+                        </Typography>
+                      </Box>
+
+                      {analysis.sales_tax && (
+                        <>
+                          <Divider />
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Sales Tax Breakdown
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2">
+                                Total Amount: ${transaction.amount.toFixed(2)}
+                              </Typography>
+                              <Typography variant="body2">
+                                Revenue: ${analysis.sales_tax.revenue.toFixed(2)}
+                              </Typography>
+                              <Typography variant="body2">
+                                Sales Tax ({analysis.sales_tax.rate * 100}%): ${analysis.sales_tax.amount.toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </>
+                      )}
+
+                      {analysis.alternative_suggestions && analysis.alternative_suggestions.length > 0 && (
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Alternative Suggestions
+                          </Typography>
+                          {analysis.alternative_suggestions.map((suggestion, index) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                p: 1,
+                                mb: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover',
+                                },
+                              }}
+                              onClick={() => handleAccountSelect(suggestion.account, 'debit')}
+                            >
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2">
+                                  {suggestion.account}
+                                </Typography>
+                                <Chip
+                                  label={`${Math.round(suggestion.confidence * 100)}%`}
+                                  size="small"
+                                  color={suggestion.confidence > 0.8 ? 'success' : 'warning'}
+                                />
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                {suggestion.explanation}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
+
+                      {analysis.type === 'asset_purchase' && (
+                        <>
+                          <Divider sx={{ my: 2 }} />
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Asset Details
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2">
+                                Type: {(analysis as AssetPurchaseAnalysis).asset_metadata.description}
+                              </Typography>
+                              <Typography variant="body2">
+                                Useful Life: {(analysis as AssetPurchaseAnalysis).asset_metadata.useful_life_years} years
+                              </Typography>
+                              <Typography variant="body2">
+                                Depreciation Method: {(analysis as AssetPurchaseAnalysis).asset_metadata.depreciation_method}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </>
+                      )}
+                    </Box>
+                  </Paper>
+
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    onClick={handleSubmit}
+                    sx={{ mt: 2 }}
+                  >
+                    Record Transaction
+                  </Button>
+                </Grid>
+              )}
+            </Grid>
+          </Paper>
+        ) : (
+          <ManualJournalEntry />
+        )}
       </Box>
     </Layout>
   );

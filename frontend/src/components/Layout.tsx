@@ -1,123 +1,158 @@
-import React from 'react';
-import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton } from '@mui/material';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Box,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  Tooltip,
+  Divider,
+} from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   AccountBalance as AccountBalanceIcon,
   Receipt as ReceiptIcon,
   Assessment as AssessmentIcon,
-  Menu as MenuIcon,
+  Description as DescriptionIcon,
+  History as HistoryIcon,
+  Settings as SettingsIcon,
+  Help as HelpIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Book as BookIcon,
 } from '@mui/icons-material';
+import { useToast } from '../contexts/ToastContext';
 
-const drawerWidth = 240;
+const menuItems = [
+  { icon: <DashboardIcon />, text: 'Dashboard', path: '/dashboard' },
+  { icon: <ReceiptIcon />, text: 'Transactions', path: '/transactions' },
+  { icon: <BookIcon />, text: 'Ledger', path: '/ledger' },
+  { icon: <AccountBalanceIcon />, text: 'Chart of Accounts', path: '/setup/chart-of-accounts' },
+  { icon: <AssessmentIcon />, text: 'Financial Statements', path: '/financial-statements' },
+  { icon: <DescriptionIcon />, text: 'Working Papers', path: '/working-papers' },
+  { icon: <HistoryIcon />, text: 'Audit Trail', path: '/audit-trail' },
+  { icon: <SettingsIcon />, text: 'Settings', path: '/settings' },
+  { icon: <HelpIcon />, text: 'Support', path: '/support', isComingSoon: true },
+];
 
 interface LayoutProps {
   children: React.ReactNode;
+  initialSidebarOpen?: boolean;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+const Layout: React.FC<LayoutProps> = ({ children, initialSidebarOpen = false }) => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [sidebarOpen, setSidebarOpen] = useState(initialSidebarOpen);
+  const { showToast } = useToast();
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Accounts', icon: <AccountBalanceIcon />, path: '/accounts' },
-    { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
-    { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
-  ];
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const handleMenuItemClick = (item: typeof menuItems[0]) => {
+    if (item.isComingSoon) {
+      showToast('This feature is coming soon!', 'info');
+      return;
+    }
+    navigate(item.path);
   };
 
-  const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          BetterBooks
-        </Typography>
-      </Toolbar>
-      <List>
-        {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => navigate(item.path)}
-            selected={location.pathname === item.path}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <Paper
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: sidebarOpen ? 240 : 64,
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          zIndex: 1000,
+          background: 'linear-gradient(135deg, #1E2D3D 0%, #0F1C2B 100%)',
+          color: '#FFFFFF',
+          transition: 'width 0.3s ease-in-out',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            {menuItems.find((item) => item.path === location.pathname)?.text || 'BetterBooks'}
-          </Typography>
-        </Toolbar>
-      </AppBar>
+        {/* Top Section with Logo */}
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img
+            src="/favicon.ico"
+            alt="BetterBooks"
+            style={{ height: 48, width: 48, objectFit: 'contain' }}
+          />
+        </Box>
+
+        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+
+        {/* Menu Items */}
+        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+          <List>
+            {menuItems.map((item, index) => (
+              <Tooltip
+                key={index}
+                title={item.text}
+                placement="right"
+                arrow
+                disableHoverListener={sidebarOpen}
+              >
+                <ListItem
+                  button
+                  onClick={() => handleMenuItemClick(item)}
+                  sx={{
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: location.pathname === item.path ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: '#FFFFFF', minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  {sidebarOpen && <ListItemText primary={item.text} />}
+                </ListItem>
+              </Tooltip>
+            ))}
+          </List>
+        </Box>
+
+        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+
+        {/* Bottom Section with Expand/Collapse Button */}
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Tooltip title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'} placement="right" arrow>
+            <IconButton
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              sx={{ color: '#FFFFFF' }}
+            >
+              {sidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Paper>
+
+      {/* Main Content */}
       <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
         sx={{
           flexGrow: 1,
+          ml: sidebarOpen ? '240px' : '64px',
+          transition: 'margin-left 0.3s ease-in-out',
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        <Toolbar />
         {children}
       </Box>
     </Box>
   );
-}; 
+};
+
+export default Layout; 

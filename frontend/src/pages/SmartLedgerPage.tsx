@@ -25,6 +25,8 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -37,10 +39,14 @@ import {
   CheckCircle as CheckCircleIcon,
   Download as DownloadIcon,
   Edit as EditIcon,
+  NavigateNext as NavigateNextIcon,
+  Dashboard as DashboardIcon,
+  Book as BookIcon,
 } from '@mui/icons-material';
 import { DateRangePicker } from '@mui/x-date-pickers-pro';
 import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import { AdapterDateFns } from '@mui/x-date-pickers-pro/AdapterDateFns';
+import { Link as RouterLink } from 'react-router-dom';
 import type { DateRange } from '@mui/x-date-pickers-pro/models';
 import type { LedgerEntry, LedgerFilters, TransactionType, EntryStatus } from '../types/ledger';
 import LedgerEntryDetails from '../components/LedgerEntryDetails';
@@ -115,35 +121,67 @@ const SmartLedger: React.FC = () => {
   const mockLedgerEntries: LedgerEntry[] = [
     {
       id: '1',
-      date: new Date(),
+      date: new Date().toISOString(),
+      account: {
+        id: 'exp-001',
+        name: 'Office Expenses',
+        type: 'expense',
+        balance: 0,
+        currency: 'USD',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       description: 'Office Supplies Purchase',
-      transactionType: 'EXPENSE',
-      accountId: 'exp-001',
-      accountName: 'Office Expenses',
       debit: 150.00,
       credit: 0,
-      balance: -150.00,
-      status: 'PENDING',
+      balanceAfter: -150.00,
+      isFlagged: true,
+      hasNegativeBalance: true,
       attachments: [{
-        id: 'att-1',
-        type: 'RECEIPT',
-        url: '#',
-        filename: 'receipt.pdf'
+        type: 'receipt',
+        name: 'receipt.pdf',
+        url: '#'
       }],
-      metadata: {
-        createdAt: new Date(),
-        createdBy: 'user1',
-        aiSuggested: true,
-        aiConfidence: 0.95,
-      },
-      relatedAccounts: [],
-      auditTrail: [],
     },
     // Add more mock entries as needed
   ];
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs
+        separator={<NavigateNextIcon fontSize="small" />}
+        aria-label="breadcrumb"
+        sx={{ mb: 2 }}
+      >
+        <Link
+          component={RouterLink}
+          to="/dashboard"
+          color="inherit"
+          sx={{ display: 'flex', alignItems: 'center' }}
+        >
+          <DashboardIcon sx={{ mr: 0.5, fontSize: 20 }} />
+          Dashboard
+        </Link>
+        <Link
+          component={RouterLink}
+          to="/transactions"
+          color="inherit"
+          sx={{ display: 'flex', alignItems: 'center' }}
+        >
+          <ReceiptIcon sx={{ mr: 0.5, fontSize: 20 }} />
+          Transactions
+        </Link>
+        <Typography
+          color="text.primary"
+          sx={{ display: 'flex', alignItems: 'center' }}
+        >
+          <BookIcon sx={{ mr: 0.5, fontSize: 20 }} />
+          Ledger
+        </Typography>
+      </Breadcrumbs>
+
       <Typography variant="h4" gutterBottom sx={{ color: '#1a237e', fontWeight: 600 }}>
         Ledger & Audit Trail
       </Typography>
@@ -164,7 +202,7 @@ const SmartLedger: React.FC = () => {
               {auditReadiness}% Complete
             </Typography>
             <Chip
-              label={`${mockLedgerEntries.filter(e => e.status === 'PENDING').length} Pending Reviews`}
+              label={`${mockLedgerEntries.filter(e => e.isFlagged).length} Flagged Entries`}
               color="warning"
               size="small"
             />
@@ -287,28 +325,28 @@ const SmartLedger: React.FC = () => {
                   <React.Fragment key={entry.id}>
                     <StyledTableRow
                       onClick={() => handleRowClick(entry.id)}
-                      className={entry.metadata.flagged ? 'flagged' : entry.metadata.aiSuggested ? 'ai-suggested' : ''}
+                      className={entry.isFlagged ? 'flagged' : ''}
                     >
-                      <StyledTableCell>{entry.date.toLocaleDateString()}</StyledTableCell>
+                      <StyledTableCell>{new Date(entry.date).toLocaleDateString()}</StyledTableCell>
                       <StyledTableCell>{entry.description}</StyledTableCell>
-                      <StyledTableCell>{entry.accountName}</StyledTableCell>
+                      <StyledTableCell>{entry.account.name}</StyledTableCell>
                       <StyledTableCell align="right" className="debit">
                         {entry.debit > 0 ? `$${entry.debit.toFixed(2)}` : ''}
                       </StyledTableCell>
                       <StyledTableCell align="right" className="credit">
                         {entry.credit > 0 ? `$${entry.credit.toFixed(2)}` : ''}
                       </StyledTableCell>
-                      <StyledTableCell align="right">${entry.balance.toFixed(2)}</StyledTableCell>
+                      <StyledTableCell align="right">${entry.balanceAfter.toFixed(2)}</StyledTableCell>
                       <StyledTableCell>
                         <Chip
-                          label={entry.status}
-                          color={entry.status === 'REVIEWED' ? 'success' : entry.status === 'PENDING' ? 'warning' : 'default'}
+                          label={entry.isFlagged ? 'Flagged' : 'Normal'}
+                          color={entry.isFlagged ? 'warning' : 'default'}
                           size="small"
                         />
                       </StyledTableCell>
                       <StyledTableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          {entry.attachments.length > 0 && (
+                          {entry.attachments && entry.attachments.length > 0 && (
                             <Tooltip title="View Attachments">
                               <IconButton size="small">
                                 <ReceiptIcon />

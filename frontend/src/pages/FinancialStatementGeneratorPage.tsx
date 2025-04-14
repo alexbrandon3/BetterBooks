@@ -1,275 +1,149 @@
 import React, { useState } from 'react';
 import {
   Box,
+  Container,
   Paper,
   Typography,
+  Button,
   Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  TextField,
-  Button,
-  FormControlLabel,
-  Checkbox,
-  ToggleButton,
-  ToggleButtonGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   IconButton,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  SelectChangeEvent,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import {
-  DateRange as DateRangeIcon,
-  Description as DescriptionIcon,
-  CompareArrows as CompareArrowsIcon,
-  PictureAsPdf as PdfIcon,
-  GridOn as ExcelIcon,
-  TableChart as CsvIcon,
-  Preview as PreviewIcon,
-  Email as EmailIcon,
-  Save as SaveIcon,
-  Link as LinkIcon,
+  Download as DownloadIcon,
+  Print as PrintIcon,
+  Share as ShareIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { DateRangePicker } from '@mui/x-date-pickers-pro';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
-import { AdapterDateFns } from '@mui/x-date-pickers-pro/AdapterDateFns';
-import type { DateRange } from '@mui/x-date-pickers-pro/models';
-import FinancialStatementDisplay from '../components/FinancialStatementDisplay';
+import { styled } from '@mui/material/styles';
+import Layout from '../components/Layout';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
-  margin: theme.spacing(2),
-  backgroundColor: '#fff',
-  borderRadius: '12px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  borderRadius: theme.spacing(2),
+  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
 }));
 
-const StyledButton = styled(Button)(({ theme }) => ({
-  margin: theme.spacing(1),
-  padding: theme.spacing(1.5),
-  borderRadius: '8px',
-  textTransform: 'none',
-  fontWeight: 500,
-}));
+const FinancialStatementGeneratorPage: React.FC = () => {
+  const [statementType, setStatementType] = useState('balance-sheet');
+  const [period, setPeriod] = useState('current-month');
 
-const StatementGenerator: React.FC = () => {
-  const [statementType, setStatementType] = useState<string>('balance-sheet');
-  const [dateRange, setDateRange] = useState<DateRange<Date>>([null, null]);
-  const [basis, setBasis] = useState<string>('accrual');
-  const [comparative, setComparative] = useState<boolean>(false);
-  const [includeDescriptions, setIncludeDescriptions] = useState<boolean>(true);
-  const [exportFormat, setExportFormat] = useState<string>('pdf');
-  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
-
-  const handleStatementTypeChange = (event: SelectChangeEvent) => {
-    setStatementType(event.target.value);
-  };
-
-  const handleBasisChange = (event: SelectChangeEvent) => {
-    setBasis(event.target.value);
-  };
-
-  const handleExportFormatChange = (event: React.MouseEvent<HTMLElement>, newFormat: string) => {
-    setExportFormat(newFormat);
-  };
-
-  const handlePreview = () => {
-    setPreviewOpen(true);
-  };
-
-  const handleClosePreview = () => {
-    setPreviewOpen(false);
-  };
-
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting report in format:', exportFormat);
+  const handleGenerate = () => {
+    // Generate statement logic here
+    console.log('Generating statement:', { statementType, period });
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#1a237e', fontWeight: 600 }}>
-        Generate Financial Statements
-      </Typography>
+    <Layout initialSidebarOpen={false}>
+      <Container maxWidth="lg">
+        <StyledPaper elevation={3}>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Financial Statement Generator
+            </Typography>
+            <Typography variant="body1" color="textSecondary">
+              Generate and customize your financial statements
+            </Typography>
+          </Box>
 
-      <StyledPaper>
-        <Grid container spacing={3}>
-          {/* Statement Type Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Statement Type</InputLabel>
-              <Select
-                value={statementType}
-                onChange={handleStatementTypeChange}
-                label="Statement Type"
-              >
-                <MenuItem value="balance-sheet">Balance Sheet</MenuItem>
-                <MenuItem value="income-statement">Income Statement</MenuItem>
-                <MenuItem value="cash-flow">Statement of Cash Flows</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Statement Type</InputLabel>
+                <Select
+                  value={statementType}
+                  onChange={(e) => setStatementType(e.target.value)}
+                  label="Statement Type"
+                >
+                  <MenuItem value="balance-sheet">Balance Sheet</MenuItem>
+                  <MenuItem value="income-statement">Income Statement</MenuItem>
+                  <MenuItem value="cash-flow">Cash Flow Statement</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Period</InputLabel>
+                <Select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  label="Period"
+                >
+                  <MenuItem value="current-month">Current Month</MenuItem>
+                  <MenuItem value="last-month">Last Month</MenuItem>
+                  <MenuItem value="quarter">This Quarter</MenuItem>
+                  <MenuItem value="year">This Year</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
 
-          {/* Date Range Picker */}
-          <Grid item xs={12} md={6}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DateRangePicker
-                value={dateRange}
-                onChange={(newValue) => setDateRange(newValue)}
-                slotProps={{
-                  textField: ({ position }) => ({
-                    label: position === 'start' ? 'Start Date' : 'End Date',
-                  }),
-                }}
-              />
-            </LocalizationProvider>
-          </Grid>
+          <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+            <Button
+              variant="contained"
+              startIcon={<RefreshIcon />}
+              onClick={handleGenerate}
+            >
+              Generate Statement
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              disabled
+            >
+              Download
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              disabled
+            >
+              Print
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ShareIcon />}
+              disabled
+            >
+              Share
+            </Button>
+          </Box>
 
-          {/* Basis Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Basis</InputLabel>
-              <Select
-                value={basis}
-                onChange={handleBasisChange}
-                label="Basis"
-              >
-                <MenuItem value="accrual">Accrual</MenuItem>
-                <MenuItem value="cash">Cash</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Comparative Period Toggle */}
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={comparative}
-                  onChange={(e) => setComparative(e.target.checked)}
-                  icon={<CompareArrowsIcon />}
-                  checkedIcon={<CompareArrowsIcon />}
-                />
-              }
-              label="Include Comparative Period"
-            />
-          </Grid>
-
-          {/* Account Descriptions Toggle */}
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={includeDescriptions}
-                  onChange={(e) => setIncludeDescriptions(e.target.checked)}
-                  icon={<DescriptionIcon />}
-                  checkedIcon={<DescriptionIcon />}
-                />
-              }
-              label="Include Account Descriptions"
-            />
-          </Grid>
-
-          {/* Export Format Selection */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body1">Export Format:</Typography>
-              <ToggleButtonGroup
-                value={exportFormat}
-                exclusive
-                onChange={handleExportFormatChange}
-                aria-label="export format"
-              >
-                <ToggleButton value="pdf" aria-label="pdf">
-                  <Tooltip title="PDF">
-                    <PdfIcon />
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton value="excel" aria-label="excel">
-                  <Tooltip title="Excel">
-                    <ExcelIcon />
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton value="csv" aria-label="csv">
-                  <Tooltip title="CSV">
-                    <CsvIcon />
-                  </Tooltip>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-          </Grid>
-
-          {/* Action Buttons */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <StyledButton
-                variant="contained"
-                color="primary"
-                startIcon={<PreviewIcon />}
-                onClick={handlePreview}
-              >
-                Preview Report
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                color="primary"
-                startIcon={<EmailIcon />}
-                onClick={handleExport}
-              >
-                Email to Accountant
-              </StyledButton>
-              <StyledButton
-                variant="contained"
-                color="primary"
-                startIcon={<SaveIcon />}
-                onClick={handleExport}
-              >
-                Save as Template
-              </StyledButton>
-            </Box>
-          </Grid>
-        </Grid>
-      </StyledPaper>
-
-      {/* Preview Dialog */}
-      <Dialog
-        open={previewOpen}
-        onClose={handleClosePreview}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h5" sx={{ color: '#1a237e', fontWeight: 600 }}>
-            Preview Financial Statement
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <FinancialStatementDisplay
-            statementType={statementType as 'balance-sheet' | 'income-statement' | 'cash-flow'}
-            data={{}}
-            includeDescriptions={includeDescriptions}
-            comparative={comparative}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePreview}>Close</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleExport}
-            startIcon={exportFormat === 'pdf' ? <PdfIcon /> : exportFormat === 'excel' ? <ExcelIcon /> : <CsvIcon />}
-          >
-            Export as {exportFormat.toUpperCase()}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Account</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Sample Account 1</TableCell>
+                  <TableCell align="right">$1,000.00</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Sample Account 2</TableCell>
+                  <TableCell align="right">$2,500.00</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </StyledPaper>
+      </Container>
+    </Layout>
   );
 };
 
-export default StatementGenerator; 
+export default FinancialStatementGeneratorPage; 

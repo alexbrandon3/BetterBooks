@@ -1,21 +1,14 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import LoginPage from '../pages/LoginPage';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{ui}</BrowserRouter>
-    </QueryClientProvider>
+    <BrowserRouter>
+      {ui}
+    </BrowserRouter>
   );
 };
 
@@ -41,7 +34,7 @@ describe('LoginPage', () => {
   it('shows validation error for invalid email', async () => {
     renderWithProviders(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /sign in$/i });
 
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.click(submitButton);
@@ -54,7 +47,7 @@ describe('LoginPage', () => {
   it('shows validation error for short password', async () => {
     renderWithProviders(<LoginPage />);
     const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    const submitButton = screen.getByRole('button', { name: /sign in$/i });
 
     fireEvent.change(passwordInput, { target: { value: '123' } });
     fireEvent.click(submitButton);
@@ -70,8 +63,9 @@ describe('LoginPage', () => {
     expect(registerLink).toHaveAttribute('href', '/register');
   });
 
-  it('has a Google sign-in button', () => {
+  it('allows Google sign-in', () => {
     renderWithProviders(<LoginPage />);
-    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+    expect(googleButton).toBeInTheDocument();
   });
 }); 

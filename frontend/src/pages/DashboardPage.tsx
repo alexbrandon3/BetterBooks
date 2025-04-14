@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -26,6 +27,9 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Menu,
+  MenuItem,
+  Chip,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -44,6 +48,8 @@ import {
   Warning as WarningIcon,
   CalendarToday as CalendarIcon,
   Lightbulb as LightbulbIcon,
+  Check as CheckIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { Line } from 'react-chartjs-2';
@@ -57,6 +63,8 @@ import {
   Tooltip as ChartTooltip,
   Legend,
 } from 'chart.js';
+import Layout from '../components/Layout';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 ChartJS.register(
   CategoryScale,
@@ -91,9 +99,37 @@ const StyledCard = styled(Card)(({ theme }) => ({
 
 const DashboardPage: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [isLoading, setIsLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+
+  const handleNotificationsClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationsClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    markAsRead(id);
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'warning':
+        return <WarningIcon color="warning" />;
+      case 'error':
+        return <WarningIcon color="error" />;
+      case 'success':
+        return <CheckIcon color="success" />;
+      default:
+        return <NotificationsIcon color="info" />;
+    }
+  };
 
   const chartData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -128,14 +164,14 @@ const DashboardPage: React.FC = () => {
   };
 
   const menuItems = [
-    { icon: <DashboardIcon />, text: 'Dashboard' },
-    { icon: <ReceiptIcon />, text: 'Transactions' },
-    { icon: <AccountBalanceIcon />, text: 'Chart of Accounts' },
-    { icon: <AssessmentIcon />, text: 'Financial Statements' },
-    { icon: <DescriptionIcon />, text: 'Working Papers' },
-    { icon: <HistoryIcon />, text: 'Audit Trail' },
-    { icon: <SettingsIcon />, text: 'Settings' },
-    { icon: <HelpIcon />, text: 'Support' },
+    { icon: <DashboardIcon />, text: 'Dashboard', path: '/dashboard' },
+    { icon: <ReceiptIcon />, text: 'Transactions', path: '/transactions' },
+    { icon: <AccountBalanceIcon />, text: 'Chart of Accounts', path: '/setup/chart-of-accounts' },
+    { icon: <AssessmentIcon />, text: 'Financial Statements', path: '/financial-statements' },
+    { icon: <DescriptionIcon />, text: 'Working Papers', path: '/working-papers' },
+    { icon: <HistoryIcon />, text: 'Audit Trail', path: '/audit-trail' },
+    { icon: <SettingsIcon />, text: 'Settings', path: '/settings' },
+    { icon: <HelpIcon />, text: 'Support', path: '/support' },
   ];
 
   const recentTransactions = [
@@ -168,72 +204,19 @@ const DashboardPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Loading...</Typography>
-      </Box>
+      <Layout initialSidebarOpen={true}>
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography>Loading...</Typography>
+        </Box>
+      </Layout>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <Paper
-        sx={{
-          width: sidebarOpen ? 240 : 64,
-          height: '100vh',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          zIndex: 1000,
-          background: 'linear-gradient(135deg, #1E2D3D 0%, #0F1C2B 100%)',
-          color: '#FFFFFF',
-          transition: 'width 0.3s ease-in-out',
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {sidebarOpen && (
-            <img
-              src="/logo.png"
-              alt="BetterBooks"
-              style={{ height: 40, marginRight: 8 }}
-            />
-          )}
-          <IconButton
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            sx={{ color: '#FFFFFF' }}
-          >
-            {sidebarOpen ? '<' : '>'}
-          </IconButton>
-        </Box>
-        <List>
-          {menuItems.map((item, index) => (
-            <ListItem
-              key={index}
-              button
-              sx={{
-                mb: 1,
-                borderRadius: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: '#FFFFFF', minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
-              {sidebarOpen && <ListItemText primary={item.text} />}
-            </ListItem>
-          ))}
-        </List>
-      </Paper>
-
-      {/* Main Content */}
+    <Layout initialSidebarOpen={true}>
       <Box
         sx={{
           flexGrow: 1,
-          ml: sidebarOpen ? '240px' : '64px',
-          transition: 'margin-left 0.3s ease-in-out',
           p: 3,
         }}
       >
@@ -249,19 +232,99 @@ const DashboardPage: React.FC = () => {
           <Typography variant="h4" component="h1">
             Welcome back, Acme Corp
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box>
             <Tooltip title="Notifications">
-              <IconButton>
-                <Badge badgeContent={3} color="error">
+              <IconButton
+                color="inherit"
+                onClick={handleNotificationsClick}
+                sx={{ position: 'relative' }}
+              >
+                <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
             </Tooltip>
-            <Tooltip title="Profile">
-              <IconButton>
-                <Avatar>AC</Avatar>
-              </IconButton>
-            </Tooltip>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleNotificationsClose}
+              PaperProps={{
+                sx: {
+                  width: 360,
+                  maxHeight: 400,
+                },
+              }}
+            >
+              <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">Notifications</Typography>
+                <Box>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      markAllAsRead();
+                      handleNotificationsClose();
+                    }}
+                    disabled={unreadCount === 0}
+                  >
+                    Mark all as read
+                  </Button>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => {
+                      clearAll();
+                      handleNotificationsClose();
+                    }}
+                    disabled={notifications.length === 0}
+                  >
+                    Clear all
+                  </Button>
+                </Box>
+              </Box>
+              <Divider />
+              {notifications.length === 0 ? (
+                <MenuItem disabled>
+                  <Typography color="textSecondary">No notifications</Typography>
+                </MenuItem>
+              ) : (
+                notifications.map((notification) => (
+                  <MenuItem
+                    key={notification.id}
+                    onClick={() => {
+                      handleMarkAsRead(notification.id);
+                      handleNotificationsClose();
+                    }}
+                    sx={{
+                      opacity: notification.read ? 0.7 : 1,
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    }}
+                  >
+                    <ListItemIcon>{getNotificationIcon(notification.type)}</ListItemIcon>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2" color="textPrimary">
+                        {notification.title}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {notification.message}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary" display="block">
+                        {new Date(notification.timestamp).toLocaleString()}
+                      </Typography>
+                    </Box>
+                    {!notification.read && (
+                      <Chip
+                        size="small"
+                        label="New"
+                        color="primary"
+                        sx={{ ml: 1 }}
+                      />
+                    )}
+                  </MenuItem>
+                ))
+              )}
+            </Menu>
           </Box>
         </Box>
 
@@ -463,7 +526,7 @@ const DashboardPage: React.FC = () => {
           </Grid>
         </Grid>
       </Box>
-    </Box>
+    </Layout>
   );
 };
 

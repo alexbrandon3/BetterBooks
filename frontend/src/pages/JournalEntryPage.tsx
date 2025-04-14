@@ -386,62 +386,51 @@ const JournalEntryPage: React.FC = () => {
     }
   };
 
-  // Function to analyze journal entry
-  const analyzeEntry = (entry: JournalEntry) => {
-    const debitPrediction = getSuggestedAccount(entry.description, 'debit');
-    const creditPrediction = getSuggestedAccount(entry.description, 'credit');
+  // Validation function to check for hardcoded defaults
+  const validateAccountMappings = () => {
+    const errors: string[] = [];
+    
+    // Check for hardcoded account references in ACCOUNT_MAPPINGS
+    Object.entries(ACCOUNT_MAPPINGS).forEach(([type, mappings]) => {
+      mappings.forEach((mapping, index) => {
+        if (!mapping.keywords || mapping.keywords.length === 0) {
+          errors.push(`Error in ${type} mapping ${index}: No keywords defined`);
+        }
+        if (!mapping.patterns || mapping.patterns.length === 0) {
+          errors.push(`Error in ${type} mapping ${index}: No patterns defined`);
+        }
+        if (!mapping.account) {
+          errors.push(`Error in ${type} mapping ${index}: No account defined`);
+        }
+      });
+    });
 
-    // If we need more information or confidence is low, return a prompt for details
-    if (!debitPrediction || debitPrediction.confidence < 0.7) {
-      return {
-        debit: {
-          account: CHART_OF_ACCOUNTS.expenses.other,
-          confidence: 0.3,
-          reasoning: 'Please provide more details about this transaction to help us categorize it correctly.',
-          alternatives: [
-            {
-              account: CHART_OF_ACCOUNTS.expenses.other,
-              confidence: 0.3,
-              reasoning: 'Consider adding more context like: vendor name, purpose, or specific service/product',
-            },
-          ],
-          needsMoreInfo: true,
-          suggestedQuestions: [
-            'What type of expense is this?',
-            'Who is the vendor?',
-            'What was purchased or what service was provided?',
-            'Is this related to a specific project or job?',
-          ],
-        },
-        credit: {
-          account: creditPrediction?.account || CHART_OF_ACCOUNTS.income.other_income,
-          confidence: creditPrediction?.confidence || 0.42,
-          reasoning: creditPrediction?.reasoning || 'No specific prediction available',
-          alternatives: creditPrediction?.alternatives,
-        },
-      };
-    }
+    // Check for hardcoded defaults in getSuggestedAccount
+    const testDescriptions = ['', 'test', 'random', 'unknown'];
+    testDescriptions.forEach(desc => {
+      const prediction = getSuggestedAccount(desc, 'debit');
+      if (prediction?.account === CHART_OF_ACCOUNTS.expenses.fuel) {
+        errors.push(`Error: Fuel expense used as default for description "${desc}"`);
+      }
+      if (prediction?.confidence > 0.3 && !prediction?.needsMoreInfo) {
+        errors.push(`Error: High confidence without proper matching for description "${desc}"`);
+      }
+    });
 
-    // For all other cases, use the predictions from getSuggestedAccount
-    return {
-      debit: {
-        account: debitPrediction.account,
-        confidence: debitPrediction.confidence,
-        reasoning: debitPrediction.reasoning,
-        alternatives: debitPrediction.alternatives || [],
-      },
-      credit: {
-        account: creditPrediction?.account || CHART_OF_ACCOUNTS.income.other_income,
-        confidence: creditPrediction?.confidence || 0.42,
-        reasoning: creditPrediction?.reasoning || 'No specific prediction available',
-        alternatives: creditPrediction?.alternatives,
-      },
-    };
+    return errors;
   };
 
   // Test the account prediction logic
   const testAccountPrediction = () => {
     console.log('Testing account prediction logic...');
+    
+    // Run validation
+    const validationErrors = validateAccountMappings();
+    if (validationErrors.length > 0) {
+      console.error('Validation errors found:');
+      validationErrors.forEach(error => console.error(error));
+      throw new Error('Account mapping validation failed');
+    }
     
     // Direct test for fuel expense
     const fuelTest = getSuggestedAccount('fuel', 'debit');
