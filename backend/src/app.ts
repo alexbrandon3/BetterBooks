@@ -5,6 +5,7 @@ import { AppDataSource } from './config/database';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
+import transactionRoutes from './routes/transactionRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +32,7 @@ AppDataSource.initialize()
 // Routes will be added here
 // app.use('/api/auth', authRoutes);
 // app.use('/api/accounts', accountRoutes);
-// app.use('/api/transactions', transactionRoutes);
+app.use('/api/transactions', transactionRoutes);
 // app.use('/api/documents', documentRoutes);
 
 // Error handling

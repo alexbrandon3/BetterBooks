@@ -57,8 +57,7 @@ const ACCOUNT_KEYWORDS: Record<AccountType, { keywords: string[]; weight: number
 
 const COMMON_PATTERNS: Record<AccountType, string[]> = {
   asset: [
-    '{type} {bank}',
-    '{type} {company}',
+    '{bank} Account',
     '{company} {type}',
     '{type} Account',
     '{company} Account'
@@ -92,6 +91,10 @@ const COMMON_PATTERNS: Record<AccountType, string[]> = {
   ]
 };
 
+// Common prefixes and suffixes to avoid duplication
+const COMMON_PREFIXES = ['the', 'our', 'my', 'your', 'their'];
+const COMMON_SUFFIXES = ['account', 'fund', 'balance', 'money', 'cash'];
+
 export const analyzeAccountName = (name: string): AccountMatch | null => {
   const lowerName = name.toLowerCase();
   const matches: AccountMatch[] = [];
@@ -119,22 +122,45 @@ export const getAccountNameSuggestions = (type: AccountType, name: string): Acco
   const lowerName = name.toLowerCase();
   
   // Extract potential company/type names from input
-  const words = name.split(' ').filter(word => word.length > 2);
+  const words = name.split(' ')
+    .filter(word => word.length > 2)
+    .map(word => word.toLowerCase())
+    .filter(word => !COMMON_PREFIXES.includes(word) && !COMMON_SUFFIXES.includes(word));
+
   const companyName = words.find(word => 
     !Object.values(ACCOUNT_KEYWORDS).some(({ keywords }) => 
-      keywords.includes(word.toLowerCase())
+      keywords.includes(word)
     )
   ) || '';
 
   // Generate suggestions based on patterns
   COMMON_PATTERNS[type].forEach(pattern => {
-    const suggestion = pattern
+    let suggestion = pattern
       .replace('{type}', words[0] || '')
       .replace('{company}', companyName)
       .replace('{owner}', companyName || 'Owner')
       .replace('{bank}', words.find(w => 
-        ['bank', 'credit', 'savings', 'checking'].includes(w.toLowerCase())
+        ['bank', 'credit', 'savings', 'checking'].includes(w)
       ) || 'Bank');
+
+    // Clean up the suggestion
+    suggestion = suggestion
+      .split(' ')
+      .filter((word, index, array) => {
+        // Remove duplicate words
+        if (index > 0 && word.toLowerCase() === array[index - 1].toLowerCase()) {
+          return false;
+        }
+        // Remove redundant prefixes/suffixes
+        if (index === 0 && COMMON_PREFIXES.includes(word.toLowerCase())) {
+          return false;
+        }
+        if (index === array.length - 1 && COMMON_SUFFIXES.includes(word.toLowerCase())) {
+          return false;
+        }
+        return true;
+      })
+      .join(' ');
 
     if (suggestion && suggestion !== name) {
       const score = calculateSuggestionScore(suggestion, lowerName);
@@ -152,18 +178,21 @@ export const getAccountNameSuggestions = (type: AccountType, name: string): Acco
   return suggestions.sort((a, b) => b.score - a.score);
 };
 
+// Helper function to calculate suggestion score
 const calculateSuggestionScore = (suggestion: string, originalName: string): number => {
   const suggestionWords = suggestion.toLowerCase().split(' ');
-  const originalWords = originalName.split(' ');
+  const originalWords = originalName.toLowerCase().split(' ');
   
   // Calculate word overlap
   const matchingWords = suggestionWords.filter(word => 
-    originalWords.includes(word)
-  ).length;
+    originalWords.includes(word) && 
+    !COMMON_PREFIXES.includes(word) && 
+    !COMMON_SUFFIXES.includes(word)
+  );
   
-  // Calculate length similarity
-  const lengthDiff = Math.abs(suggestion.length - originalName.length);
-  const lengthScore = 1 - (lengthDiff / Math.max(suggestion.length, originalName.length));
+  // Calculate score based on matching words and length
+  const wordScore = matchingWords.length / Math.max(suggestionWords.length, originalWords.length);
+  const lengthScore = 1 - Math.abs(suggestionWords.length - originalWords.length) / Math.max(suggestionWords.length, originalWords.length);
   
-  return (matchingWords / suggestionWords.length) * 0.7 + lengthScore * 0.3;
+  return (wordScore + lengthScore) / 2;
 }; 

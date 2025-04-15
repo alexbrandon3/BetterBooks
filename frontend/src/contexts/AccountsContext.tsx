@@ -204,8 +204,8 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load accounts');
-        // Fallback to sample accounts if API fails
-        setAccounts(SAMPLE_ACCOUNTS);
+        // Don't fall back to sample accounts, just set an empty array
+        setAccounts([]);
       } finally {
         setIsLoading(false);
       }

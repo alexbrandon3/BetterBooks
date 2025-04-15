@@ -808,6 +808,10 @@ const TransactionEntryPage: React.FC = () => {
 
   // Function to get eligible business accounts
   const getEligibleBusinessAccounts = () => {
+    if (!accounts || accounts.length === 0) {
+      return [];
+    }
+
     const eligibleAccounts = accounts.filter(account => {
       // Only include active accounts
       if (!account.isActive) return false;
@@ -828,17 +832,13 @@ const TransactionEntryPage: React.FC = () => {
           accountName.includes('paypal') ||
           accountName.includes('stripe') ||
           accountName.includes('square') ||
-          accountName.includes('undeposited funds')
+          accountName.includes('undeposited funds') ||
+          accountName.includes('payment processor') ||
+          accountName.includes('merchant account')
         );
       }
 
-      // Include liability accounts with specific subtypes
-      if (account.type === 'liability') {
-        const subType = account.subType?.toLowerCase() || '';
-        return subType.includes('current') || subType.includes('credit card');
-      }
-
-      return false;
+      return false; // Only include asset accounts
     });
 
     // Sort accounts alphabetically by name
@@ -929,15 +929,15 @@ const TransactionEntryPage: React.FC = () => {
                 <TextField
                   label="Amount"
                   type="number"
-                  value={transaction.amount}
+                  value={transaction.amount === 0 ? '' : transaction.amount}
                   onChange={(e) => setTransaction({ ...transaction, amount: parseFloat(e.target.value) || 0 })}
                   onFocus={(e) => {
                     if (transaction.amount === 0) {
-                      setTransaction({ ...transaction, amount: NaN });
+                      e.target.value = '';
                     }
                   }}
                   onBlur={(e) => {
-                    if (isNaN(transaction.amount)) {
+                    if (e.target.value === '') {
                       setTransaction({ ...transaction, amount: 0 });
                     }
                   }}

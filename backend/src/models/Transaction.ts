@@ -2,8 +2,9 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Account } from './Account';
 
 export enum TransactionType {
-  DEBIT = 'debit',
-  CREDIT = 'credit',
+  EXPENSE = 'expense',
+  REVENUE = 'revenue',
+  TRANSFER = 'transfer'
 }
 
 @Entity('transactions')
@@ -12,7 +13,20 @@ export class Transaction {
   id!: string;
 
   @Column()
+  date!: Date;
+
+  @Column()
   description!: string;
+
+  @Column('decimal', { precision: 19, scale: 4 })
+  amount!: number;
+
+  @ManyToOne(() => Account)
+  @JoinColumn({ name: 'accountId' })
+  account!: Account;
+
+  @Column()
+  accountId!: string;
 
   @Column({
     type: 'enum',
@@ -20,24 +34,18 @@ export class Transaction {
   })
   type!: TransactionType;
 
-  @Column('decimal', { precision: 19, scale: 4 })
-  amount!: number;
-
-  @Column({ type: 'timestamp' })
-  date!: Date;
-
-  @ManyToOne(() => Account, account => account.transactions)
-  @JoinColumn({ name: 'accountId' })
-  account!: Account;
+  @ManyToOne(() => Account)
+  @JoinColumn({ name: 'categoryAccountId' })
+  categoryAccount!: Account;
 
   @Column()
-  accountId!: string;
+  categoryAccountId!: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  referenceNumber!: string | null;
+  @Column({ nullable: true })
+  referenceNumber?: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  notes!: string | null;
+  @Column({ nullable: true })
+  notes?: string;
 
   @Column({ default: false })
   isReconciled!: boolean;

@@ -46,7 +46,7 @@ const AccountFormDialog: React.FC<AccountFormDialogProps> = ({
     name: '',
     type: 'asset',
     subType: '',
-    balance: 0,
+    balance: undefined,
     currency: 'USD',
     isActive: true
   });
@@ -69,7 +69,7 @@ const AccountFormDialog: React.FC<AccountFormDialogProps> = ({
         name: '',
         type: 'asset',
         subType: '',
-        balance: 0,
+        balance: undefined,
         currency: 'USD',
         isActive: true
       });
@@ -129,7 +129,7 @@ const AccountFormDialog: React.FC<AccountFormDialogProps> = ({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = field === 'balance' 
-      ? parseFloat(event.target.value) || 0
+      ? (event.target.value === '' ? undefined : parseFloat(event.target.value))
       : event.target.value;
 
     setFormData(prev => {
@@ -306,32 +306,35 @@ const AccountFormDialog: React.FC<AccountFormDialogProps> = ({
             </Button>
           </Grid>
           <Collapse in={showAdvanced} sx={{ width: '100%' }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Initial Balance"
-                type="number"
-                value={formData.balance}
-                onChange={handleChange('balance')}
-                required
-                InputProps={{
-                  startAdornment: '$'
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label="Currency"
-                value={formData.currency}
-                onChange={handleChange('currency')}
-                required
-              >
-                <MenuItem value="USD">USD</MenuItem>
-                <MenuItem value="EUR">EUR</MenuItem>
-                <MenuItem value="GBP">GBP</MenuItem>
-              </TextField>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Initial Balance"
+                  type="number"
+                  value={formData.balance ?? ''}
+                  onChange={handleChange('balance')}
+                  required
+                  InputProps={{
+                    startAdornment: '$'
+                  }}
+                  placeholder="0.00"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Currency"
+                  value={formData.currency}
+                  onChange={handleChange('currency')}
+                  required
+                >
+                  <MenuItem value="USD">USD</MenuItem>
+                  <MenuItem value="EUR">EUR</MenuItem>
+                  <MenuItem value="GBP">GBP</MenuItem>
+                </TextField>
+              </Grid>
             </Grid>
           </Collapse>
         </Grid>
