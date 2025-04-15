@@ -53,7 +53,7 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
                   Transaction Type
                 </Typography>
                 <Chip
-                  label={entry.transactionType}
+                  label={entry.transactionType || 'N/A'}
                   color={
                     entry.transactionType === 'INCOME'
                       ? 'success'
@@ -70,31 +70,12 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
                   Status
                 </Typography>
                 <Chip
-                  label={entry.status}
-                  color={
-                    entry.status === 'REVIEWED'
-                      ? 'success'
-                      : entry.status === 'PENDING'
-                      ? 'warning'
-                      : 'default'
-                  }
+                  label={entry.isFlagged ? 'FLAGGED' : 'NORMAL'}
+                  color={entry.isFlagged ? 'warning' : 'default'}
                   size="small"
                   sx={{ mt: 0.5 }}
                 />
               </Grid>
-              {entry.metadata.aiSuggested && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    AI Confidence
-                  </Typography>
-                  <Chip
-                    label={`${(entry.metadata.aiConfidence || 0) * 100}%`}
-                    color={entry.metadata.aiConfidence && entry.metadata.aiConfidence > 0.9 ? 'success' : 'warning'}
-                    size="small"
-                    sx={{ mt: 0.5 }}
-                  />
-                </Grid>
-              )}
             </Grid>
           </DetailSection>
 
@@ -113,17 +94,15 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {entry.relatedAccounts.map((account) => (
-                    <TableRow key={account.accountId}>
-                      <StyledTableCell>{account.accountName}</StyledTableCell>
-                      <StyledTableCell align="right" className="debit">
-                        {account.debit > 0 ? `$${account.debit.toFixed(2)}` : ''}
-                      </StyledTableCell>
-                      <StyledTableCell align="right" className="credit">
-                        {account.credit > 0 ? `$${account.credit.toFixed(2)}` : ''}
-                      </StyledTableCell>
-                    </TableRow>
-                  ))}
+                  <TableRow>
+                    <StyledTableCell>{entry.account.name}</StyledTableCell>
+                    <StyledTableCell align="right" className="debit">
+                      {entry.debit > 0 ? `$${entry.debit.toFixed(2)}` : ''}
+                    </StyledTableCell>
+                    <StyledTableCell align="right" className="credit">
+                      {entry.credit > 0 ? `$${entry.credit.toFixed(2)}` : ''}
+                    </StyledTableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>
@@ -133,14 +112,14 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
         {/* Attachments and Audit Trail */}
         <Grid item xs={12} md={6}>
           {/* Attachments */}
-          {entry.attachments.length > 0 && (
+          {entry.attachments && entry.attachments.length > 0 && (
             <DetailSection>
               <Typography variant="h6" gutterBottom>
                 Attachments
               </Typography>
               {entry.attachments.map((attachment) => (
                 <Box
-                  key={attachment.id}
+                  key={attachment.name}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -150,7 +129,7 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
                 >
                   <ReceiptIcon color="action" />
                   <Link href={attachment.url} target="_blank" rel="noopener">
-                    {attachment.filename}
+                    {attachment.name}
                   </Link>
                 </Box>
               ))}
@@ -158,58 +137,52 @@ const LedgerEntryDetails: React.FC<LedgerEntryDetailsProps> = ({ entry }) => {
           )}
 
           {/* Audit Trail */}
-          <DetailSection>
-            <Typography variant="h6" gutterBottom>
-              Audit Trail
-            </Typography>
-            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-              {entry.auditTrail.map((log) => (
-                <Paper
-                  key={log.id}
-                  variant="outlined"
-                  sx={{ p: 2, mb: 1, backgroundColor: 'background.default' }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <TimeIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="textSecondary">
-                      {log.timestamp.toLocaleString()}
+          {entry.auditTrail && entry.auditTrail.length > 0 && (
+            <DetailSection>
+              <Typography variant="h6" gutterBottom>
+                Audit Trail
+              </Typography>
+              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {entry.auditTrail.map((log) => (
+                  <Paper
+                    key={log.id}
+                    variant="outlined"
+                    sx={{ p: 2, mb: 1, backgroundColor: 'background.default' }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TimeIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="textSecondary">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <PersonIcon fontSize="small" color="action" />
+                      <Typography variant="body2">{log.userId || 'System'}</Typography>
+                    </Box>
+                    <Typography variant="body1" gutterBottom>
+                      {log.action} - {log.entityType}
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{log.userId}</Typography>
-                  </Box>
-                  <Typography variant="body1" gutterBottom>
-                    {log.action} - {log.entityType}
-                  </Typography>
-                  {log.changes.map((change, index) => (
-                    <Box key={index} sx={{ ml: 2, mt: 1 }}>
-                      <Typography variant="body2" color="textSecondary">
-                        {change.field}:
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ textDecoration: 'line-through', color: 'error.main' }}
-                      >
-                        {JSON.stringify(change.oldValue)}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'success.main' }}>
-                        {JSON.stringify(change.newValue)}
-                      </Typography>
-                    </Box>
-                  ))}
-                  {log.metadata.deviceInfo && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                      <DeviceIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="textSecondary">
-                        {log.metadata.deviceInfo}
-                      </Typography>
-                    </Box>
-                  )}
-                </Paper>
-              ))}
-            </Box>
-          </DetailSection>
+                    {log.changes && log.changes.map((change, index) => (
+                      <Box key={index} sx={{ ml: 2, mt: 1 }}>
+                        <Typography variant="body2" color="textSecondary">
+                          {change.field}:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ textDecoration: 'line-through', color: 'error.main' }}
+                        >
+                          {JSON.stringify(change.oldValue)}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'success.main' }}>
+                          {JSON.stringify(change.newValue)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Paper>
+                ))}
+              </Box>
+            </DetailSection>
+          )}
         </Grid>
       </Grid>
     </Box>

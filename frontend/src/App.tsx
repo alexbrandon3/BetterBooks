@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme';
 import { ToastProvider } from './contexts/ToastContext';
 import { NotificationsProvider } from './contexts/NotificationsContext';
@@ -16,6 +15,10 @@ import SmartLedger from './pages/SmartLedgerPage';
 import { AccountsProvider } from './contexts/AccountsContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { LedgerProvider } from './contexts/LedgerContext';
+import Layout from './components/Layout';
+import JournalEntryPage from './pages/JournalEntryPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { SetupPage } from './pages/SetupPage';
 
 // Placeholder components for new routes
 const WorkingPapersPage: React.FC = () => <div>Working Papers Page</div>;
@@ -33,22 +36,28 @@ const App: React.FC = () => {
             <ToastProvider>
               <NotificationsProvider>
                 <div data-testid="app-container">
-                  <Router>
-                    <Routes>
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/register" element={<RegisterPage />} />
-                      <Route path="/setup" element={<AssetSetupPage />} />
-                      <Route path="/setup/chart-of-accounts" element={<ChartOfAccountsPage />} />
-                      <Route path="/transactions" element={<TransactionEntryPage />} />
-                      <Route path="/dashboard" element={<DashboardPage />} />
-                      <Route path="/financial-statements" element={<StatementGenerator />} />
-                      <Route path="/working-papers" element={<WorkingPapersPage />} />
-                      <Route path="/audit-trail" element={<AuditTrailPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/support" element={<SupportPage />} />
-                      <Route path="/ledger" element={<SmartLedger />} />
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    </Routes>
+                  <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="/transactions" element={<TransactionEntryPage />} />
+                        <Route path="/journal" element={<JournalEntryPage />} />
+                        <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
+                        <Route path="/setup">
+                          <Route index element={<AssetSetupPage />} />
+                          <Route path="chart-of-accounts" element={<ChartOfAccountsPage />} />
+                        </Route>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/register" element={<RegisterPage />} />
+                        <Route path="/financial-statements" element={<StatementGenerator />} />
+                        <Route path="/working-papers" element={<WorkingPapersPage />} />
+                        <Route path="/audit-trail" element={<AuditTrailPage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/support" element={<SupportPage />} />
+                        <Route path="/ledger" element={<SmartLedger />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </Layout>
                   </Router>
                 </div>
               </NotificationsProvider>

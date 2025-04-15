@@ -21,10 +21,10 @@ export class User {
   @Column({ default: false })
   isEmailVerified!: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   verificationToken!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   resetPasswordToken!: string | null;
 
   @Column({ type: 'timestamp', nullable: true })

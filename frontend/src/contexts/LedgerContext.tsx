@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Account } from '../types/account';
-import { JournalEntry } from '../types/JournalEntry';
+import { useAccounts } from '../contexts/AccountsContext';
 import { 
   LedgerEntry, 
   AccountLedger, 
@@ -10,7 +10,8 @@ import {
   LedgerFilters,
   LedgerSummary,
   ValidationResult,
-  LedgerContextType
+  LedgerContextType,
+  JournalEntry
 } from '../types/ledger';
 
 export const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
@@ -24,11 +25,38 @@ export const useLedger = () => {
 };
 
 export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { accounts = [] } = useAccounts();
   const [ledger, setLedger] = useState<GeneralLedger>({
     accounts: {},
     flaggedTransactions: [],
     lastUpdated: new Date().toISOString()
   });
+
+  // Synchronize accounts with ledger
+  useEffect(() => {
+    if (!Array.isArray(accounts) || accounts.length === 0) return;
+
+    setLedger(prevLedger => {
+      const newLedger = { ...prevLedger };
+      
+      // Add new accounts to ledger
+      accounts.forEach(account => {
+        if (!newLedger.accounts[account.id]) {
+          newLedger.accounts[account.id] = {
+            account,
+            entries: [],
+            currentBalance: account.balance
+          };
+        } else {
+          // Update existing account
+          newLedger.accounts[account.id].account = account;
+          newLedger.accounts[account.id].currentBalance = account.balance;
+        }
+      });
+
+      return newLedger;
+    });
+  }, [accounts]);
 
   const validateJournalEntry = useCallback((entry: JournalEntry): ValidationResult => {
     const errors: string[] = [];
@@ -37,7 +65,7 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Check if debits equal credits
     const totalDebits = entry.debits.reduce((sum, debit) => sum + debit.amount, 0);
     const totalCredits = entry.credits.reduce((sum, credit) => sum + credit.amount, 0);
-    if (totalDebits !== totalCredits) {
+    if (Math.abs(totalDebits - totalCredits) > 0.01) {
       errors.push(`Debits (${totalDebits}) do not equal credits (${totalCredits})`);
     }
 
@@ -60,6 +88,22 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const entryDate = new Date(entry.date);
     if (entryDate > new Date()) {
       warnings.push('Transaction date is in the future');
+    }
+
+    // Check for inactive accounts
+    const hasInactiveAccount = [...entry.debits, ...entry.credits].some(
+      line => !line.account.isActive
+    );
+    if (hasInactiveAccount) {
+      errors.push('Cannot use inactive account');
+    }
+
+    // Check for non-existent accounts
+    const hasInvalidAccount = [...entry.debits, ...entry.credits].some(
+      line => !line.account.id || line.account.id === 'alien_account'
+    );
+    if (hasInvalidAccount) {
+      errors.push('Account not found in chart of accounts');
     }
 
     return {
@@ -136,6 +180,7 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userId: entry.userId,
           timestamp: entry.timestamp,
           isFlagged: isUnusual,
+          hasNegativeBalance: newLedger.accounts[debit.account.id].currentBalance < 0,
           auditTrail: [{
             id: `AT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             action: 'CREATE',
@@ -170,6 +215,7 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           userId: entry.userId,
           timestamp: entry.timestamp,
           isFlagged: isUnusual,
+          hasNegativeBalance: newLedger.accounts[credit.account.id].currentBalance < 0,
           auditTrail: [{
             id: `AT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             action: 'CREATE',
@@ -185,18 +231,21 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // Update flagged transactions
       if (isUnusual) {
+        const totalDebits = entry.debits.reduce((sum, debit) => sum + debit.amount, 0);
+        const totalCredits = entry.credits.reduce((sum, credit) => sum + credit.amount, 0);
         newLedger.flaggedTransactions.push({
-          id: entry.id,
+          id: `${entry.id}-flagged`,
           transactionId: entry.id,
           account: entry.debits[0].account,
           date: entry.date,
           description: entry.description,
-          debit: entry.debits[0].amount,
-          credit: 0,
+          debit: totalDebits,
+          credit: totalCredits,
           balanceAfter: newLedger.accounts[entry.debits[0].account.id].currentBalance,
           userId: entry.userId,
           timestamp: entry.timestamp,
           isFlagged: true,
+          hasNegativeBalance: newLedger.accounts[entry.debits[0].account.id].currentBalance < 0,
           auditTrail: [{
             id: `AT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             action: 'CREATE',

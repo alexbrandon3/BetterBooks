@@ -111,7 +111,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 85.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -149,7 +150,8 @@ describe('General Ledger Tests', () => {
       ],
       total: 1070.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -183,7 +185,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 500.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -215,7 +218,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 200.00,
       status: 'error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -251,7 +255,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 999.00,
       status: 'error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -277,7 +282,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 1000.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -309,7 +315,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 300.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -341,7 +348,8 @@ describe('General Ledger Tests', () => {
         }],
         total: 100.00,
         status: 'valid',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userId: 'test-user'
       },
       {
         id: 'tx-009',
@@ -357,7 +365,8 @@ describe('General Ledger Tests', () => {
         }],
         total: 200.00,
         status: 'valid',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userId: 'test-user'
       }
     ];
 
@@ -406,7 +415,8 @@ describe('General Ledger Tests', () => {
       ],
       total: 225.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -440,7 +450,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 0,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -467,7 +478,8 @@ describe('General Ledger Tests', () => {
       }],
       total: -100.00,
       status: 'error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -493,7 +505,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 100.00,
       status: 'error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -522,7 +535,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 100.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -533,11 +547,11 @@ describe('General Ledger Tests', () => {
     expect(validation.warnings).toContain('Transaction date is in the future');
   });
 
-  test('BB-TX-015: Large Amount Transaction', async () => {
+  test('BB-TX-015: Large Transaction', async () => {
     const entry: JournalEntry = {
       id: 'tx-015',
       date: '2025-04-18',
-      description: 'Large amount transaction',
+      description: 'Large equipment purchase',
       debits: [{
         account: mockAccounts.office_supplies,
         amount: 1000000.00
@@ -548,7 +562,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 1000000.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     const validation = await act(async () => {
@@ -631,7 +646,8 @@ describe('General Ledger Tests', () => {
       }],
       total: 100.00,
       status: 'valid',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId: 'test-user'
     };
 
     await act(async () => {

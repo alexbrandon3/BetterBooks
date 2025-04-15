@@ -1,20 +1,14 @@
-import React, { createContext, useContext, useState } from 'react';
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  subtype?: string;
-  balance: number;
-  isActive?: boolean;
-  category?: string;
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Account } from '../types/account';
+import { accountService } from '../services/accountService';
 
 interface AccountsContextType {
   accounts: Account[];
-  addAccount: (account: Account) => void;
-  updateAccount: (id: string, account: Partial<Account>) => void;
-  deleteAccount: (id: string) => void;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateAccount: (id: string, account: Partial<Account>) => Promise<void>;
+  deleteAccount: (id: string) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const CHART_OF_ACCOUNTS = {
@@ -101,80 +95,160 @@ const SAMPLE_ACCOUNTS: Account[] = [
   {
     id: 'cash-1',
     name: 'Business Checking',
-    category: 'assets',
-    type: 'cash',
+    type: 'asset',
+    subType: 'checking',
+    category: 'cash',
     balance: 10000,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'cash-2',
     name: 'Business Savings',
-    category: 'assets',
-    type: 'cash',
+    type: 'asset',
+    subType: 'savings',
+    category: 'cash',
     balance: 50000,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'cash-3',
     name: 'Petty Cash',
-    category: 'assets',
-    type: 'cash',
+    type: 'asset',
+    subType: 'petty',
+    category: 'cash',
     balance: 500,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'credit-1',
     name: 'Capital One Credit Card',
-    category: 'assets',
-    type: 'credit_card',
+    type: 'liability',
+    subType: 'credit_card',
+    category: 'credit_card',
     balance: -2000,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'payment-1',
     name: 'Stripe Balance',
-    category: 'assets',
-    type: 'payment_processor',
+    type: 'asset',
+    subType: 'payment_processor',
+    category: 'payment_processor',
     balance: 1500,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'payment-2',
     name: 'PayPal Balance',
-    category: 'assets',
-    type: 'payment_processor',
+    type: 'asset',
+    subType: 'payment_processor',
+    category: 'payment_processor',
     balance: 800,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
   {
     id: 'undeposited-1',
     name: 'Undeposited Funds',
-    category: 'assets',
-    type: 'undeposited',
+    type: 'asset',
+    subType: 'undeposited',
+    category: 'undeposited',
     balance: 1200,
+    currency: 'USD',
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   },
+  // TEST ACCOUNT - REMOVE BEFORE PRODUCTION
+  {
+    id: 'test-1',
+    name: 'Test Business Account',
+    type: 'asset',
+    subType: 'checking',
+    category: 'cash',
+    balance: 5000,
+    currency: 'USD',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
 ];
 
 export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accounts, setAccounts] = useState<Account[]>(SAMPLE_ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addAccount = (account: Account) => {
-    setAccounts(prev => [...prev, account]);
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const loadedAccounts = await accountService.getAccounts();
+        setAccounts(loadedAccounts);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load accounts');
+        // Fallback to sample accounts if API fails
+        setAccounts(SAMPLE_ACCOUNTS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAccounts();
+  }, []);
+
+  const addAccount = async (account: Omit<Account, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newAccount = await accountService.createAccount(account);
+      setAccounts(prev => [...prev, newAccount]);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account');
+      throw err;
+    }
   };
 
-  const updateAccount = (id: string, updates: Partial<Account>) => {
-    setAccounts(prev => prev.map(account => 
-      account.id === id ? { ...account, ...updates } : account
-    ));
+  const updateAccount = async (id: string, account: Partial<Account>) => {
+    try {
+      const updatedAccount = await accountService.updateAccount(id, account);
+      setAccounts(prev => prev.map(acc => acc.id === id ? updatedAccount : acc));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update account');
+      throw err;
+    }
   };
 
-  const deleteAccount = (id: string) => {
-    setAccounts(prev => prev.filter(account => account.id !== id));
+  const deleteAccount = async (id: string) => {
+    try {
+      await accountService.deleteAccount(id);
+      setAccounts(prev => prev.filter(acc => acc.id !== id));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete account');
+      throw err;
+    }
   };
 
   return (
-    <AccountsContext.Provider value={{ accounts, addAccount, updateAccount, deleteAccount }}>
+    <AccountsContext.Provider value={{ accounts, addAccount, updateAccount, deleteAccount, isLoading, error }}>
       {children}
     </AccountsContext.Provider>
   );
@@ -182,7 +256,7 @@ export const AccountsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export const useAccounts = () => {
   const context = useContext(AccountsContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAccounts must be used within an AccountsProvider');
   }
   return context;

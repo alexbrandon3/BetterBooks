@@ -43,11 +43,10 @@ import {
   Dashboard as DashboardIcon,
   Book as BookIcon,
 } from '@mui/icons-material';
-import { DateRangePicker } from '@mui/x-date-pickers-pro';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
-import { AdapterDateFns } from '@mui/x-date-pickers-pro/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Link as RouterLink } from 'react-router-dom';
-import type { DateRange } from '@mui/x-date-pickers-pro/models';
 import type { LedgerEntry, LedgerFilters, TransactionType, EntryStatus } from '../types/ledger';
 import LedgerEntryDetails from '../components/LedgerEntryDetails';
 
@@ -89,7 +88,7 @@ const AuditReadinessMeter = styled(LinearProgress)(({ theme }) => ({
 
 const SmartLedger: React.FC = () => {
   const [filters, setFilters] = useState<LedgerFilters>({
-    dateRange: [null, null],
+    dateRange: [Date.now(), Date.now()],
     hasAttachment: false,
   });
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -121,23 +120,48 @@ const SmartLedger: React.FC = () => {
   const mockLedgerEntries: LedgerEntry[] = [
     {
       id: '1',
-      date: new Date().toISOString(),
+      transactionId: 'tx-001',
       account: {
         id: 'exp-001',
         name: 'Office Expenses',
         type: 'expense',
+        subtype: 'office_supplies',
+        category: 'operating_expense',
         balance: 0,
         currency: 'USD',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+      date: new Date().toISOString(),
       description: 'Office Supplies Purchase',
       debit: 150.00,
       credit: 0,
       balanceAfter: -150.00,
       isFlagged: true,
       hasNegativeBalance: true,
+      timestamp: new Date().toISOString(),
+      auditTrail: [
+        {
+          id: 'audit-001',
+          action: 'CREATE',
+          entityType: 'LedgerEntry',
+          entityId: '1',
+          timestamp: new Date().toISOString(),
+          userId: 'user-001',
+          changes: [
+            {
+              field: 'debit',
+              oldValue: 0,
+              newValue: 150.00
+            }
+          ],
+          metadata: {
+            source: 'manual_entry',
+            ipAddress: '192.168.1.1'
+          }
+        }
+      ],
       attachments: [{
         type: 'receipt',
         name: 'receipt.pdf',
@@ -229,14 +253,15 @@ const SmartLedger: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DateRangePicker
-                value={filters.dateRange}
-                onChange={(newValue) => handleFilterChange('dateRange', newValue)}
-                slotProps={{
-                  textField: ({ position }) => ({
-                    label: position === 'start' ? 'Start Date' : 'End Date',
-                  }),
-                }}
+              <DatePicker
+                value={new Date(filters.dateRange![0])}
+                onChange={(newValue: Date | null) => handleFilterChange('dateRange', [newValue?.getTime() || Date.now(), filters.dateRange![1]])}
+                label="Start Date"
+              />
+              <DatePicker
+                value={new Date(filters.dateRange![1])}
+                onChange={(newValue: Date | null) => handleFilterChange('dateRange', [filters.dateRange![0], newValue?.getTime() || Date.now()])}
+                label="End Date"
               />
             </LocalizationProvider>
           </Grid>

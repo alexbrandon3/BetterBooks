@@ -62,7 +62,7 @@ export class Account {
   @Column('decimal', { precision: 19, scale: 4, default: 0 })
   balance!: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description!: string | null;
 
   @Column({ default: true })

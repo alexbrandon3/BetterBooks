@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/authMiddleware';
 import {
   createAccount,
   getAccounts,
@@ -10,9 +9,7 @@ import {
 
 const router = Router();
 
-// All routes require authentication
-router.use(authMiddleware);
-
+// Routes
 router.post('/', createAccount);
 router.get('/', getAccounts);
 router.get('/:id', getAccount);

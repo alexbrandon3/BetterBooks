@@ -10,8 +10,7 @@
     "@mui/icons-material": "^5.14.20",
     "@mui/material": "^5.14.20",
     "@mui/x-data-grid": "^6.19.2",
-    "@mui/x-date-pickers": "^6.19.2",
-    "@mui/x-date-pickers-pro": "^7.28.3",
+    "@mui/x-date-pickers": "^7.28.3",
     "@reduxjs/toolkit": "^2.6.1",
     "@testing-library/dom": "^10.4.0",
     "axios": "^1.6.2",
@@ -51,6 +50,7 @@
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "test": "jest --config jest.config.cjs"
+    "test": "jest --config jest.config.cjs",
+    "dev:all": "concurrently \"npm run dev\" \"cd ../backend && npm run dev\""
   }
 }

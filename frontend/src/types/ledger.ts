@@ -15,6 +15,7 @@ export interface LedgerEntry {
   userId?: string;
   timestamp: string;
   isFlagged: boolean;
+  hasNegativeBalance: boolean;
   attachments?: Attachment[];
   auditTrail: AuditLogEntry[];
   transactionType?: string;
@@ -113,7 +114,10 @@ export interface JournalEntry {
   total: number;
   status: 'valid' | 'error';
   timestamp: string;
-  userId: string;
+  userId?: string;
+  attachments?: Attachment[];
+  auditTrail?: AuditLogEntry[];
+  isFlagged?: boolean;
 }
 
 export interface ValidationResult {
@@ -131,4 +135,6 @@ export interface LedgerContextType {
   getLedgerSummary: () => LedgerSummary;
   validateJournalEntry: (entry: JournalEntry) => ValidationResult;
   detectUnusualActivity: (entry: JournalEntry) => boolean;
+  updateJournalEntry?: (entry: JournalEntry) => Promise<ValidationResult>;
+  deleteJournalEntry?: (entryId: string) => Promise<boolean>;
 } 

@@ -97,7 +97,7 @@ export const ManualJournalEntry: React.FC = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError(null);
     setSuccess(null);
 
@@ -118,26 +118,30 @@ export const ManualJournalEntry: React.FC = () => {
     }
 
     const journalEntry = formatJournalEntry(input, accounts, validationResult);
-    const ledgerResult = postJournalEntry(journalEntry);
+    try {
+      const ledgerResult = await postJournalEntry(journalEntry);
 
-    if (!ledgerResult.isValid) {
-      setError(ledgerResult.errors?.join('\n') || 'Failed to post journal entry');
-      return;
+      if (!ledgerResult.isValid) {
+        setError(ledgerResult.errors?.join('\n') || 'Failed to post journal entry');
+        return;
+      }
+
+      if (ledgerResult.warnings?.length) {
+        setSuccess(`Journal entry created successfully! ${ledgerResult.warnings.join('\n')}`);
+      } else {
+        setSuccess('Journal entry created successfully!');
+      }
+
+      // Reset form
+      setDate(new Date().toISOString().split('T')[0]);
+      setDescription('');
+      setDebits([{ account: '', amount: 0 }]);
+      setCredits([{ account: '', amount: 0 }]);
+      setAttachment('');
+      setTags([]);
+    } catch (error) {
+      setError('An error occurred while posting the journal entry');
     }
-
-    if (ledgerResult.warnings?.length) {
-      setSuccess(`Journal entry created successfully! ${ledgerResult.warnings.join('\n')}`);
-    } else {
-      setSuccess('Journal entry created successfully!');
-    }
-
-    // Reset form
-    setDate(new Date().toISOString().split('T')[0]);
-    setDescription('');
-    setDebits([{ account: '', amount: 0 }]);
-    setCredits([{ account: '', amount: 0 }]);
-    setAttachment('');
-    setTags([]);
   };
 
   return (

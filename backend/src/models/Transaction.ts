@@ -33,10 +33,10 @@ export class Transaction {
   @Column()
   accountId!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   referenceNumber!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   notes!: string | null;
 
   @Column({ default: false })
