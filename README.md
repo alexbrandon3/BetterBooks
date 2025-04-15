@@ -1,121 +1,84 @@
 # BetterBooks
 
-A modern bookkeeping application designed to simplify financial recordkeeping for small business owners in the United States.
+A modern bookkeeping application for small business owners, built with React, TypeScript, Express, and PostgreSQL.
 
 ## Features
 
-- **Initial Setup**
-  - Asset identification and documentation
-  - Account creation and management
-  - Document upload and verification
+- User-friendly interface with Material UI
+- Account management (create, read, update, delete)
+- Real-time balance tracking
+- Transaction history
+- Dashboard with key metrics
 
-- **Balance Sheet Management**
-  - Real-time balance sheet construction
-  - Asset, liability, and equity tracking
-  - Financial position visualization
+## Prerequisites
 
-- **Transaction Management**
-  - Easy transaction submission
-  - AI-powered account classification
-  - Document attachment support
+- Node.js (v16 or higher)
+- PostgreSQL (v12 or higher)
+- npm or yarn
 
-- **Audit Trail**
-  - Comprehensive transaction history
-  - Advanced filtering and sorting
-  - Document substantiation
+## Setup
 
-- **Financial Reporting**
-  - GAAP-compliant financial statements
-  - Customizable report generation
-  - Multiple export formats (PDF, Excel)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/betterbooks.git
+   cd betterbooks
+   ```
 
-## Tech Stack
-
-- **Frontend**: React, TypeScript, Material-UI
-- **Backend**: Node.js, Express, TypeScript
-- **Database**: PostgreSQL
-- **Authentication**: JWT
-- **File Storage**: AWS S3
-- **AI Integration**: OpenAI API
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
-- AWS Account (for S3 storage)
-- OpenAI API Key
-
-### Installation
-
-1. Clone the repository
 2. Install dependencies:
    ```bash
-   # Install backend dependencies
-   cd backend
    npm install
-
-   # Install frontend dependencies
-   cd ../frontend
-   npm install
+   npm run install:all
    ```
 
-3. Set up environment variables:
-   ```bash
-   # Backend (.env)
-   DATABASE_URL=postgresql://user:password@localhost:5432/betterbooks
-   JWT_SECRET=your_jwt_secret
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-   AWS_BUCKET_NAME=your_bucket_name
-   OPENAI_API_KEY=your_openai_api_key
-
-   # Frontend (.env)
-   REACT_APP_API_URL=http://localhost:3001
-   ```
+3. Set up the database:
+   - Create a PostgreSQL database named `betterbooks`
+   - Update the `.env` file in the `backend` directory with your database credentials
 
 4. Start the development servers:
    ```bash
-   # Start backend
-   cd backend
    npm run dev
-
-   # Start frontend
-   cd frontend
-   npm start
    ```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
 
 ## Project Structure
 
 ```
 betterbooks/
-├── backend/
+├── frontend/               # React frontend
 │   ├── src/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── app.ts
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/        # Page components
+│   │   ├── contexts/     # React contexts
+│   │   └── utils/        # Utility functions
+│   └── package.json
+├── backend/               # Express backend
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── App.tsx
-│   ├── package.json
-│   └── tsconfig.json
-└── README.md
+│   │   ├── entities/     # TypeORM entities
+│   │   ├── controllers/  # Route controllers
+│   │   ├── routes/       # API routes
+│   │   └── config/       # Configuration files
+│   └── package.json
+└── package.json          # Root package.json
 ```
+
+## Available Scripts
+
+- `npm run dev` - Start both frontend and backend servers
+- `npm run install:all` - Install dependencies for all packages
+- `npm run build` - Build both frontend and backend
+- `npm start` - Start the production server
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

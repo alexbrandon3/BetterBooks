@@ -4,33 +4,30 @@ export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense
 
 @Entity('accounts')
 export class Account {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column({ unique: true })
-  number: string;
+  number!: string;
 
   @Column()
-  name: string;
-
-  @Column({
-    type: 'enum',
-    enum: ['asset', 'liability', 'equity', 'income', 'expense'],
-  })
-  type: AccountType;
+  name!: string;
 
   @Column()
-  subType: string;
+  type!: string;
+
+  @Column()
+  subtype!: string;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  balance: number;
+  balance!: number;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 

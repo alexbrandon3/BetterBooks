@@ -2,10 +2,10 @@ import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
 import { AppDataSource } from './config/database.js';
-import accountRoutes from './routes/accountRoutes.js';
+import accountRoutes from './routes/account.routes.js';
 
 const app = express();
-const port = process.env.PORT || 3004;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -27,5 +27,5 @@ AppDataSource.initialize()
     });
   })
   .catch((error) => {
-    console.error('Error connecting to database:', error);
+    console.error('Error during Data Source initialization:', error);
   }); 
