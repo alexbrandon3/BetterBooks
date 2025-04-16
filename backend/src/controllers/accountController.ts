@@ -1,51 +1,30 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database.js';
-import { Account } from '../entities/Account.js';
+import { AppDataSource } from '../data-source';
+import { Account } from '../entities/Account';
 
-const accountRepository = AppDataSource.getRepository(Account);
+const accountRepo = AppDataSource.getRepository(Account);
 
-export const getAccounts = async (_req: Request, res: Response) => {
+export const getAllAccounts = async (_req: Request, res: Response) => {
   try {
-    const accounts = await accountRepository.find();
+    const accounts = await accountRepo.find();
     res.json(accounts);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching accounts', error });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch accounts' });
   }
 };
 
 export const createAccount = async (req: Request, res: Response) => {
   try {
-    const account = accountRepository.create(req.body);
-    const result = await accountRepository.save(account);
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating account', error });
+    const { name, type, balance, number } = req.body;
+
+    if (!name || !type) {
+      return res.status(400).json({ error: 'Name and type are required' });
+    }
+
+    const newAccount = accountRepo.create({ name, type, balance, number });
+    const savedAccount = await accountRepo.save(newAccount);
+    res.status(201).json(savedAccount);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create account' });
   }
 };
-
-export const updateAccount = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const result = await accountRepository.update(id, req.body);
-    if (result.affected === 0) {
-      return res.status(404).json({ message: 'Account not found' });
-    }
-    const updated = await accountRepository.findOne({ where: { id } });
-    res.json(updated);
-  } catch (error) {
-    res.status(400).json({ message: 'Error updating account', error });
-  }
-};
-
-export const deleteAccount = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const result = await accountRepository.delete(id);
-    if (result.affected === 0) {
-      return res.status(404).json({ message: 'Account not found' });
-    }
-    res.status(204).send();
-  } catch (error) {
-    res.status(400).json({ message: 'Error deleting account', error });
-  }
-}; 

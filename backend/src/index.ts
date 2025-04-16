@@ -1,31 +1,40 @@
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
+
 import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
-import { AppDataSource } from './config/database.js';
-import accountRoutes from './routes/account.routes.js';
+import { AppDataSource } from './data-source';
+import accountRoutes from './routes/account.routes';
+import authRoutes from './routes/auth.routes';
+
+// load the root .env file one level up`
+
+
 
 const app = express();
-const port = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get('/api/ping', (_req, res) => {
-  res.json({ status: 'pong' });
-});
-
 // Routes
 app.use('/api/accounts', accountRoutes);
+app.use('/api', authRoutes); // Handles /register and /login
 
-// Initialize database connection
+// Health check
+app.get('/api/ping', (_, res) => res.send('pong'));
+
+// Start server
+const PORT = parseInt(process.env.PORT || '3004', 10);
+
 AppDataSource.initialize()
   .then(() => {
-    console.log('Database connection established');
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
   })
   .catch((error) => {
-    console.error('Error during Data Source initialization:', error);
-  }); 
+    console.error('❌ Database connection failed:', error);
+  });
