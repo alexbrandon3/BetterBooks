@@ -1,8 +1,11 @@
-import express from 'express';
+import { Router } from 'express';
 import { getIncomeStatement } from '../controllers/report.controller';
+import { authenticate } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
-router.get('/income-statement', getIncomeStatement); // ← No cast here
+router.use(authenticate); // <-- must be here
+
+router.get('/income-statement', getIncomeStatement);
 
 export default router;

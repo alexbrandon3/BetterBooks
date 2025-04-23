@@ -1,15 +1,16 @@
-/// <reference path="../types/express.d.ts" />
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { Account } from '../entities/Account';
 import { User } from '../entities/User';
+import { AuthedRequest } from '../middleware/auth'; // adjust path as needed
+
 
 // Use our global declaration of req.user from types/express.d.ts
 const accountRepo = AppDataSource.getRepository(Account);
 const userRepo = AppDataSource.getRepository(User);
 
 // GET /accounts
-export const getAccounts = async (req: Request, res: Response) => {
+export const getAccounts = async (req: AuthedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const accounts = await accountRepo.find({
@@ -23,7 +24,7 @@ export const getAccounts = async (req: Request, res: Response) => {
 };
 
 // POST /accounts
-export const createAccount = async (req: Request, res: Response) => {
+export const createAccount = async (req: AuthedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { number, name, description, type, subtype, balance } = req.body;
@@ -60,7 +61,7 @@ export const createAccount = async (req: Request, res: Response) => {
 };
 
 // PUT /accounts/:id
-export const updateAccount = async (req: Request, res: Response) => {
+export const updateAccount = async (req: AuthedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -84,7 +85,7 @@ export const updateAccount = async (req: Request, res: Response) => {
 };
 
 // DELETE /accounts/:id
-export const deleteAccount = async (req: Request, res: Response) => {
+export const deleteAccount = async (req: AuthedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
