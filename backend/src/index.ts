@@ -4,10 +4,12 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import 'reflect-metadata';
 import express from 'express';
+
 import cors from 'cors';
 import { AppDataSource } from './data-source';
 import routes from './routes'
 import { generateRecurringTransactions } from './utils/generateRecurringTransactions';
+
 
 // load the root .env file one level up`
 const app = express();
