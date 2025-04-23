@@ -33,3 +33,13 @@ AppDataSource.initialize()
   .catch((err: any) => {
     console.error('❌ Failed to initialize DB:', err);
   });
+
+  setInterval(async () => {
+    try {
+      console.log('⏳ Checking for recurring transactions...');
+      await generateRecurringTransactions();
+      console.log('✅ Recurring transactions processed.');
+    } catch (err) {
+      console.error('❌ Error processing recurring transactions:', err);
+    }
+  }, 60 * 1000); // every minute

@@ -16,18 +16,25 @@ export const generateRecurringTransactions = async () => {
   });
 
   for (const recurrence of dueRecurrences) {
+    // Stop recurrence if the end date has passed
+    if (recurrence.endDate && now > recurrence.endDate) {
+      recurrence.isActive = false;
+      await recurringRepo.save(recurrence);
+      continue;
+    }
+
     const newTransaction = new Transaction();
     newTransaction.description = recurrence.description;
     newTransaction.amount = recurrence.amount;
     newTransaction.type = recurrence.type as TransactionType;
-    newTransaction.reference = recurrence.reference ?? ''; // fix: assign empty string if null
+    newTransaction.reference = recurrence.reference ?? '';
     newTransaction.account = recurrence.account;
     newTransaction.user = recurrence.user;
     newTransaction.recurringTransaction = recurrence;
     newTransaction.isRecurring = true;
     newTransaction.recurrence = recurrence.recurrence;
     newTransaction.recurrencePattern = recurrence.recurrence;
-    newTransaction.interval = 'monthly'; // fix: pick one of 'daily' | 'weekly' | 'monthly' | 'yearly'
+    newTransaction.interval = recurrence.recurrence.toLowerCase() as 'daily' | 'weekly' | 'monthly' | 'yearly';
     newTransaction.nextOccurrence = recurrence.nextRun;
     newTransaction.isActive = true;
 
