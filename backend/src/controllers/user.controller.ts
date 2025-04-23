@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/User';
+import { Transaction } from '../entities/Transaction';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const userRepository = AppDataSource.getRepository(User);
+const transactionRepository = AppDataSource.getRepository(Transaction);
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -39,7 +41,11 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '1h' }
+    );
     res.json({ token });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error });

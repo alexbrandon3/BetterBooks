@@ -6,35 +6,30 @@ import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
 import { AppDataSource } from './data-source';
-import accountRoutes from './routes/account.routes';
-import authRoutes from './routes/auth.routes';
+import routes from './routes'
+import { generateRecurringTransactions } from './utils/generateRecurringTransactions';
 
 // load the root .env file one level up`
-
-
-
 const app = express();
+const PORT = process.env.PORT || 3004;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-
-// Routes
-app.use('/api/accounts', accountRoutes);
-app.use('/api', authRoutes); // Handles /register and /login
-
-// Health check
-app.get('/api/ping', (_, res) => res.send('pong'));
-
-// Start server
-const PORT = parseInt(process.env.PORT || '3004', 10);
+app.use(routes);
 
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
+
+    try {
+      await generateRecurringTransactions();
+      console.log('✅ Recurring transactions processed successfully');
+    } catch (error) {
+      console.error('❌ Failed to process recurring transactions:', error);
+    }
   })
-  .catch((error) => {
-    console.error('❌ Database connection failed:', error);
+  .catch((err: any) => {
+    console.error('❌ Failed to initialize DB:', err);
   });

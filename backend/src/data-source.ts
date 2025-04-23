@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { Account } from './entities/Account';
 import { User } from './entities/User'; 
+import { Transaction } from './entities/Transaction';
+import { RecurringTransaction } from './entities/RecurringTransaction';
 // import future entities here
 
 console.log('Loaded DB_PASSWORD:', typeof process.env.DB_PASSWORD, process.env.DB_PASSWORD);
@@ -16,7 +18,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true,
   logging: true,
-  entities: [Account, User], // add more as you build
+  entities: [Account, User, Transaction, RecurringTransaction], // add more as you build
   migrations: [],
   subscribers: [],
 });

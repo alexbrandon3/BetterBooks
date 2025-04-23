@@ -1,17 +1,19 @@
 import { Router } from 'express';
 import {
-    getAccounts,
-    createAccount,
-    updateAccount,
-    deleteAccount,
-  } from '../controllers/account.controller';
-  import { authenticate } from '../middleware/auth';
+  createAccount,
+  getAccounts,
+  updateAccount,
+  deleteAccount
+} from '../controllers/account.controller';
+import { authenticate } from '../middleware/authenticate';
 
 const router = Router();
 
-router.use(authenticate);          // 🔐 all below require JWT
-router.get('/', getAccounts);
+// All routes below require authentication
+router.use(authenticate);
+
 router.post('/', createAccount);
+router.get('/', getAccounts);
 router.put('/:id', updateAccount);
 router.delete('/:id', deleteAccount);
 
