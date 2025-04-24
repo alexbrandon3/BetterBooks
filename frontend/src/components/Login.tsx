@@ -1,6 +1,6 @@
 // src/components/Login.tsx
 import { useState } from 'react';
-import axios from 'axios';
+import axios from '@/utils/axios'; // adjust if your alias differs
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {

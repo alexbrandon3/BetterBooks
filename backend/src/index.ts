@@ -4,7 +4,6 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import 'reflect-metadata';
 import express from 'express';
-
 import cors from 'cors';
 import { AppDataSource } from './data-source';
 import routes from './routes'
@@ -17,7 +16,12 @@ const PORT = process.env.PORT || 3004;
 
 app.use(cors());
 app.use(express.json());
-app.use(routes);
+// app.use('/api/auth/register', (req, res, next) => {
+//   console.log('🧪 Incoming traffic is hitting Express at /api/auth/register');
+//   next();
+// });
+
+app.use('/api',routes);
 
 AppDataSource.initialize()
   .then(async () => {

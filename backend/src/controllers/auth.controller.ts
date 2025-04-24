@@ -9,7 +9,7 @@ const userRepo = AppDataSource.getRepository(User);
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
-export const signup = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const existing = await userRepo.findOneBy({ email });

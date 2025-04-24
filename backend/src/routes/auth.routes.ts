@@ -8,3 +8,5 @@ router.post('/register', register);
 router.post('/login', login);
 
 export default router;
+
+console.log('✅ Auth routes mounted at /api/auth');

@@ -10,4 +10,5 @@ router.use('/api/accounts', accountRoutes);
 router.use('/api/transactions', transactionRoutes);
 router.use('/api/auth', authRoutes);
 router.use('/api/reports', reportRoutes);
+
 export default router;

@@ -1,26 +1,48 @@
+// src/pages/Login.tsx
 import { useState } from 'react'
-import { Box, TextField, Button, Typography, Paper } from '@mui/material'
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+} from '@mui/material'
 import { useNavigate } from 'react-router-dom'
+import axios from '@/utils/axios'; // adjust if your alias differs
+import { Link } from 'react-router-dom';
+
 
 const Login = () => {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // TODO: Implement login logic
-    navigate('/dashboard')
-  }
+  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const res = await axios.post('/api/auth/login', formData)
+
+      const token = res.data.token
+      localStorage.setItem('token', token) // Store token
+
+      // Redirect to dashboard
+      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -32,18 +54,14 @@ const Login = () => {
         minHeight: '80vh',
       }}
     >
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          width: '100%',
-          maxWidth: 400,
-        }}
-      >
-        <Typography variant="h4" component="h1" gutterBottom align="center">
+      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 400 }}>
+        <Typography variant="h4" align="center" gutterBottom>
           Login
         </Typography>
+
         <form onSubmit={handleSubmit}>
+          {error && <Alert severity="error">{error}</Alert>}
+
           <TextField
             fullWidth
             label="Email"
@@ -54,6 +72,7 @@ const Login = () => {
             margin="normal"
             required
           />
+
           <TextField
             fullWidth
             label="Password"
@@ -64,14 +83,15 @@ const Login = () => {
             margin="normal"
             required
           />
+
           <Button
             type="submit"
             variant="contained"
             fullWidth
-            size="large"
+            disabled={loading}
             sx={{ mt: 3 }}
           >
-            Sign In
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
           </Button>
         </form>
       </Paper>
@@ -79,4 +99,9 @@ const Login = () => {
   )
 }
 
-export default Login 
+<Typography variant="body2" align="center" sx={{ mt: 2 }}>
+  Don't have an account? <Link to="/register">Register here</Link>
+</Typography>
+
+
+export default Login

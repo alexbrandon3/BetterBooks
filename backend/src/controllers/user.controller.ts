@@ -9,6 +9,7 @@ const userRepository = AppDataSource.getRepository(User);
 const transactionRepository = AppDataSource.getRepository(Transaction);
 
 export const register = async (req: Request, res: Response) => {
+  console.log('💡 register() controller hit');
   try {
     const { email, password } = req.body;
 
@@ -51,3 +52,4 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error logging in', error });
   }
 };
+

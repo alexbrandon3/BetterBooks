@@ -9,20 +9,19 @@ export interface AuthedRequest extends Request {
 
 export const authenticate = async (req: AuthedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: 'Missing Authorization header' });
+  if (!authHeader?.startsWith('Bearer '))
+    return res.status(401).json({ message: 'Unauthorized' });
 
   const token = authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Invalid Authorization format' });
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { email: string };
-    const user = await AppDataSource.getRepository(User).findOneBy({ email: decoded.email });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    const user = await AppDataSource.getRepository(User).findOneBy({ id: decoded.id });
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
     req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+  } catch {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 };

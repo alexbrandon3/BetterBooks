@@ -1,6 +1,6 @@
 // src/components/Dashboard.tsx
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from '@/utils/axios'; // adjust if your alias differs
 
 interface IncomeStatement {
   totalIncome: number;
