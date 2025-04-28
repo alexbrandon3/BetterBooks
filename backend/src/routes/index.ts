@@ -6,9 +6,9 @@ import reportRoutes from './report.routes';
 
 const router = Router();
 
-router.use('/api/accounts', accountRoutes);
-router.use('/api/transactions', transactionRoutes);
-router.use('/api/auth', authRoutes);
-router.use('/api/reports', reportRoutes);
+router.use('/accounts', accountRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/auth', authRoutes);
+router.use('/reports', reportRoutes);
 
 export default router;

@@ -11,10 +11,11 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔥 handleSubmit fired');
     setError('');
 
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await axios.post('/auth/login', { email, password });
       const { token } = res.data;
 
       localStorage.setItem('token', token);

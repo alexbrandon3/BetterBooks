@@ -4,6 +4,7 @@ import { Transaction, TransactionType } from '../entities/Transaction';
 import { AuthedRequest } from '../middleware/auth';
 
 export const getIncomeStatement = async (req: AuthedRequest, res: Response) => {
+  console.log('📈 getIncomeStatement controller hit');
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized: No user attached to request' });
   }

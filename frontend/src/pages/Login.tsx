@@ -1,49 +1,38 @@
 // src/pages/Login.tsx
-import { useState } from 'react'
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  Alert,
-  CircularProgress,
-} from '@mui/material'
-import { useNavigate } from 'react-router-dom'
-import axios from '@/utils/axios'; // adjust if your alias differs
-import { Link } from 'react-router-dom';
-
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from '@/utils/axios'; // adjust if necessary
+import { Box, TextField, Button, Typography, Paper, Alert, CircularProgress } from '@mui/material';
 
 const Login = () => {
-  const navigate = useNavigate()
-  const [formData, setFormData] = useState({ email: '', password: '' })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    console.log('🔥 handleSubmit fired');
+
+    setLoading(true);
+    setError('');
 
     try {
-      const res = await axios.post('/api/auth/login', formData)
-
-      const token = res.data.token
-      localStorage.setItem('token', token) // Store token
-
-      // Redirect to dashboard
-      navigate('/dashboard')
+      const res = await axios.post('/api/auth/login', formData);
+      const { token } = res.data;
+      localStorage.setItem('token', token);
+      navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed')
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Box
@@ -60,7 +49,11 @@ const Login = () => {
         </Typography>
 
         <form onSubmit={handleSubmit}>
-          {error && <Alert severity="error">{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
           <TextField
             fullWidth
@@ -93,15 +86,14 @@ const Login = () => {
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
           </Button>
+
+          <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+            Don't have an account? <Link to="/register">Register here</Link>
+          </Typography>
         </form>
       </Paper>
     </Box>
-  )
-}
+  );
+};
 
-<Typography variant="body2" align="center" sx={{ mt: 2 }}>
-  Don't have an account? <Link to="/register">Register here</Link>
-</Typography>
-
-
-export default Login
+export default Login;
