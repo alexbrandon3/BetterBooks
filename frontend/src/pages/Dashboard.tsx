@@ -1,8 +1,17 @@
+// src/pages/Dashboard.tsx
 import { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Paper, Button } from '@mui/material';
-import { AccountBalance as AccountBalanceIcon, TrendingUp as TrendingUpIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axios from '@/utils/axios';
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  CircularProgress,
+  Alert,
+  Button,
+} from '@mui/material';
+import { AccountBalance, TrendingUp, Receipt } from '@mui/icons-material';
 
 interface IncomeStatement {
   totalIncome: number;
@@ -13,27 +22,21 @@ interface IncomeStatement {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<IncomeStatement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchIncomeStatement = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const res = await axios.get('/api/reports/income-statement', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await axios.get('/reports/income-statement', {
+          headers: { Authorization: `Bearer ${token}` },
         });
         setData(res.data);
       } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Failed to load income statement');
+        setError(err.response?.data?.message || 'Failed to fetch income statement');
       } finally {
         setLoading(false);
       }
@@ -44,78 +47,51 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <Box p={4}>
-        <Typography>Loading...</Typography>
+      <Box mt={8} textAlign="center">
+        <CircularProgress />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box p={4}>
-        <Typography color="error">{error}</Typography>
+      <Box mt={8}>
+        <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
+  const totalIncome = data?.totalIncome ?? 0;
+  const totalExpenses = data?.totalExpenses ?? 0;
+  const netIncome = data?.netIncome ?? 0;
+
   const stats = [
-    { title: 'Net Income', value: `$${data?.netIncome.toFixed(2)}`, icon: <AccountBalanceIcon /> },
-    { title: 'Total Income', value: `$${data?.totalIncome.toFixed(2)}`, icon: <TrendingUpIcon /> },
-    { title: 'Total Expenses', value: `$${data?.totalExpenses.toFixed(2)}`, icon: <ReceiptIcon /> },
+    { title: 'Net Income', value: `$${netIncome.toFixed(2)}`, icon: <AccountBalance /> },
+    { title: 'Total Income', value: `$${totalIncome.toFixed(2)}`, icon: <TrendingUp /> },
+    { title: 'Total Expenses', value: `$${totalExpenses.toFixed(2)}`, icon: <Receipt /> },
   ];
 
   return (
     <Box p={4}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Dashboard
-      </Typography>
+      <Typography variant="h4" gutterBottom>Dashboard</Typography>
 
-      <Grid container spacing={3} mb={4}>
-        {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Paper
-              sx={{
-                p: 3,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                height: '100%',
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  mb: 2,
-                }}
-              >
+      <Grid container spacing={3}>
+        {stats.map((stat, idx) => (
+          <Grid item xs={12} sm={6} md={4} key={idx}>
+            <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+              <Box sx={{ mb: 2, bgcolor: 'primary.main', color: 'white', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {stat.icon}
               </Box>
-              <Typography variant="h6" component="h2" gutterBottom>
-                {stat.title}
-              </Typography>
-              <Typography variant="h5" component="p" color="primary">
-                {stat.value}
-              </Typography>
+              <Typography variant="h6">{stat.title}</Typography>
+              <Typography variant="h4" color="primary">{stat.value}</Typography>
             </Paper>
           </Grid>
         ))}
       </Grid>
 
-      {/* Extra button for expansion later */}
-      <Box textAlign="center">
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate('/income-statement')}
-        >
-          View Full Income Statement
+      <Box mt={4} textAlign="center">
+        <Button variant="contained" onClick={() => navigate('/add-transaction')}>
+          Add New Transaction
         </Button>
       </Box>
     </Box>

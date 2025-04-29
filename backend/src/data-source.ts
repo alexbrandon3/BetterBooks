@@ -23,6 +23,6 @@ export const AppDataSource = new DataSource({
   synchronize: true, // Consider false in production or for serious migrations
   logging: true,
   entities: [Account, User, Transaction, RecurringTransaction],
-  migrations: [],
+  migrations: ['src/migrations/**/*.ts'],
   subscribers: [],
 });

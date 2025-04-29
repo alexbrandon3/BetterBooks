@@ -11,7 +11,8 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "sourceMap": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false
   },
   "include": ["src", "src/types"],
   "exclude": ["node_modules", "dist"]

@@ -5,16 +5,17 @@ import {
   updateAccount,
   deleteAccount
 } from '../controllers/account.controller';
-import { authenticate } from '../middleware/authenticate';
+import { authenticate } from '../middleware/auth'; // ✅ Corrected import
 
 const router = Router();
 
 // All routes below require authentication
 router.use(authenticate);
 
-router.post('/', createAccount);
-router.get('/', getAccounts);
-router.put('/:id', updateAccount);
-router.delete('/:id', deleteAccount);
+// RESTful Account Management
+router.post('/', createAccount);    // Create new account
+router.get('/', getAccounts);        // List user's accounts
+router.put('/:id', updateAccount);   // Update specific account
+router.delete('/:id', deleteAccount); // Delete specific account
 
 export default router;

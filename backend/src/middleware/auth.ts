@@ -1,3 +1,5 @@
+// src/middleware/auth.ts
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../entities/User';
@@ -9,19 +11,26 @@ export interface AuthedRequest extends Request {
 
 export const authenticate = async (req: AuthedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer '))
-    return res.status(401).json({ message: 'Unauthorized' });
+  console.log('🛰️ Incoming Authorization header:', authHeader);
+  if (!authHeader) return res.status(401).json({ message: 'Missing Authorization header' });
 
   const token = authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Invalid Authorization format' });
+  console.log('🔑 Extracted token:', token);
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
-    const user = await AppDataSource.getRepository(User).findOneBy({ id: decoded.id });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    console.log('🔓 Decoded token:', decoded);
 
-    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await AppDataSource.getRepository(User).findOneBy({ id: decoded.userId });
+    console.log('🔍 Lookup result for user:', user);
 
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    console.log(`✅ Authenticated user: ${user.email}`);
     req.user = user;
     next();
-  } catch {
-    return res.status(401).json({ message: 'Unauthorized' });
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };

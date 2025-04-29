@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/utils/axios';
 import { Account } from '../types/account';
 
 const api = axios.create({

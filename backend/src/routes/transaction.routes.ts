@@ -6,15 +6,17 @@ import {
   deleteTransaction,
   getTransactionsByAccountId
 } from '../controllers/transaction.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth'; // ✅ Correct import path
 
 const router = express.Router();
 
+// ✅ Protect all routes with authenticate
 router.use(authenticate);
+
 router.post('/', createTransaction);
 router.get('/', getTransactions);
 router.put('/:id', updateTransaction);
 router.delete('/:id', deleteTransaction);
-router.get('/account/:accountId', authenticate, getTransactionsByAccountId);
+router.get('/account/:accountId', getTransactionsByAccountId); // ✅ Cleaner: no need to reauthenticate
 
 export default router;

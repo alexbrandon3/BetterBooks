@@ -2,10 +2,8 @@ import { Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { Account } from '../entities/Account';
 import { User } from '../entities/User';
-import { AuthedRequest } from '../middleware/auth'; // adjust path as needed
+import { AuthedRequest } from '../middleware/auth'; // assuming correct path
 
-
-// Use our global declaration of req.user from types/express.d.ts
 const accountRepo = AppDataSource.getRepository(Account);
 const userRepo = AppDataSource.getRepository(User);
 
@@ -19,7 +17,8 @@ export const getAccounts = async (req: AuthedRequest, res: Response) => {
     });
     return res.json(accounts);
   } catch (err) {
-    return res.status(500).json({ message: 'Error fetching accounts', err });
+    console.error('Error fetching accounts:', err);
+    return res.status(500).json({ message: 'Error fetching accounts', details: err });
   }
 };
 
@@ -29,6 +28,11 @@ export const createAccount = async (req: AuthedRequest, res: Response) => {
     const userId = req.user?.id;
     const { number, name, description, type, subtype, balance } = req.body;
 
+    // 🚨 Basic validation
+    if (!name || !type) {
+      return res.status(400).json({ message: 'Name and Type are required fields' });
+    }
+
     const owner = await userRepo.findOneBy({ id: userId });
     if (!owner) return res.status(404).json({ message: 'User not found' });
 
@@ -37,18 +41,16 @@ export const createAccount = async (req: AuthedRequest, res: Response) => {
     });
 
     if (duplicate) {
-      return res.status(409).json({
-        message: `Account number ${number} already exists`,
-      });
+      return res.status(409).json({ message: `Account number ${number} already exists` });
     }
 
     const account = accountRepo.create({
       number,
       name,
-      description,
+      description: description || name,
       type,
-      subtype,
-      balance,
+      subtype: subtype || 'GENERAL',
+      balance: balance ?? 0, // Default to 0 if balance not provided
       isActive: true,
       user: owner,
     });
@@ -56,7 +58,8 @@ export const createAccount = async (req: AuthedRequest, res: Response) => {
     await accountRepo.save(account);
     return res.status(201).json(account);
   } catch (err) {
-    return res.status(500).json({ message: 'Error creating account', err });
+    console.error('Error creating account:', err);
+    return res.status(500).json({ message: 'Error creating account', details: err });
   }
 };
 
@@ -80,7 +83,8 @@ export const updateAccount = async (req: AuthedRequest, res: Response) => {
     await accountRepo.save(account);
     return res.json(account);
   } catch (err) {
-    return res.status(500).json({ message: 'Error updating account', err });
+    console.error('Error updating account:', err);
+    return res.status(500).json({ message: 'Error updating account', details: err });
   }
 };
 
@@ -97,6 +101,7 @@ export const deleteAccount = async (req: AuthedRequest, res: Response) => {
 
     return res.json({ message: 'Account deleted successfully' });
   } catch (err) {
-    return res.status(500).json({ message: 'Error deleting account', err });
+    console.error('Error deleting account:', err);
+    return res.status(500).json({ message: 'Error deleting account', details: err });
   }
 };

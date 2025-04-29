@@ -16,46 +16,54 @@ export const generateRecurringTransactions = async () => {
   });
 
   for (const recurrence of dueRecurrences) {
-    // Stop recurrence if the end date has passed
+    // Stop recurrence if end date has passed
     if (recurrence.endDate && now > recurrence.endDate) {
       recurrence.isActive = false;
       await recurringRepo.save(recurrence);
       continue;
     }
 
-    const newTransaction = new Transaction();
-    newTransaction.description = recurrence.description;
-    newTransaction.amount = recurrence.amount;
-    newTransaction.type = recurrence.type as TransactionType;
-    newTransaction.reference = recurrence.reference ?? '';
-    newTransaction.account = recurrence.account;
-    newTransaction.user = recurrence.user;
-    newTransaction.recurringTransaction = recurrence;
-    newTransaction.isRecurring = true;
-    newTransaction.recurrence = recurrence.recurrence;
-    newTransaction.recurrencePattern = recurrence.recurrence;
-    newTransaction.interval = recurrence.recurrence.toLowerCase() as 'daily' | 'weekly' | 'monthly' | 'yearly';
-    newTransaction.nextOccurrence = recurrence.nextRun;
-    newTransaction.isActive = true;
+    const newTransaction = transactionRepo.create({
+      description: recurrence.description,
+      amount: Number(recurrence.amount), // ✅ Make sure amount is a number
+      type: recurrence.type as TransactionType,
+      reference: recurrence.reference ?? '',
+      account: recurrence.account,
+      user: recurrence.user,
+      recurringTransaction: recurrence,
+      isRecurring: true,
+      recurrence: recurrence.recurrence,
+      recurrencePattern: recurrence.recurrence,
+      interval: recurrence.interval ?? 1, // ✅ Safe default fallback
+      nextOccurrence: recurrence.nextRun,
+      isActive: true,
+      date: recurrence.nextRun, // ✅ Add the transaction date
+    });
 
     await transactionRepo.save(newTransaction);
 
+    // Calculate the next run date
     const next = new Date(recurrence.nextRun);
+    const interval = recurrence.interval ?? 1; // ✅ Safe fallback
+
     switch (recurrence.recurrence) {
       case 'Daily':
-        next.setDate(next.getDate() + recurrence.interval);
+        next.setDate(next.getDate() + interval);
         break;
       case 'Weekly':
-        next.setDate(next.getDate() + 7 * recurrence.interval);
+        next.setDate(next.getDate() + 7 * interval);
         break;
       case 'Biweekly':
-        next.setDate(next.getDate() + 14 * recurrence.interval);
+        next.setDate(next.getDate() + 14 * interval);
         break;
       case 'Monthly':
-        next.setMonth(next.getMonth() + recurrence.interval);
+        next.setMonth(next.getMonth() + interval);
         break;
       case 'Yearly':
-        next.setFullYear(next.getFullYear() + recurrence.interval);
+        next.setFullYear(next.getFullYear() + interval);
+        break;
+      default:
+        console.warn(`Unknown recurrence pattern: ${recurrence.recurrence}`);
         break;
     }
 
