@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/User';
+import { JWT_SECRET } from '../config';
 
 const userRepo = AppDataSource.getRepository(User);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 export const register = async (req: Request, res: Response) => {
@@ -34,9 +34,11 @@ export const login = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET as jwt.Secret,
+      { expiresIn: '1h' }
+    );
 
     return res.status(200).json({ token });
   } catch (err) {

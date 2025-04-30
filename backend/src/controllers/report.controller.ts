@@ -1,19 +1,19 @@
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { AppDataSource } from '../data-source';
 import { Transaction, TransactionType } from '../entities/Transaction';
-import { AuthedRequest } from '../middleware/auth';
+import { getUser } from '../utils/getUser';
 
 const transactionRepo = AppDataSource.getRepository(Transaction);
 
 // GET /reports/income-statement
-export const getIncomeStatement = async (req: AuthedRequest, res: Response) => {
+export const getIncomeStatement = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const user = getUser(req);
     const { startDate, endDate } = req.query;
 
-    const query = AppDataSource.getRepository(Transaction)
+    const query = transactionRepo
       .createQueryBuilder('transaction')
-      .where('transaction.userId = :userId', { userId })
+      .where('transaction.userId = :userId', { userId: user.id })
       .andWhere('transaction.type IN (:...types)', { types: ['INCOME', 'EXPENSE'] });
 
     if (startDate) {

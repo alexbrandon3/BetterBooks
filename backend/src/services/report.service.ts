@@ -1,6 +1,7 @@
 import { AppDataSource } from '../data-source';
 import { Transaction } from '../entities/Transaction';
 import { Between } from 'typeorm';
+import { TransactionType } from '../entities/Transaction';
 
 export const generateIncomeStatement = async (userId: string, startDate: Date, endDate: Date) => {
   const transactionRepo = AppDataSource.getRepository(Transaction);
@@ -14,11 +15,11 @@ export const generateIncomeStatement = async (userId: string, startDate: Date, e
   });
 
   const revenue = transactions
-    .filter(tx => tx.type === 'Income')
+    .filter(tx => tx.type === TransactionType.INCOME)
     .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
   const expenses = transactions
-    .filter(tx => tx.type === 'Expense')
+    .filter(tx => tx.type === TransactionType.EXPENSE)
     .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
   const netIncome = revenue - expenses;

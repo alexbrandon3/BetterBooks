@@ -1,9 +1,22 @@
 // src/pages/CreateAccount.tsx
 
 import { useState } from 'react';
-import { Box, TextField, Button, Typography, Paper, Alert, CircularProgress, MenuItem, Snackbar } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+  MenuItem,
+  Snackbar,
+  InputAdornment,
+  Tooltip,
+} from '@mui/material';
 import axios from '@/utils/axios';
 import { useNavigate } from 'react-router-dom';
+import { PlusOne, AccountBalanceWallet } from '@mui/icons-material';
 
 const CreateAccount = () => {
   const navigate = useNavigate();
@@ -13,7 +26,7 @@ const CreateAccount = () => {
     name: '',
     description: '',
     type: 'Asset',
-    subtype: '',
+    subtype: 'Cash',
     balance: '',
   });
 
@@ -23,18 +36,15 @@ const CreateAccount = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-  
+
     setFormData(prev => {
       let updated = { ...prev, [name]: value };
-  
       if (name === 'type') {
-        updated.subtype = getDefaultSubtype(value); // Smartly set subtype!
+        updated.subtype = getDefaultSubtype(value);
       }
-  
       return updated;
     });
   };
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +58,7 @@ const CreateAccount = () => {
         balance: parseFloat(formData.balance),
       });
       setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 1500); // Redirect after short delay
+      setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to create account');
@@ -68,25 +78,17 @@ const CreateAccount = () => {
       case 'Income':
         return 'Sales Revenue';
       case 'Equity':
-        return 'Owner’s Equity';
+        return "Owner's Equity";
       default:
         return '';
     }
   };
-  
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '80vh',
-      }}
-    >
-      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 400 }}>
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Paper elevation={4} sx={{ p: 4, width: '100%', maxWidth: 500 }}>
         <Typography variant="h5" align="center" gutterBottom>
-          Create Account
+          <AccountBalanceWallet sx={{ mr: 1 }} /> Create New Account
         </Typography>
 
         <form onSubmit={handleSubmit}>
@@ -118,7 +120,7 @@ const CreateAccount = () => {
 
           <TextField
             fullWidth
-            label="Description"
+            label="Description (optional)"
             name="description"
             value={formData.description}
             onChange={handleChange}
@@ -144,7 +146,7 @@ const CreateAccount = () => {
 
           <TextField
             fullWidth
-            label="Subtype"
+            label="Subtype (auto-suggested)"
             name="subtype"
             value={formData.subtype}
             onChange={handleChange}
@@ -159,27 +161,33 @@ const CreateAccount = () => {
             onChange={handleChange}
             type="number"
             margin="normal"
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            }}
             required
           />
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 3 }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : 'Create Account'}
-          </Button>
+          <Tooltip title="Creates account and redirects to dashboard">
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{ mt: 3 }}
+              disabled={loading}
+              startIcon={<PlusOne />}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Create Account'}
+            </Button>
+          </Tooltip>
         </form>
-      </Paper>
 
-      <Snackbar
-        open={success}
-        autoHideDuration={1500}
-        message="🎉 Account created!"
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
+        <Snackbar
+          open={success}
+          autoHideDuration={1500}
+          message="🎉 Account created!"
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        />
+      </Paper>
     </Box>
   );
 };

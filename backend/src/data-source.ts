@@ -4,6 +4,7 @@ import { Account } from './entities/Account';
 import { User } from './entities/User'; 
 import { Transaction } from './entities/Transaction';
 import { RecurringTransaction } from './entities/RecurringTransaction';
+import { SuggestionLog } from './entities/SuggestionLog';
 import * as dotenv from 'dotenv';
 
 // ✅ Load environment variables from the correct file FIRST
@@ -22,7 +23,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true, // Consider false in production or for serious migrations
   logging: true,
-  entities: [Account, User, Transaction, RecurringTransaction],
+  entities: [Account, User, Transaction, RecurringTransaction, SuggestionLog],
   migrations: ['src/migrations/**/*.ts'],
   subscribers: [],
 });

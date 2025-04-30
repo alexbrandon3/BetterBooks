@@ -43,7 +43,7 @@ describe('generateRecurringTransactions', () => {
     const recurrence = AppDataSource.getRepository(RecurringTransaction).create({
       description: 'Recurring Income Test',
       amount: 200,
-      type: TransactionType.INCOME,
+      type: 'Income',
       reference: 'REC-001',
       isActive: true,
       recurrence: 'Monthly',

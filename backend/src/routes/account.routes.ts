@@ -5,7 +5,7 @@ import {
   updateAccount,
   deleteAccount
 } from '../controllers/account.controller';
-import { authenticate } from '../middleware/auth'; // ✅ Corrected import
+import { authenticate } from '../middleware/auth.middleware'; // ✅ Corrected import
 
 const router = Router();
 

@@ -1,12 +1,12 @@
 // src/middleware/auth.middleware.ts
-import { Response, NextFunction } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/User';
-import { AuthedRequest } from './auth'; // path might vary depending on where you defined it
+import { JWT_SECRET } from '../config';
 
 export const authenticate = async (
-  req: AuthedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -17,24 +17,19 @@ export const authenticate = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    const userId = typeof decoded === 'object' && 'id' in decoded
-      ? decoded.id
-      : null;
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: payload.id } });
 
-    if (!userId) {
-      return res.status(401).json({ message: 'Invalid token payload' });
-    }
-
-    const user = await AppDataSource.getRepository(User).findOneBy({ id: userId });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    req.user = user;
+    req.user = user; // ✅ now valid due to global type augmentation
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
+    console.error(err);
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 };

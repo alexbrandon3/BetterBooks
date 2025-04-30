@@ -1,13 +1,13 @@
 import { AppDataSource } from '../data-source';
 import { Transaction } from '../entities/Transaction';
-import { LessThanOrEqual } from 'typeorm';
+import { LessThanOrEqual, Not } from 'typeorm';
 
 export const processRecurringTransactions = async () => {
   const transactionRepo = AppDataSource.getRepository(Transaction);
 
   const recurringTransactions = await transactionRepo.find({
     where: {
-      recurrence: Not(null),
+      recurrence: Not(''),
       nextOccurrence: LessThanOrEqual(new Date()),
       isActive: true
     }

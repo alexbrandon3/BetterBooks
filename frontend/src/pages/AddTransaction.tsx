@@ -11,6 +11,9 @@ import {
   InputLabel,
   FormControl,
   SelectChangeEvent,
+  FormControlLabel,
+  Checkbox,
+  Chip,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -25,11 +28,14 @@ const AddTransaction = () => {
     amount: '',
     type: 'INCOME',
     accountId: '',
-    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    date: new Date().toISOString().split('T')[0],
+    isRecurring: false,
+    recurrencePattern: '',
+    interval: 1,
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [suggestedAccountId, setSuggestedAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -47,16 +53,24 @@ const AddTransaction = () => {
     fetchAccounts();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name as string]: value }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, isRecurring: e.target.checked }));
+  };
+
+  const handleApplySuggestion = () => {
+    if (suggestedAccountId) {
+      setFormData(prev => ({ ...prev, accountId: suggestedAccountId }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,7 +79,8 @@ const AddTransaction = () => {
     setError('');
 
     try {
-      await axios.post('/transactions', formData);
+      const res = await axios.post('/transactions', formData);
+      setSuggestedAccountId(res.data.suggestedAccountId || null);
       navigate('/dashboard');
     } catch (err: any) {
       console.error(err);
@@ -95,7 +110,7 @@ const AddTransaction = () => {
 
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-      <Paper sx={{ p: 4, width: '100%', maxWidth: 450 }}>
+      <Paper sx={{ p: 4, width: '100%', maxWidth: 500 }}>
         <Typography variant="h5" align="center" gutterBottom>
           Add Transaction
         </Typography>
@@ -133,6 +148,7 @@ const AddTransaction = () => {
             <Select name="type" value={formData.type} onChange={handleSelectChange} required>
               <MenuItem value="INCOME">Income</MenuItem>
               <MenuItem value="EXPENSE">Expense</MenuItem>
+              <MenuItem value="TRANSFER">Transfer</MenuItem>
             </Select>
           </FormControl>
 
@@ -145,18 +161,63 @@ const AddTransaction = () => {
                 </MenuItem>
               ))}
             </Select>
+            {suggestedAccountId && suggestedAccountId !== formData.accountId && (
+              <Chip
+                label="Suggested Category"
+                onClick={handleApplySuggestion}
+                sx={{ mt: 1, cursor: 'pointer', bgcolor: 'secondary.main', color: 'white' }}
+              />
+            )}
           </FormControl>
 
           <TextField
             fullWidth
+            label="Date"
             name="date"
-            label="Transaction Date"
             type="date"
             value={formData.date}
             onChange={handleInputChange}
-            InputLabelProps={{ shrink: true }}
             margin="normal"
+            InputLabelProps={{ shrink: true }}
           />
+
+          <FormControlLabel
+            control={<Checkbox checked={formData.isRecurring} onChange={handleCheckboxChange} />}
+            label="Make Recurring"
+            sx={{ mt: 2 }}
+          />
+
+          {formData.isRecurring && (
+            <>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Recurrence Pattern</InputLabel>
+                <Select
+                  name="recurrencePattern"
+                  value={formData.recurrencePattern}
+                  onChange={handleSelectChange}
+                  required
+                >
+                  <MenuItem value="daily">Daily</MenuItem>
+                  <MenuItem value="weekly">Weekly</MenuItem>
+                  <MenuItem value="biweekly">Biweekly</MenuItem>
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                label="Interval"
+                name="interval"
+                type="number"
+                value={formData.interval}
+                onChange={handleInputChange}
+                margin="normal"
+                inputProps={{ min: 1 }}
+                required
+              />
+            </>
+          )}
 
           <Button
             type="submit"

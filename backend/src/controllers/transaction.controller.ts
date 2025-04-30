@@ -1,9 +1,10 @@
-// src/controllers/transaction.controller.ts
 import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { Transaction } from '../entities/Transaction';
 import { Account } from '../entities/Account';
 import { RecurringTransaction } from '../entities/RecurringTransaction';
+import { getSmartSuggestion } from '../services/smartSuggestions.service';
+import { getUser } from '../utils/getUser';
 
 const transactionRepo = AppDataSource.getRepository(Transaction);
 const accountRepo = AppDataSource.getRepository(Account);
@@ -12,9 +13,9 @@ const recurringRepo = AppDataSource.getRepository(RecurringTransaction);
 // GET all transactions for the logged-in user
 export const getTransactions = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const user = getUser(req);
     const transactions = await transactionRepo.find({
-      where: { user: { id: userId } },
+      where: { user: { id: user.id } },
       relations: ['account', 'recurringTransaction'],
       order: { createdAt: 'DESC' },
     });
@@ -27,66 +28,54 @@ export const getTransactions = async (req: Request, res: Response) => {
 // POST new transaction
 export const createTransaction = async (req: Request, res: Response) => {
   try {
-    const { description, amount, type, reference, accountId, recurrence } = req.body;
-    const userId = (req as any).user.id;
+    const user = getUser(req);
+    const {
+      description,
+      amount,
+      type,
+      accountId,
+      date,
+      isRecurring,
+      recurrenceRule,
+      recurrence,
+      interval,
+      recurrencePattern,
+    } = req.body;
 
-    // Fetch the account, ensuring it belongs to the current user
-    const account = await accountRepo.findOne({
-      where: {
-        id: accountId,
-        user: { id: userId },
-      },
-      relations: ['user'],
-    });
-
-    if (!account) {
-      return res.status(403).json({ message: 'Not authorized to access this account or account not found' });
-    }
-
-    // Create the transaction
     const transaction = transactionRepo.create({
       description,
       amount,
       type,
-      reference,
-      account,
-      user: account.user,
+      date: date ? new Date(date) : new Date(),
+      account: { id: accountId },
+      user,
+      isRecurring,
+      recurrenceRule,
+      recurrence,
+      interval,
+      recurrencePattern,
     });
 
-    await transactionRepo.save(transaction);
+    const saved = await transactionRepo.save(transaction);
 
-    // Optional: handle recurring transaction details
-    if (recurrence) {
-      const recurring = recurringRepo.create({
-        description,
-        amount,
-        type,
-        reference,
-        recurrence: recurrence.recurrence, // ← THIS was missing
-        frequency: recurrence.frequency,
-        interval: recurrence.interval,
-        nextRun: recurrence.nextRun,
-        startDate: new Date(),
-        account,
-        user: account.user,
-        transaction,
-      });
-    
-      await recurringRepo.save(recurring);
-    }
+    const suggestedAccount = await getSmartSuggestion(description, user.id);
 
-    res.status(201).json({ message: 'Transaction created successfully', transaction });
-  } catch (error) {
-    console.error('Error creating transaction:', error);
-    res.status(500).json({ message: 'Error creating transaction', error });
+    console.log('Smart suggestion result:', suggestedAccount);
+
+    return res.status(201).json({
+      transaction: saved,
+      suggestedAccountId: suggestedAccount?.id || null,
+    });
+  } catch (err) {
+    console.error('Error creating transaction:', err);
+    return res.status(500).json({ message: 'Failed to create transaction' });
   }
 };
-
 
 // PUT update a transaction
 export const updateTransaction = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const user = getUser(req);
     const { id } = req.params;
     const { description, amount, type, reference } = req.body;
 
@@ -95,7 +84,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
       relations: ['user'],
     });
 
-    if (!transaction || transaction.user.id !== userId) {
+    if (!transaction || transaction.user.id !== user.id) {
       return res.status(404).json({ message: 'Transaction not found or unauthorized' });
     }
 
@@ -114,7 +103,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
 // DELETE a transaction
 export const deleteTransaction = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const user = getUser(req);
     const { id } = req.params;
 
     const transaction = await transactionRepo.findOne({
@@ -122,7 +111,7 @@ export const deleteTransaction = async (req: Request, res: Response) => {
       relations: ['user'],
     });
 
-    if (!transaction || transaction.user.id !== userId) {
+    if (!transaction || transaction.user.id !== user.id) {
       return res.status(404).json({ message: 'Transaction not found or unauthorized' });
     }
 
@@ -135,13 +124,13 @@ export const deleteTransaction = async (req: Request, res: Response) => {
 
 export const getTransactionsByAccountId = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const user = getUser(req);
     const { accountId } = req.params;
 
     const transactions = await transactionRepo.find({
       where: {
         account: { id: accountId },
-        user: { id: userId }
+        user: { id: user.id }
       },
       relations: ['account', 'recurringTransaction'],
       order: { createdAt: 'DESC' }

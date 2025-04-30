@@ -6,7 +6,7 @@ import {
   deleteTransaction,
   getTransactionsByAccountId
 } from '../controllers/transaction.controller';
-import { authenticate } from '../middleware/auth'; // ✅ Correct import path
+import { authenticate } from '../middleware/auth.middleware'; // ✅ Correct import path
 
 const router = express.Router();
 
