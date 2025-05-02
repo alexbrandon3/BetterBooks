@@ -48,10 +48,10 @@ const IncomeStatement = () => {
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <Box mt={8}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error">{error || 'Data not available'}</Alert>
       </Box>
     );
   }
@@ -63,18 +63,22 @@ const IncomeStatement = () => {
       </Typography>
 
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-        Period: {new Date(data!.startDate).toLocaleDateString()} – {new Date(data!.endDate).toLocaleDateString()}
+        Period: {new Date(data.startDate).toLocaleDateString()} – {new Date(data.endDate).toLocaleDateString()}
       </Typography>
 
       <Paper sx={{ p: 4, mt: 2 }}>
         <Box display="flex" justifyContent="space-between" mb={1}>
           <Typography variant="h6">Total Income</Typography>
-          <Typography variant="h6" color="success.main">${data!.totalIncome.toFixed(2)}</Typography>
+          <Typography variant="h6" color="success.main">
+            ${data.totalIncome.toFixed(2)}
+          </Typography>
         </Box>
 
         <Box display="flex" justifyContent="space-between" mb={1}>
           <Typography variant="h6">Total Expenses</Typography>
-          <Typography variant="h6" color="error.main">${data!.totalExpenses.toFixed(2)}</Typography>
+          <Typography variant="h6" color="error.main">
+            ${data.totalExpenses.toFixed(2)}
+          </Typography>
         </Box>
 
         <Divider sx={{ my: 2 }} />
@@ -83,9 +87,9 @@ const IncomeStatement = () => {
           <Typography variant="h5">Net Income</Typography>
           <Typography
             variant="h5"
-            color={data!.netIncome >= 0 ? 'success.main' : 'error.main'}
+            color={data.netIncome >= 0 ? 'success.main' : 'error.main'}
           >
-            ${data!.netIncome.toFixed(2)}
+            ${data.netIncome.toFixed(2)}
           </Typography>
         </Box>
       </Paper>

@@ -1,51 +1,35 @@
 // src/services/smartSuggestions.service.ts
-
 import { AppDataSource } from '../data-source';
 import { Account } from '../entities/Account';
-import { Like } from 'typeorm';
-
-const keywordMap: Record<string, string> = {
-  netflix: 'Entertainment',
-  spotify: 'Entertainment',
-  walmart: 'Groceries',
-  target: 'Groceries',
-  gas: 'Transportation',
-  uber: 'Transportation',
-  electricity: 'Utilities',
-  water: 'Utilities',
-  rent: 'Rent',
-};
 
 export const getSmartSuggestion = async (
   description: string,
   userId: string
 ): Promise<Account | null> => {
-  if (!description || !userId) return null;
+  try {
+    const accountRepo = AppDataSource.getRepository(Account);
 
-  const lowerDesc = description.toLowerCase();
-
-  // 1. Check keyword-based mapping
-  for (const [keyword, category] of Object.entries(keywordMap)) {
-    if (lowerDesc.includes(keyword)) {
-      const match = await AppDataSource.getRepository(Account).findOne({
-        where: { user: { id: userId }, type: category },
-      });
-      if (match) return match;
-    }
-  }
-
-  // 2. Fallback: fuzzy match based on account names
-  const keywords = lowerDesc.split(/\s+/);
-
-  for (const word of keywords) {
-    const match = await AppDataSource.getRepository(Account).findOne({
-      where: {
-        user: { id: userId },
-        name: Like(`%${word}%`),
-      },
+    const allAccounts = await accountRepo.find({
+      where: { user: { id: userId } },
     });
-    if (match) return match;
-  }
 
-  return null;
+    console.log(`🔍 Matching against description: "${description}"`);
+    console.log(`📚 Total accounts: ${allAccounts.length}`);
+
+    for (const acc of allAccounts) {
+      const fields = [acc.name, acc.description, acc.subtype].filter(Boolean).map((f) => f.toLowerCase());
+      const target = description.toLowerCase();
+
+      if (fields.some((field) => field.includes(target))) {
+        console.log(`✅ Matched with account: ${acc.name} (ID: ${acc.id})`);
+        return acc;
+      }
+    }
+
+    console.log('⚠️ No matching account found for suggestion.');
+    return null;
+  } catch (err) {
+    console.error('❌ Error in getSmartSuggestion:', err);
+    return null;
+  }
 };

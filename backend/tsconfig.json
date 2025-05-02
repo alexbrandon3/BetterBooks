@@ -1,19 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
-    "lib": ["es6"],
-    "outDir": "dist",
-    "rootDir": "src",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "strict": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "sourceMap": true,
     "skipLibCheck": true,
-    "strictPropertyInitialization": false
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": ["node", "jest"]
   },
-  "include": ["src", "src/types"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"]
 }

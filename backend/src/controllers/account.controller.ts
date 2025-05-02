@@ -26,7 +26,9 @@ export const getAccounts = async (req: Request, res: Response) => {
 export const createAccount = async (req: Request, res: Response) => {
   try {
     const user = getUser(req);
-    const { number, name, description, type, subtype, balance } = req.body;
+    let { number, name, description, type, subtype, balance } = req.body;
+
+    number = String(number).trim(); // ✅ normalize before checking
 
     if (!name || !type) {
       return res.status(400).json({ message: 'Name and Type are required fields' });
@@ -35,13 +37,19 @@ export const createAccount = async (req: Request, res: Response) => {
     const owner = await userRepo.findOneBy({ id: user.id });
     if (!owner) return res.status(404).json({ message: 'User not found' });
 
-    const duplicate = await accountRepo.findOne({
-      where: { number, user: { id: user.id } },
-    });
+    const duplicate = await accountRepo
+  .createQueryBuilder('account')
+  .leftJoin('account.user', 'user')
+  .where('account.number = :number', { number })
+  .andWhere('user.id = :userId', { userId: user.id })
+  .getOne();
 
-    if (duplicate) {
-      return res.status(409).json({ message: `Account number ${number} already exists` });
-    }
+
+  if (duplicate) {
+    console.warn(`Duplicate account number detected for user ${user.id}: ${number}`);
+    return res.status(409).json({ message: `Account number ${number} already exists` });
+  }
+  
 
     const account = accountRepo.create({
       number,
@@ -61,6 +69,7 @@ export const createAccount = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error creating account', details: err });
   }
 };
+
 
 // PUT /accounts/:id
 export const updateAccount = async (req: Request, res: Response) => {

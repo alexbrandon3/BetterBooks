@@ -6,19 +6,20 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  Unique,
 } from 'typeorm';
 import { User } from './User';
 import { Transaction } from './Transaction';
 import { RecurringTransaction } from './RecurringTransaction';
 
-
+@Unique(['number', 'user']) // 👈 enforce uniqueness per user
 @Entity()
 export class Account {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ unique: true })
-  number!: string;
+  @Column()
+  number!: string; // 👈 removed unique: true
 
   @Column()
   name!: string;
@@ -51,6 +52,5 @@ export class Account {
   transactions!: Transaction[];
 
   @OneToMany(() => RecurringTransaction, (recurring) => recurring.account)
-recurringTransactions!: RecurringTransaction[];
-
+  recurringTransactions!: RecurringTransaction[];
 }

@@ -10,7 +10,6 @@ const transactionRepo = AppDataSource.getRepository(Transaction);
 const accountRepo = AppDataSource.getRepository(Account);
 const recurringRepo = AppDataSource.getRepository(RecurringTransaction);
 
-// GET all transactions for the logged-in user
 export const getTransactions = async (req: Request, res: Response) => {
   try {
     const user = getUser(req);
@@ -25,7 +24,6 @@ export const getTransactions = async (req: Request, res: Response) => {
   }
 };
 
-// POST new transaction
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     const user = getUser(req);
@@ -59,20 +57,18 @@ export const createTransaction = async (req: Request, res: Response) => {
     const saved = await transactionRepo.save(transaction);
 
     const suggestedAccount = await getSmartSuggestion(description, user.id);
-
-    console.log('Smart suggestion result:', suggestedAccount);
+    console.log('📦 Smart Suggestion returned from service:', suggestedAccount);
 
     return res.status(201).json({
       transaction: saved,
       suggestedAccountId: suggestedAccount?.id || null,
     });
   } catch (err) {
-    console.error('Error creating transaction:', err);
-    return res.status(500).json({ message: 'Failed to create transaction' });
+    console.error('❌ Error creating transaction:', err);
+    return res.status(500).json({ message: 'Failed to create transaction', error: err });
   }
 };
 
-// PUT update a transaction
 export const updateTransaction = async (req: Request, res: Response) => {
   try {
     const user = getUser(req);
@@ -100,7 +96,6 @@ export const updateTransaction = async (req: Request, res: Response) => {
   }
 };
 
-// DELETE a transaction
 export const deleteTransaction = async (req: Request, res: Response) => {
   try {
     const user = getUser(req);

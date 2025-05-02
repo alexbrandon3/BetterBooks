@@ -7,43 +7,42 @@ import {
   ManyToOne,
   CreateDateColumn,
   JoinColumn,
-} from 'typeorm';
-import { User } from './User';
-import { Account } from './Account';
+} from "typeorm";
+import { User } from "./User";
+import { Account } from "./Account";
 
 @Entity()
 export class SuggestionLog {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @ManyToOne(() => User, { eager: false })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @JoinColumn({ name: "userId" })
+  user!: User;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  description: string;
+  description!: string;
 
   @ManyToOne(() => Account, { eager: false, nullable: true })
-  @JoinColumn({ name: 'suggestedAccountId' })
-  suggestedAccount: Account;
+  @JoinColumn({ name: "suggestedAccountId" })
+  suggestedAccount!: Account;
 
   @Column({ nullable: true })
-  suggestedAccountId: string | null;
-
+  suggestedAccountId!: string | null;
 
   @ManyToOne(() => Account, { eager: false })
-  @JoinColumn({ name: 'selectedAccountId' })
-  selectedAccount: Account;
+  @JoinColumn({ name: "selectedAccountId" })
+  selectedAccount!: Account;
 
   @Column()
-  selectedAccountId: string;
+  selectedAccountId!: string;
 
   @Column()
-  matched: boolean;
+  matched!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

@@ -1,8 +1,15 @@
-// src/components/Dashboard.tsx
+import {
+  Box,
+  Typography,
+  Paper,
+  CircularProgress,
+  Alert,
+  Divider,
+} from '@mui/material';
 import { useEffect, useState } from 'react';
-import axios from '@/utils/axios'; // adjust if your alias differs
+import axios from '@/utils/axios';
 
-interface IncomeStatement {
+interface IncomeStatementData {
   totalIncome: number;
   totalExpenses: number;
   netIncome: number;
@@ -10,61 +17,82 @@ interface IncomeStatement {
   endDate: string;
 }
 
-const Dashboard = () => {
-  const [data, setData] = useState<IncomeStatement | null>(null);
+const IncomeStatement = () => {
+  const [data, setData] = useState<IncomeStatementData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      setError('Not authenticated. Please log in.');
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
+    const fetchIncomeStatement = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('/api/reports/income-statement', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await axios.get('/reports/income-statement', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setData(res.data);
+        setData(response.data);
       } catch (err: any) {
-        const message =
-          err.response?.data?.message ||
-          err.message ||
-          'Failed to load data';
-        setError(message);
+        setError(err.response?.data?.message || 'Failed to load income statement');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchIncomeStatement();
   }, []);
 
-  if (loading) return <div className="p-4 text-gray-600">Loading...</div>;
-  if (error)
-    return <div className="p-4 text-red-500 font-medium">Error: {error}</div>;
+  if (loading) {
+    return (
+      <Box mt={8} textAlign="center">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box mt={8}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (!data) return null;
 
   return (
-    <div className="p-6 bg-white shadow-md rounded-md max-w-xl mx-auto mt-8">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Income Statement</h2>
-      <div className="space-y-2">
-        <p><strong>Start Date:</strong> {data?.startDate || 'N/A'}</p>
-        <p><strong>End Date:</strong> {data?.endDate || 'N/A'}</p>
-        <p><strong>Total Income:</strong> ${data?.totalIncome?.toFixed(2)}</p>
-        <p><strong>Total Expenses:</strong> ${data?.totalExpenses?.toFixed(2)}</p>
-        <p className={`font-bold ${data?.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          Net Income: ${data?.netIncome?.toFixed(2)}
-        </p>
-      </div>
-    </div>
+    <Box p={4}>
+      <Typography variant="h4" gutterBottom>
+        Income Statement
+      </Typography>
+
+      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+        Period: {new Date(data.startDate).toLocaleDateString()} – {new Date(data.endDate).toLocaleDateString()}
+      </Typography>
+
+      <Paper sx={{ p: 4, mt: 2 }}>
+        <Box display="flex" justifyContent="space-between" mb={1}>
+          <Typography variant="h6">Total Income</Typography>
+          <Typography variant="h6" color="success.main">${data.totalIncome.toFixed(2)}</Typography>
+        </Box>
+
+        <Box display="flex" justifyContent="space-between" mb={1}>
+          <Typography variant="h6">Total Expenses</Typography>
+          <Typography variant="h6" color="error.main">${data.totalExpenses.toFixed(2)}</Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box display="flex" justifyContent="space-between">
+          <Typography variant="h5">Net Income</Typography>
+          <Typography
+            variant="h5"
+            color={data.netIncome >= 0 ? 'success.main' : 'error.main'}
+          >
+            ${data.netIncome.toFixed(2)}
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 
-export default Dashboard;
+export default IncomeStatement;
