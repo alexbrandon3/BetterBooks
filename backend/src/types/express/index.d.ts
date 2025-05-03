@@ -1,8 +1,7 @@
-import { Request } from 'express';
-import { User } from '../../entities/User';
+import { User } from "../../entities/User";
 
-declare module 'express' {
-  export interface Request {
+declare module "express-serve-static-core" {
+  interface Request {
     user?: User;
   }
 }

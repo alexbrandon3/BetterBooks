@@ -12,7 +12,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "./src/types/express"]
   },
   "include": ["src/**/*"]
 }

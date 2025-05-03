@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import axios from '@/utils/axios';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "@/utils/axios";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 interface Account {
   id: string;
@@ -10,14 +11,16 @@ interface Account {
 }
 
 const AddTransaction = () => {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
-  const [suggestedAccount, setSuggestedAccount] = useState<Account | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [suggestedAccount, setSuggestedAccount] = useState<Account | null>(
+    null
+  );
   const [debouncedDescription, setDebouncedDescription] = useState(description);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,13 +29,17 @@ const AddTransaction = () => {
   }, [description]);
 
   useEffect(() => {
-    axios.get('/accounts').then((res) => setAccounts(res.data)).catch(console.error);
+    axios
+      .get("/accounts")
+      .then((res) => setAccounts(res.data))
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (debouncedDescription.trim().length < 3) return setSuggestedAccount(null);
+    if (debouncedDescription.trim().length < 3)
+      return setSuggestedAccount(null);
     axios
-      .post('/suggestions', { description: debouncedDescription })
+      .post("/suggestions", { description: debouncedDescription })
       .then((res) => {
         const suggestion = res.data?.suggestedAccount;
         setSuggestedAccount(suggestion || null);
@@ -42,29 +49,31 @@ const AddTransaction = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     if (!description || !amount || !selectedAccountId) {
-      setError('All fields are required.');
+      setError("All fields are required.");
       return;
     }
 
     try {
-      await axios.post('/transactions', {
+      await axios.post("/transactions", {
         description,
         amount: parseFloat(amount),
         type,
         accountId: selectedAccountId,
       });
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-      console.error('Failed to create transaction:', err);
-      setError('Something went wrong. Please try again.');
+      console.error("Failed to create transaction:", err);
+      setError("Something went wrong. Please try again.");
     }
   };
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-md">
-      <h2 className="text-2xl font-semibold mb-6 text-center">Add Transaction</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-center">
+        Add Transaction
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && <div className="text-red-600 font-medium">{error}</div>}
 
@@ -80,9 +89,14 @@ const AddTransaction = () => {
           {suggestedAccount && (
             <div
               className="text-sm text-blue-600 cursor-pointer mt-1"
-              onClick={() => setSelectedAccountId(suggestedAccount.id)}
+              onClick={() => {
+                setSelectedAccountId(suggestedAccount.id);
+                toast.success("Suggested category applied!");
+                setSuggestedAccount(null);
+              }}
             >
-              💡 Suggested: <strong>{suggestedAccount.name}</strong> ({suggestedAccount.type} - {suggestedAccount.subtype})
+              💡 Suggested: <strong>{suggestedAccount.name}</strong> (
+              {suggestedAccount.type} - {suggestedAccount.subtype})
             </div>
           )}
         </div>
@@ -103,7 +117,7 @@ const AddTransaction = () => {
           <select
             className="w-full p-2 border rounded"
             value={type}
-            onChange={(e) => setType(e.target.value as 'INCOME' | 'EXPENSE')}
+            onChange={(e) => setType(e.target.value as "INCOME" | "EXPENSE")}
           >
             <option value="EXPENSE">Expense</option>
             <option value="INCOME">Income</option>
