@@ -1,29 +1,41 @@
-import 'reflect-metadata';
-import { DataSource } from 'typeorm';
-import { Account } from './entities/Account';
-import { User } from './entities/User'; 
-import { Transaction } from './entities/Transaction';
-import { RecurringTransaction } from './entities/RecurringTransaction';
-import { SuggestionLog } from './entities/SuggestionLog';
-import * as dotenv from 'dotenv';
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { Account } from "./entities/Account";
+import { User } from "./entities/User";
+import { Transaction } from "./entities/Transaction";
+import { RecurringTransaction } from "./entities/RecurringTransaction";
+import { SuggestionLog } from "./entities/SuggestionLog";
+import { SplitTransaction } from "./entities/SplitTransaction";
+import * as dotenv from "dotenv";
 
 // ✅ Load environment variables from the correct file FIRST
-const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
 dotenv.config({ path: envFile });
 
 // ✅ Log after loading the file
-console.log('Loaded DB_PASSWORD:', typeof process.env.DB_PASSWORD, process.env.DB_PASSWORD);
+console.log(
+  "Loaded DB_PASSWORD:",
+  typeof process.env.DB_PASSWORD,
+  process.env.DB_PASSWORD
+);
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
+  type: "postgres",
   host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
+  port: parseInt(process.env.DB_PORT || "5432", 10),
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: true, // Consider false in production or for serious migrations
+  synchronize: false, // Consider false in production or for serious migrations
   logging: true,
-  entities: [Account, User, Transaction, RecurringTransaction, SuggestionLog],
-  migrations: ['src/migrations/**/*.ts'],
+  entities: [
+    Account,
+    User,
+    Transaction,
+    RecurringTransaction,
+    SuggestionLog,
+    SplitTransaction,
+  ],
+  migrations: ["src/migrations/**/*.ts"],
   subscribers: [],
 });

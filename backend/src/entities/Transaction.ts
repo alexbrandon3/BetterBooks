@@ -1,4 +1,3 @@
-// ✅ BACKEND: Update Transaction entity
 // src/entities/Transaction.ts
 
 import {
@@ -9,32 +8,34 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   JoinColumn,
-} from 'typeorm';
-import { User } from './User';
-import { Account } from './Account';
-import { RecurringTransaction } from './RecurringTransaction';
+  OneToMany,
+} from "typeorm";
+import { User } from "../entities/User";
+import { Account } from "./Account";
+import { RecurringTransaction } from "./RecurringTransaction";
+import { SplitTransaction } from "./SplitTransaction"; // ✅ Only keep this
 
 export enum TransactionType {
-  INCOME = 'INCOME',
-  EXPENSE = 'EXPENSE',
-  TRANSFER = 'TRANSFER',
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+  TRANSFER = "TRANSFER",
 }
 
 @Entity()
 export class Transaction {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Column()
   description!: string;
 
-  @Column('decimal')
+  @Column("decimal")
   amount!: number;
 
-  @Column({ type: 'enum', enum: TransactionType })
+  @Column({ type: "enum", enum: TransactionType })
   type!: TransactionType;
 
-  @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+  @Column({ type: "date", default: () => "CURRENT_DATE" })
   date!: Date;
 
   @Column({ default: true })
@@ -66,7 +67,7 @@ export class Transaction {
 
   @ManyToOne(() => RecurringTransaction, (rec) => rec.transactions, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: "SET NULL",
   })
   recurringTransaction?: RecurringTransaction;
 
@@ -79,4 +80,8 @@ export class Transaction {
   @Column({ nullable: true })
   reference?: string;
 
+  @OneToMany(() => SplitTransaction, (entry) => entry.transaction, {
+    cascade: true,
+  })
+  entries!: SplitTransaction[]; // ✅ Final definition
 }
