@@ -5,6 +5,9 @@ import Register from "./components/Register";
 import IncomeStatement from "@/pages/IncomeStatement";
 import AddTransaction from "./pages/AddTransaction";
 import CreateAccount from "./pages/CreateAccount";
+import Transactions from "./pages/Transactions";
+import EditTransaction from "./pages/EditTransaction";
+
 import { Toaster } from "react-hot-toast";
 // src/index.ts
 
@@ -19,6 +22,9 @@ function App() {
         <Route path="/income-statement" element={<IncomeStatement />} />
         <Route path="/add-transaction" element={<AddTransaction />} />
         <Route path="/create-account" element={<CreateAccount />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/transactions/:id/edit" element={<EditTransaction />} />
+
         {/* Add more routes here */}
       </Routes>
     </Router>

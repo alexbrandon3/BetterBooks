@@ -1,4 +1,3 @@
-// src/entities/SplitTransaction.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,13 +8,14 @@ import {
 } from "typeorm";
 import { Transaction } from "./Transaction";
 import { Account } from "./Account";
+import { User } from "./User";
 
 @Entity()
 export class SplitTransaction {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column()
+  @Column("decimal", { precision: 10, scale: 2 }) // ✅ was likely just "int" or "integer"
   amount!: number;
 
   @ManyToOne(() => Transaction, (transaction) => transaction.entries, {
@@ -25,6 +25,9 @@ export class SplitTransaction {
 
   @ManyToOne(() => Account, { eager: true })
   account!: Account;
+
+  @ManyToOne(() => User)
+  user!: User;
 
   @CreateDateColumn()
   createdAt!: Date;

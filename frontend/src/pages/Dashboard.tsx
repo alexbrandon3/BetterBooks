@@ -20,7 +20,9 @@ import {
   TrendingUp,
   Receipt,
   Replay,
+  SyncAlt,
 } from "@mui/icons-material";
+import Amount from "@/components/Amount"; // ✅ Import reusable component
 
 interface IncomeStatement {
   totalIncome: number;
@@ -43,11 +45,27 @@ interface RecurringPreview {
   nextRun: string;
 }
 
+interface TransactionEntry {
+  amount: number;
+  account: { name: string };
+}
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number | null;
+  type: string;
+  createdAt: string;
+  entries?: TransactionEntry[];
+  account?: { name: string };
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<IncomeStatement | null>(null);
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
   const [recurring, setRecurring] = useState<RecurringPreview[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,7 +75,7 @@ const Dashboard = () => {
       try {
         const token = localStorage.getItem("token");
 
-        const [incomeRes, balanceRes, recurringRes, userRes] =
+        const [incomeRes, balanceRes, recurringRes, userRes, txRes] =
           await Promise.all([
             axios.get("/reports/income-statement", {
               headers: { Authorization: `Bearer ${token}` },
@@ -71,12 +89,16 @@ const Dashboard = () => {
             axios.get("/auth/me", {
               headers: { Authorization: `Bearer ${token}` },
             }),
+            axios.get("/transactions", {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
           ]);
 
         setData(incomeRes.data);
         setBalanceSheet(balanceRes.data);
         setRecurring(recurringRes.data);
         setUserEmail(userRes.data.email);
+        setTransactions(txRes.data);
       } catch (err: any) {
         setError(
           err.response?.data?.message || "Failed to fetch dashboard data"
@@ -105,41 +127,43 @@ const Dashboard = () => {
     );
   }
 
-  const stats = [
-    {
-      title: "Net Income",
-      value: `$${data?.netIncome.toFixed(2)}`,
-      icon: <AccountBalance />,
-    },
-    {
-      title: "Total Income",
-      value: `$${data?.totalIncome.toFixed(2)}`,
-      icon: <TrendingUp />,
-    },
-    {
-      title: "Total Expenses",
-      value: `$${data?.totalExpenses.toFixed(2)}`,
-      icon: <Receipt />,
-    },
-  ];
+  const stats = data
+    ? [
+        {
+          title: "Net Income",
+          value: <Amount value={data.netIncome} bold />,
+          icon: <AccountBalance />,
+        },
+        {
+          title: "Total Income",
+          value: <Amount value={data.totalIncome} />,
+          icon: <TrendingUp />,
+        },
+        {
+          title: "Total Expenses",
+          value: <Amount value={data.totalExpenses} />,
+          icon: <Receipt />,
+        },
+      ]
+    : [];
 
   const balanceStats = balanceSheet
     ? [
         {
           title: "Total Assets",
-          value: `$${balanceSheet.totalAssets.toFixed(2)}`,
+          value: <Amount value={balanceSheet.totalAssets} />,
         },
         {
           title: "Total Liabilities",
-          value: `$${balanceSheet.totalLiabilities.toFixed(2)}`,
+          value: <Amount value={balanceSheet.totalLiabilities} />,
         },
         {
           title: "Total Equity",
-          value: `$${balanceSheet.totalEquity.toFixed(2)}`,
+          value: <Amount value={balanceSheet.totalEquity} />,
         },
         {
           title: "Assets – Liabilities",
-          value: `$${balanceSheet.assetsMinusLiabilities.toFixed(2)}`,
+          value: <Amount value={balanceSheet.assetsMinusLiabilities} />,
         },
       ]
     : [];
@@ -236,6 +260,45 @@ const Dashboard = () => {
       <Grid item xs={12} md={6} mt={4}>
         <Paper elevation={3} sx={{ p: 3, borderRadius: 3 }}>
           <Box display="flex" alignItems="center" mb={2}>
+            <SyncAlt sx={{ mr: 1, color: "#1a2b4c" }} />
+            <Typography variant="h6" sx={{ color: "#1a2b4c" }}>
+              Recent Transactions
+            </Typography>
+          </Box>
+          {transactions.length === 0 ? (
+            <Typography color="text.secondary">No transactions yet.</Typography>
+          ) : (
+            <List>
+              {transactions.slice(0, 5).map((tx) => (
+                <div key={tx.id}>
+                  <ListItem sx={{ py: 1 }}>
+                    <ListItemText
+                      primary={
+                        tx.type === "TRANSFER" && tx.entries?.length === 2
+                          ? `Transfer: ${tx.entries[0].account.name} → ${tx.entries[1].account.name}`
+                          : `${tx.description} (${tx.type})`
+                      }
+                      secondary={
+                        <>
+                          <Amount
+                            value={tx.amount ?? tx.entries?.[0]?.amount ?? 0}
+                          />{" "}
+                          – {new Date(tx.createdAt).toLocaleDateString()}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                  <Divider />
+                </div>
+              ))}
+            </List>
+          )}
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={6} mt={4}>
+        <Paper elevation={3} sx={{ p: 3, borderRadius: 3 }}>
+          <Box display="flex" alignItems="center" mb={2}>
             <Replay sx={{ mr: 1, color: "#1a2b4c" }} />
             <Typography variant="h6" sx={{ color: "#1a2b4c" }}>
               Upcoming Recurring
@@ -252,9 +315,12 @@ const Dashboard = () => {
                   <ListItem sx={{ py: 1 }}>
                     <ListItemText
                       primary={item.description}
-                      secondary={`$${item.amount.toFixed(2)} – ${new Date(
-                        item.nextRun
-                      ).toLocaleDateString()}`}
+                      secondary={
+                        <>
+                          <Amount value={item.amount} /> –{" "}
+                          {new Date(item.nextRun).toLocaleDateString()}
+                        </>
+                      }
                     />
                   </ListItem>
                   {idx < recurring.length - 1 && <Divider />}

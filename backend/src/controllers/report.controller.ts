@@ -3,9 +3,12 @@ import { AppDataSource } from "../data-source";
 import { Transaction, TransactionType } from "../entities/Transaction";
 import { getUser } from "../utils/getUser";
 import { Account } from "../entities/Account";
+import { SplitTransaction } from "../entities/SplitTransaction";
+import { In } from "typeorm";
 
 const transactionRepo = AppDataSource.getRepository(Transaction);
 const accountRepo = AppDataSource.getRepository(Account);
+const splitRepo = AppDataSource.getRepository(SplitTransaction);
 
 // GET /reports/income-statement
 export const getIncomeStatement = async (req: Request, res: Response) => {
@@ -13,36 +16,35 @@ export const getIncomeStatement = async (req: Request, res: Response) => {
     const user = getUser(req);
     const { startDate, endDate } = req.query;
 
-    const query = transactionRepo
-      .createQueryBuilder("transaction")
-      .where("transaction.userId = :userId", { userId: user.id })
-      .andWhere("transaction.type IN (:...types)", {
-        types: ["INCOME", "EXPENSE"],
-      });
-
-    if (startDate) {
-      query.andWhere("transaction.createdAt >= :startDate", { startDate });
-    }
-
-    if (endDate) {
-      query.andWhere("transaction.createdAt <= :endDate", { endDate });
-    }
-
-    const transactions = await query.getMany();
+    const transactions = await transactionRepo.find({
+      where: {
+        user: { id: user.id },
+        type: In([TransactionType.INCOME, TransactionType.EXPENSE]),
+      },
+      relations: ["entries", "entries.account"],
+    });
 
     let totalIncome = 0;
     let totalExpenses = 0;
 
     for (const tx of transactions) {
-      if (tx.type === TransactionType.INCOME) totalIncome += Number(tx.amount);
-      else if (tx.type === TransactionType.EXPENSE)
-        totalExpenses += Number(tx.amount);
+      if (tx.entries && tx.entries.length > 0) {
+        for (const entry of tx.entries) {
+          if (!entry.account) continue;
+          const amt = Number(entry.amount);
+          if (entry.account.type === "REVENUE") totalIncome += amt;
+          else if (entry.account.type === "EXPENSE") totalExpenses += amt;
+        }
+      } else {
+        const amt = Number(tx.amount);
+        if (tx.type === TransactionType.INCOME) totalIncome += amt;
+        else if (tx.type === TransactionType.EXPENSE) totalExpenses += amt;
+      }
     }
 
     const netIncome = totalIncome - totalExpenses;
-
     const now = new Date();
-    const defaultStart = new Date(now.getFullYear(), 0, 1); // Jan 1 of current year
+    const defaultStart = new Date(now.getFullYear(), 0, 1);
     const defaultEnd = now;
 
     return res.json({

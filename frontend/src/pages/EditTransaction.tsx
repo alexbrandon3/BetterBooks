@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "@/utils/axios";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 interface Account {
@@ -15,27 +15,17 @@ interface Entry {
   accountId: string;
 }
 
-const AddTransaction = () => {
+const EditTransaction = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"INCOME" | "EXPENSE" | "TRANSFER">(
     "EXPENSE"
   );
-  const [entries, setEntries] = useState<Entry[]>([
-    { amount: "", accountId: "" },
-    { amount: "", accountId: "" },
-  ]);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [suggestedAccount, setSuggestedAccount] = useState<Account | null>(
-    null
-  );
-  const [debouncedDescription, setDebouncedDescription] = useState(description);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebouncedDescription(description), 500);
-    return () => clearTimeout(timeout);
-  }, [description]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     axios
@@ -45,18 +35,32 @@ const AddTransaction = () => {
   }, []);
 
   useEffect(() => {
-    if (debouncedDescription.trim().length < 3) {
-      setSuggestedAccount(null);
-      return;
-    }
+    if (!id) return;
     axios
-      .post("/suggestions", { description: debouncedDescription })
+      .get(`/transactions`)
       .then((res) => {
-        const suggestion = res.data?.suggestedAccount;
-        setSuggestedAccount(suggestion || null);
+        const tx = res.data.find((t: any) => t.id === id);
+        if (!tx) return navigate("/transactions");
+        setDescription(tx.description);
+        setType(tx.type);
+        if (tx.entries?.length > 0) {
+          const loaded = tx.entries.map((e: any) => ({
+            amount: e.amount.toString(),
+            accountId: e.account.id,
+          }));
+          setEntries(loaded);
+        } else {
+          setEntries([
+            { amount: tx.amount.toString(), accountId: tx.account.id },
+          ]);
+        }
+        setLoading(false);
       })
-      .catch(() => setSuggestedAccount(null));
-  }, [debouncedDescription]);
+      .catch((err) => {
+        console.error("Failed to load transaction", err);
+        navigate("/transactions");
+      });
+  }, [id, navigate]);
 
   const handleEntryChange = (
     index: number,
@@ -71,40 +75,32 @@ const AddTransaction = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    const parsedEntries = entries.map((e) => ({
-      amount: parseFloat(e.amount),
-      accountId: e.accountId,
-    }));
-
-    if (
-      !description.trim() ||
-      parsedEntries.some(
-        (e) => isNaN(e.amount) || !e.accountId || e.amount <= 0
-      )
-    ) {
-      setError("All fields must be filled with valid amounts and accounts.");
+    if (!description || entries.some((e) => !e.amount || !e.accountId)) {
+      setError("All fields are required.");
       return;
     }
 
     try {
-      await axios.post("/transactions", {
+      await axios.put(`/transactions/${id}`, {
         description,
+        amount: parseFloat(entries[0].amount),
         type,
-        date: new Date().toISOString().split("T")[0],
-        entries: parsedEntries, // ✅ amount omitted from root object
+        reference: "edited", // Optional
       });
-      navigate("/dashboard");
+      toast.success("Transaction updated");
+      navigate("/transactions");
     } catch (err) {
-      console.error("Failed to create transaction:", err);
+      console.error("Failed to update transaction:", err);
       setError("Something went wrong. Please try again.");
     }
   };
 
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-md">
       <h2 className="text-2xl font-semibold mb-6 text-center">
-        Add Transaction
+        Edit Transaction
       </h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && <div className="text-red-600 font-medium">{error}</div>}
@@ -114,25 +110,9 @@ const AddTransaction = () => {
           <input
             type="text"
             className="w-full p-2 border rounded"
-            placeholder="e.g. Coffee, Rent, Salary"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          {suggestedAccount && (
-            <div
-              className="text-sm text-blue-600 cursor-pointer mt-1"
-              onClick={() => {
-                const updated = [...entries];
-                updated[0].accountId = suggestedAccount.id;
-                setEntries(updated);
-                toast.success("Suggested category applied!");
-                setSuggestedAccount(null);
-              }}
-            >
-              💡 Suggested: <strong>{suggestedAccount.name}</strong> (
-              {suggestedAccount.type} - {suggestedAccount.subtype})
-            </div>
-          )}
         </div>
 
         {entries.map((entry, index) => (
@@ -143,16 +123,13 @@ const AddTransaction = () => {
               </label>
               <input
                 type="number"
-                step="0.01"
                 className="w-full p-2 border rounded"
-                placeholder="e.g. 100.00"
                 value={entry.amount}
                 onChange={(e) =>
                   handleEntryChange(index, "amount", e.target.value)
                 }
               />
             </div>
-
             <div>
               <label className="block mb-1 font-medium">
                 Account {index + 1}
@@ -180,9 +157,7 @@ const AddTransaction = () => {
           <select
             className="w-full p-2 border rounded"
             value={type}
-            onChange={(e) =>
-              setType(e.target.value as "INCOME" | "EXPENSE" | "TRANSFER")
-            }
+            onChange={(e) => setType(e.target.value as any)}
           >
             <option value="EXPENSE">Expense</option>
             <option value="INCOME">Income</option>
@@ -194,11 +169,11 @@ const AddTransaction = () => {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
-          Save Transaction
+          Update Transaction
         </button>
       </form>
     </div>
   );
 };
 
-export default AddTransaction;
+export default EditTransaction;

@@ -1,22 +1,18 @@
-// src/routes/transaction.routes.ts
-import express from "express";
+import { Router } from "express";
 import {
   createTransaction,
-  getTransactions,
-  updateTransaction,
-  deleteTransaction,
-  getTransactionsByAccountId,
+  // getTransactions,
+  // updateTransaction,
+  // deleteTransaction,
+  // getTransactionsByAccountId
 } from "../controllers/transaction.controller";
-import { authenticate } from "../middleware/auth.middleware";
 
-const router = express.Router();
-
-router.use(authenticate);
+const router = Router();
 
 router.post("/", createTransaction);
-router.get("/", getTransactions);
-router.put("/:id", updateTransaction); // ✅ Re-add this line
-router.delete("/:id", deleteTransaction);
-router.get("/account/:accountId", getTransactionsByAccountId);
+// router.get("/", getTransactions);
+// router.put("/:id", updateTransaction);
+// router.delete("/:id", deleteTransaction);
+// router.get("/account/:accountId", getTransactionsByAccountId);
 
 export default router;

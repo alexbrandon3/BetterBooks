@@ -2,17 +2,19 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
     "outDir": "./dist",
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "jest", "./src/types/express"]
+    "types": ["node"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "typeorm.config.ts"],
+  "exclude": ["node_modules", "src/utils/__tests__"]
 }
