@@ -1,7 +1,7 @@
 // recurringTransactions.controller.ts
 
 import { Request, Response } from "express";
-import { AppDataSource } from "../data-source";
+import { AppDataSource } from "../config/data-source";
 import { RecurringTransaction } from "../entities/RecurringTransaction";
 import { Account } from "../entities/Account";
 

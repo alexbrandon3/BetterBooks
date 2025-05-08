@@ -1,7 +1,7 @@
 // transaction.controller.ts
 
 import { Request, Response } from "express";
-import { AppDataSource } from "../data-source";
+import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { Account } from "../entities/Account";
 

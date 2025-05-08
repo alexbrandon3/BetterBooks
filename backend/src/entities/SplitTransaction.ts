@@ -1,6 +1,12 @@
 // SplitTransaction.ts
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from "typeorm";
 import { Transaction } from "./Transaction";
 
 @Entity()
@@ -20,4 +26,10 @@ export class SplitTransaction {
     { onDelete: "CASCADE" }
   )
   transaction!: Transaction;
+
+  @OneToMany(
+    () => SplitTransaction,
+    (splitTransaction) => splitTransaction.transaction
+  )
+  splitTransactions!: SplitTransaction[];
 }

@@ -1,7 +1,7 @@
 // splitTransaction.controller.ts
 
 import { Request, Response } from "express";
-import { AppDataSource } from "../data-source";
+import { AppDataSource } from "../config/data-source";
 import { SplitTransaction } from "../entities/SplitTransaction";
 import { Transaction } from "../entities/Transaction";
 

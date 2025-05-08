@@ -3,8 +3,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { AppDataSource } from "./data-source";
-import routes from "../routes/routes";
+import { AppDataSource } from "./config/data-source";
+import routes from "./routes/routes";
 
 dotenv.config();
 
