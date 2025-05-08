@@ -1,25 +1,18 @@
-// src/entities/Transaction.ts
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  JoinColumn,
+  ManyToOne,
   OneToMany,
+  OneToOne,
+  JoinColumn,
 } from "typeorm";
-import { User } from "../entities/User";
 import { Account } from "./Account";
 import { RecurringTransaction } from "./RecurringTransaction";
-import { SplitTransaction } from "./SplitTransaction"; // ✅ Only keep this
-
-export enum TransactionType {
-  INCOME = "INCOME",
-  EXPENSE = "EXPENSE",
-  TRANSFER = "TRANSFER",
-}
+import { SplitTransaction } from "./SplitTransaction";
+import { User } from "./User";
 
 @Entity()
 export class Transaction {
@@ -29,13 +22,13 @@ export class Transaction {
   @Column()
   description!: string;
 
-  @Column("decimal")
+  @Column({ type: "decimal", precision: 15, scale: 2, default: 0 })
   amount!: number;
 
-  @Column({ type: "enum", enum: TransactionType })
-  type!: TransactionType;
+  @Column()
+  type!: string;
 
-  @Column({ type: "date", default: () => "CURRENT_DATE" })
+  @Column()
   date!: Date;
 
   @Column({ default: true })
@@ -59,17 +52,8 @@ export class Transaction {
   @Column({ nullable: true })
   nextOccurrence!: Date;
 
-  @ManyToOne(() => Account, { eager: true })
-  account!: Account;
-
-  @ManyToOne(() => User, { eager: true })
-  user!: User;
-
-  @ManyToOne(() => RecurringTransaction, (rec) => rec.transactions, {
-    nullable: true,
-    onDelete: "SET NULL",
-  })
-  recurringTransaction?: RecurringTransaction;
+  @Column({ nullable: true })
+  reference!: string;
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -77,11 +61,27 @@ export class Transaction {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  @Column({ nullable: true })
-  reference?: string;
+  @ManyToOne(() => Account, (account) => account.transactions, {
+    nullable: true,
+  })
+  account!: Account;
 
-  @OneToMany(() => SplitTransaction, (entry) => entry.transaction, {
+  @OneToOne(
+    () => RecurringTransaction,
+    (recurringTransaction) => recurringTransaction.transaction,
+    {
+      cascade: true,
+      nullable: true,
+    }
+  )
+  @JoinColumn()
+  recurringTransaction!: RecurringTransaction;
+
+  @OneToMany(() => SplitTransaction, (split) => split.transaction, {
     cascade: true,
   })
-  entries!: SplitTransaction[]; // ✅ Final definition
+  splits!: SplitTransaction[];
+
+  @ManyToOne(() => User, (user) => user.transactions)
+  user!: User;
 }

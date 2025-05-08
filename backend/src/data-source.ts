@@ -8,11 +8,9 @@ import { SuggestionLog } from "./entities/SuggestionLog";
 import { SplitTransaction } from "./entities/SplitTransaction";
 import * as dotenv from "dotenv";
 
-// ✅ Load environment variables from the correct file FIRST
 const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
 dotenv.config({ path: envFile });
 
-// ✅ Log after loading the file
 console.log(
   "Loaded DB_PASSWORD:",
   typeof process.env.DB_PASSWORD,
@@ -26,7 +24,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: false, // Consider false in production or for serious migrations
+  synchronize: false,
   logging: true,
   entities: [
     Account,
@@ -36,6 +34,6 @@ export const AppDataSource = new DataSource({
     SuggestionLog,
     SplitTransaction,
   ],
-  migrations: ["src/migrations/**/*.ts"],
+  migrations: ["dist/migrations/*.js"],
   subscribers: [],
 });

@@ -16,49 +16,33 @@ export const getIncomeStatement = async (req: Request, res: Response) => {
     const user = getUser(req);
     const { startDate, endDate } = req.query;
 
-    const transactions = await transactionRepo.find({
-      where: {
-        user: { id: user.id },
-        type: In([TransactionType.INCOME, TransactionType.EXPENSE]),
-      },
-      relations: ["entries", "entries.account"],
-    });
+    // Construct date range if provided
+    const whereConditions: any = {
+      user: { id: user.id },
+      type: In([TransactionType.INCOME, TransactionType.EXPENSE]),
+    };
 
-    let totalIncome = 0;
-    let totalExpenses = 0;
-
-    for (const tx of transactions) {
-      if (tx.entries && tx.entries.length > 0) {
-        for (const entry of tx.entries) {
-          if (!entry.account) continue;
-          const amt = Number(entry.amount);
-          if (entry.account.type === "REVENUE") totalIncome += amt;
-          else if (entry.account.type === "EXPENSE") totalExpenses += amt;
-        }
-      } else {
-        const amt = Number(tx.amount);
-        if (tx.type === TransactionType.INCOME) totalIncome += amt;
-        else if (tx.type === TransactionType.EXPENSE) totalExpenses += amt;
-      }
+    if (startDate && endDate) {
+      whereConditions.date = {
+        $gte: new Date(startDate as string),
+        $lte: new Date(endDate as string),
+      };
     }
 
-    const netIncome = totalIncome - totalExpenses;
-    const now = new Date();
-    const defaultStart = new Date(now.getFullYear(), 0, 1);
-    const defaultEnd = now;
-
-    return res.json({
-      totalIncome,
-      totalExpenses,
-      netIncome,
-      startDate: startDate || defaultStart.toISOString(),
-      endDate: endDate || defaultEnd.toISOString(),
+    const transactions = await transactionRepo.find({
+      where: whereConditions,
+      relations: ["account", "recurringTransaction", "splits"],
+      order: { date: "DESC" },
     });
-  } catch (err) {
-    console.error("Error generating income statement:", err);
-    return res
-      .status(500)
-      .json({ message: "Failed to generate income statement", err });
+
+    return res.status(200).json(transactions);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error generating income statement:", error.message);
+    } else {
+      console.error("Unknown error generating income statement");
+    }
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
 

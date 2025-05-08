@@ -1,0 +1,281 @@
+C:\Users\alexl\projects\BetterBooks\structure.txt:66:+---backend
+C:\Users\alexl\projects\BetterBooks\structure.txt:84:ª   ª   +---typescript
+C:\Users\alexl\projects\BetterBooks\structure.txt:198:ª   ª           ª   typescript.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:199:ª   ª           ª   typescript.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:200:ª   ª           ª   typesMap.json
+C:\Users\alexl\projects\BetterBooks\structure.txt:246:ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:250:+---backend_old
+C:\Users\alexl\projects\BetterBooks\structure.txt:257:ª   ª   tsconfig.backend.json
+C:\Users\alexl\projects\BetterBooks\structure.txt:605:ª   ª   ª   ª       +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:619:ª   ª   ª   ª       +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:636:ª   ª   ª           +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:645:ª   ª   ª                   types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:672:ª   ª   ª           ª       types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:673:ª   ª   ª           ª       types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:685:ª   ª   ª               +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:714:ª   ª   +---@types
+C:\Users\alexl\projects\BetterBooks\structure.txt:888:ª   ª   ª   ª       types-metadata.json
+C:\Users\alexl\projects\BetterBooks\structure.txt:955:ª   ª   ª       ª           isISRC.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:1059:ª   ª   ª               isISRC.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:1275:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:1316:ª   ª   ª       +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:1340:ª   ª   ª           utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:1438:ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:1528:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:1614:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:1700:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:1710:ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:1755:ª   ª   ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:1935:ª   ª   ª   ª   ª   ª       IsISRC.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:1936:ª   ª   ª   ª   ª   ª       IsISRC.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2032:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:2049:ª   ª   ª   ª   ª       ValidationTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2050:ª   ª   ª   ª   ª       ValidationTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2051:ª   ª   ª   ª   ª       ValidationUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2052:ª   ª   ª   ª   ª       ValidationUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2229:ª   ª   ª   ª   ª   ª       IsISRC.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2230:ª   ª   ª   ª   ª   ª       IsISRC.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2326:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:2343:ª   ª   ª   ª   ª       ValidationTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2344:ª   ª   ª   ª   ª       ValidationTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2345:ª   ª   ª   ª   ª       ValidationUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2346:ª   ª   ª   ª   ª       ValidationUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2523:ª   ª   ª   ª   ª   ª       IsISRC.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2524:ª   ª   ª   ª   ª   ª       IsISRC.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2620:ª   ª   ª   ª   +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:2637:ª   ª   ª   ª   ª       ValidationTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2638:ª   ª   ª   ª   ª       ValidationTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2639:ª   ª   ª   ª   ª       ValidationUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2640:ª   ª   ª   ª   ª       ValidationUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:2654:ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:2743:ª   ª   ª       ª   ª       IsISRC.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:2794:ª   ª   ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:2804:ª   ª   ª       ª       ValidationTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:2805:ª   ª   ª       ª       ValidationUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:2851:ª   ª   ª       ª               string-utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2879:ª   ª   ª       ª   ª       ª       common-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2880:ª   ª   ª       ª   ª       ª       yargs-parser-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2882:ª   ª   ª       ª   ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:2939:ª   ª   ª                       string-utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2941:ª   ª   ª                       yargs-parser-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:2957:ª   ª   ª               string-utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:3040:ª   ª   ª   ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:3438:ª   ª   ª   ª   ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:5912:ª   ª   ª   ª   ª   ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:7967:ª   ª   ª   ª   ª       ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:7968:ª   ª   ª   ª   ª       ª   utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:10575:ª   ª   ª   ª   ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:12630:ª   ª   ª   ª       ª   types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:12631:ª   ª   ª   ª       ª   utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:13151:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:13301:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:13439:ª   ª   ª       ª   utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:13814:ª   ª   ª   ª           typescript.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:13916:ª   ª   ª   ª       srcery.scss
+C:\Users\alexl\projects\BetterBooks\structure.txt:14018:ª   ª   ª   ª       srcery.css
+C:\Users\alexl\projects\BetterBooks\structure.txt:14033:ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:14240:ª   ª   ª   ª   types.d.cts
+C:\Users\alexl\projects\BetterBooks\structure.txt:14241:ª   ª   ª   ª   types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:14266:ª   ª   ª   ª   ª   AsYouTypeState.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:14267:ª   ª   ª   ª   ª   AsYouTypeState.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:14547:ª   ª   ª   ª   ª   AsYouTypeState.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:14548:ª   ª   ª   ª   ª   AsYouTypeState.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:14929:ª   ª   ª       ª   AsYouTypeState.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15181:ª   ª   ª   ª   types.json
+C:\Users\alexl\projects\BetterBooks\structure.txt:15183:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:15195:ª   ª   +---mime-types
+C:\Users\alexl\projects\BetterBooks\structure.txt:15405:ª   ª   ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:15464:ª   ª   ª               +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:15511:ª   ª   ª       ª   utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15516:ª   ª   ª       ª       utils-legacy.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15517:ª   ª   ª       ª       utils-webcrypto.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15518:ª   ª   ª       ª       utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15541:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:15544:ª   ª   ª           types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:15608:ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:15623:ª   ª   ª       +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:15626:ª   ª   +---pg-types
+C:\Users\alexl\projects\BetterBooks\structure.txt:15643:ª   ª   ª           types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15665:ª   ª   ª           utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15720:ª   ª   ª   ª       utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:15726:ª   ª   ª           utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:16382:ª   ª   ª   ª   ª   ts-compiler-types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:16383:ª   ª   ª   ª   ª   ts-compiler-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:16384:ª   ª   ª   ª   ª   ts-compiler-types.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:16422:ª   ª   ª   ª           types.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:16423:ª   ª   ª   ª           types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:16424:ª   ª   ª   ª           types.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:16883:ª   ª   ª   ª   ª   ª   DriverUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:16884:ª   ª   ª   ª   ª   ª   DriverUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:16885:ª   ª   ª   ª   ª   ª   DriverUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17158:ª   ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:17159:ª   ª   ª   ª   ª           ColumnTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17160:ª   ª   ª   ª   ª           ColumnTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17161:ª   ª   ª   ª   ª           ColumnTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17171:ª   ª   ª   ª   ª           GeoJsonTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17172:ª   ª   ª   ª   ª           GeoJsonTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17173:ª   ª   ª   ª   ª           GeoJsonTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17177:ª   ª   ª   ª   ª           MappedColumnTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17178:ª   ª   ª   ª   ª           MappedColumnTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17179:ª   ª   ª   ª   ª           MappedColumnTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17464:ª   ª   ª   ª   ª   ª   FindOptionsUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17465:ª   ª   ª   ª   ª   ª   FindOptionsUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17466:ª   ª   ª   ª   ª   ª   FindOptionsUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17608:ª   ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:17615:ª   ª   ª   ª   ª           EventListenerTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17616:ª   ª   ª   ª   ª           EventListenerTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17617:ª   ª   ª   ª   ª           EventListenerTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17630:ª   ª   ª   ª   ª           RelationTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17631:ª   ª   ª   ª   ª           RelationTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17632:ª   ª   ª   ª   ª           RelationTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17633:ª   ª   ª   ª   ª           TableTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17634:ª   ª   ª   ª   ª           TableTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17635:ª   ª   ª   ª   ª           TableTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17636:ª   ª   ª   ª   ª           TreeTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17637:ª   ª   ª   ª   ª           TreeTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17638:ª   ª   ª   ª   ª           TreeTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17711:ª   ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:17729:ª   ª   ª   ª   ª       MetadataUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17730:ª   ª   ª   ª   ª       MetadataUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17731:ª   ª   ª   ª   ª       MetadataUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:17857:ª   ª   ª   ª   ª   ª   QueryBuilderUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:17858:ª   ª   ª   ª   ª   ª   QueryBuilderUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:17859:ª   ª   ª   ª   ª   ª   QueryBuilderUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18066:ª   ª   ª   ª   ª   ª       TableUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18067:ª   ª   ª   ª   ª   ª       TableUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18068:ª   ª   ª   ª   ª   ª       TableUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18069:ª   ª   ª   ª   ª   ª       ViewUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18070:ª   ª   ª   ª   ª   ª       ViewUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18071:ª   ª   ª   ª   ª   ª       ViewUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18122:ª   ª   ª   ª           DateUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18123:ª   ª   ª   ª           DateUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18124:ª   ª   ª   ª           DateUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18134:ª   ª   ª   ª           ImportUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18135:ª   ª   ª   ª           ImportUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18136:ª   ª   ª   ª           ImportUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18140:ª   ª   ª   ª           ObjectUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18141:ª   ª   ª   ª           ObjectUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18142:ª   ª   ª   ª           ObjectUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18143:ª   ª   ª   ª           OrmUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18144:ª   ª   ª   ª           OrmUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18145:ª   ª   ª   ª           OrmUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18146:ª   ª   ª   ª           PathUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18147:ª   ª   ª   ª           PathUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18148:ª   ª   ª   ª           PathUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18152:ª   ª   ª   ª           StringUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18153:ª   ª   ª   ª           StringUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18154:ª   ª   ª   ª           StringUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18155:ª   ª   ª   ª           TreeRepositoryUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18156:ª   ª   ª   ª           TreeRepositoryUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18157:ª   ª   ª   ª           TreeRepositoryUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18158:ª   ª   ª   ª           VersionUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18159:ª   ª   ª   ª           VersionUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18160:ª   ª   ª   ª           VersionUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18183:ª   ª   ª   ª       CommandUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18184:ª   ª   ª   ª       CommandUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18185:ª   ª   ª   ª       CommandUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18204:ª   ª   ª   ª       MigrationShowCommand.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18205:ª   ª   ª   ª       MigrationShowCommand.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18206:ª   ª   ª   ª       MigrationShowCommand.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18518:ª   ª   ª   ª   ª   DriverUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18519:ª   ª   ª   ª   ª   DriverUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18520:ª   ª   ª   ª   ª   DriverUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18793:ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:18794:ª   ª   ª   ª           ColumnTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18795:ª   ª   ª   ª           ColumnTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18796:ª   ª   ª   ª           ColumnTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18806:ª   ª   ª   ª           GeoJsonTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18807:ª   ª   ª   ª           GeoJsonTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18808:ª   ª   ª   ª           GeoJsonTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:18812:ª   ª   ª   ª           MappedColumnTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:18813:ª   ª   ª   ª           MappedColumnTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:18814:ª   ª   ª   ª           MappedColumnTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19099:ª   ª   ª   ª   ª   FindOptionsUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19100:ª   ª   ª   ª   ª   FindOptionsUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19101:ª   ª   ª   ª   ª   FindOptionsUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19243:ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:19250:ª   ª   ª   ª           EventListenerTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19251:ª   ª   ª   ª           EventListenerTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19252:ª   ª   ª   ª           EventListenerTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19265:ª   ª   ª   ª           RelationTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19266:ª   ª   ª   ª           RelationTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19267:ª   ª   ª   ª           RelationTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19268:ª   ª   ª   ª           TableTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19269:ª   ª   ª   ª           TableTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19270:ª   ª   ª   ª           TableTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19271:ª   ª   ª   ª           TreeTypes.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19272:ª   ª   ª   ª           TreeTypes.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19273:ª   ª   ª   ª           TreeTypes.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19346:ª   ª   ª   ª   +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:19364:ª   ª   ª   ª       MetadataUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19365:ª   ª   ª   ª       MetadataUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19366:ª   ª   ª   ª       MetadataUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19413:ª   ª   ª   ª   ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:19445:ª   ª   ª   ª   ª       ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:19604:ª   ª   ª   ª   ª   QueryBuilderUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19605:ª   ª   ª   ª   ª   QueryBuilderUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19606:ª   ª   ª   ª   ª   QueryBuilderUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19813:ª   ª   ª   ª   ª       TableUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19814:ª   ª   ª   ª   ª       TableUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19815:ª   ª   ª   ª   ª       TableUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19816:ª   ª   ª   ª   ª       ViewUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19817:ª   ª   ª   ª   ª       ViewUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19818:ª   ª   ª   ª   ª       ViewUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19869:ª   ª   ª           DateUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19870:ª   ª   ª           DateUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19871:ª   ª   ª           DateUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19881:ª   ª   ª           ImportUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19882:ª   ª   ª           ImportUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19883:ª   ª   ª           ImportUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19887:ª   ª   ª           ObjectUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19888:ª   ª   ª           ObjectUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19889:ª   ª   ª           ObjectUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19890:ª   ª   ª           OrmUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19891:ª   ª   ª           OrmUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19892:ª   ª   ª           OrmUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19893:ª   ª   ª           PathUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19894:ª   ª   ª           PathUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19895:ª   ª   ª           PathUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19899:ª   ª   ª           StringUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19900:ª   ª   ª           StringUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19901:ª   ª   ª           StringUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19902:ª   ª   ª           TreeRepositoryUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19903:ª   ª   ª           TreeRepositoryUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19904:ª   ª   ª           TreeRepositoryUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19905:ª   ª   ª           VersionUtils.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:19906:ª   ª   ª           VersionUtils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:19907:ª   ª   ª           VersionUtils.js.map
+C:\Users\alexl\projects\BetterBooks\structure.txt:19914:ª   ª   +---typescript
+C:\Users\alexl\projects\BetterBooks\structure.txt:20028:ª   ª   ª       ª   typescript.d.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20029:ª   ª   ª       ª   typescript.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20030:ª   ª   ª       ª   typesMap.json
+C:\Users\alexl\projects\BetterBooks\structure.txt:20076:ª   ª   +---undici-types
+C:\Users\alexl\projects\BetterBooks\structure.txt:20120:ª   ª   +---utils-merge
+C:\Users\alexl\projects\BetterBooks\structure.txt:20288:ª   ª   ª   ª       ª   isISRC.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20404:ª   ª   ª       ª   isISRC.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20538:ª   ª   ª   ª       ª       common-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20539:ª   ª   ª   ª       ª       yargs-parser-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20541:ª   ª   ª   ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:20602:ª   ª   ª               string-utils.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20604:ª   ª   ª               yargs-parser-types.js
+C:\Users\alexl\projects\BetterBooks\structure.txt:20615:ª   +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:20627:ª       +---controllers
+C:\Users\alexl\projects\BetterBooks\structure.txt:20636:ª       +---entities
+C:\Users\alexl\projects\BetterBooks\structure.txt:20648:ª       +---migrations
+C:\Users\alexl\projects\BetterBooks\structure.txt:20653:ª       +---routes
+C:\Users\alexl\projects\BetterBooks\structure.txt:20654:ª       ª       account.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20655:ª       ª       auth.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20657:ª       ª       recurring.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20658:ª       ª       report.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20659:ª       ª       suggestion.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20660:ª       ª       transaction.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20661:ª       ª       user.routes.ts
+C:\Users\alexl\projects\BetterBooks\structure.txt:20666:ª       +---services
+C:\Users\alexl\projects\BetterBooks\structure.txt:20677:ª       +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:20684:ª       +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:20694:+---frontend
+C:\Users\alexl\projects\BetterBooks\structure.txt:20704:    +---src
+C:\Users\alexl\projects\BetterBooks\structure.txt:20732:        +---services
+C:\Users\alexl\projects\BetterBooks\structure.txt:20735:        +---types
+C:\Users\alexl\projects\BetterBooks\structure.txt:20738:        +---utils
+C:\Users\alexl\projects\BetterBooks\structure.txt:20739:                accountUtils.ts

@@ -1,4 +1,3 @@
-// src/entities/RecurringTransaction.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,44 +5,40 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
-  OneToMany,
   OneToOne,
   JoinColumn,
-} from 'typeorm';
-import { User } from './User';
-import { Account } from './Account';
-import { Transaction } from './Transaction';
-
-export type RecurrenceType = 'Daily' | 'Weekly' | 'Biweekly' | 'Monthly' | 'Yearly';
+} from "typeorm";
+import { Transaction } from "./Transaction";
+import { User } from "./User";
 
 @Entity()
 export class RecurringTransaction {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Column()
   description!: string;
 
-  @Column('numeric', { precision: 12, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2, default: 0 })
   amount!: number;
 
   @Column()
-  type!: 'Income' | 'Expense' | 'Transfer';
+  type!: string;
 
   @Column({ nullable: true })
-  reference?: string;
+  reference!: string;
 
   @Column({ default: true })
   isActive!: boolean;
 
   @Column()
-  recurrence!: RecurrenceType;
+  recurrence!: string;
 
   @Column()
   startDate!: Date;
 
   @Column({ nullable: true })
-  endDate?: Date;
+  endDate!: Date;
 
   @Column()
   frequency!: string;
@@ -51,25 +46,25 @@ export class RecurringTransaction {
   @Column()
   interval!: number;
 
-  @Column({ type: 'timestamp' })
+  @Column()
   nextRun!: Date;
-
-  @ManyToOne(() => Account, (account) => account.recurringTransactions, { onDelete: 'CASCADE' })
-  account!: Account;
-
-  @ManyToOne(() => User, (user) => user.recurringTransactions, { onDelete: 'CASCADE' })
-  user!: User;
-
-  @OneToMany(() => Transaction, (transaction) => transaction.recurringTransaction)
-  transactions!: Transaction[];
-
-  @OneToOne(() => Transaction)
-  @JoinColumn()
-  transaction!: Transaction;
 
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @ManyToOne(() => User, (user) => user.recurringTransactions)
+  user!: User;
+
+  @OneToOne(
+    () => Transaction,
+    (transaction) => transaction.recurringTransaction,
+    {
+      cascade: true,
+    }
+  )
+  @JoinColumn()
+  transaction!: Transaction;
 }

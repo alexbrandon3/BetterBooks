@@ -1,34 +1,43 @@
 // src/pages/Login.tsx
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from '@/utils/axios'; // adjust if necessary
-import { Box, TextField, Button, Typography, Paper, Alert, CircularProgress } from '@mui/material';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "@/utils/axios"; // adjust if necessary
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔥 handleSubmit fired');
+    console.log("🔥 handleSubmit fired");
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const res = await axios.post('/api/auth/login', formData);
+      // Clean call, no need to prepend /api
+      const res = await axios.post("/auth/login", formData);
       const { token } = res.data;
-      localStorage.setItem('token', token);
-      navigate('/dashboard');
+      localStorage.setItem("token", token);
+      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -37,13 +46,13 @@ const Login = () => {
   return (
     <Box
       sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '80vh',
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "80vh",
       }}
     >
-      <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 400 }}>
+      <Paper elevation={3} sx={{ p: 4, width: "100%", maxWidth: 400 }}>
         <Typography variant="h4" align="center" gutterBottom>
           Login
         </Typography>
@@ -84,7 +93,11 @@ const Login = () => {
             disabled={loading}
             sx={{ mt: 3 }}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Sign In"
+            )}
           </Button>
 
           <Typography variant="body2" align="center" sx={{ mt: 2 }}>

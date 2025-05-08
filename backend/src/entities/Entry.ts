@@ -23,7 +23,7 @@ export class Entry {
   @Column({ type: "enum", enum: ["DEBIT", "CREDIT"] })
   side!: EntrySide;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.entries, {
+  @ManyToOne(() => Transaction, (transaction) => transaction.splits, {
     onDelete: "CASCADE",
   })
   transaction!: Transaction;

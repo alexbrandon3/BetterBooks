@@ -2,36 +2,34 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
 } from "typeorm";
-import { Transaction } from "./Transaction";
 import { Account } from "./Account";
-import { User } from "./User";
+import { Transaction } from "./Transaction";
 
 @Entity()
 export class SplitTransaction {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column("decimal", { precision: 10, scale: 2 }) // ✅ was likely just "int" or "integer"
+  @Column({ type: "decimal", precision: 15, scale: 2, default: 0 })
   amount!: number;
-
-  @ManyToOne(() => Transaction, (transaction) => transaction.entries, {
-    onDelete: "CASCADE",
-  })
-  transaction!: Transaction;
-
-  @ManyToOne(() => Account, { eager: true })
-  account!: Account;
-
-  @ManyToOne(() => User)
-  user!: User;
 
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @ManyToOne(() => Account, (account) => account.splitTransactions, {
+    nullable: false,
+  })
+  account!: Account;
+
+  @ManyToOne(() => Transaction, (transaction) => transaction.splits, {
+    nullable: false,
+  })
+  transaction!: Transaction;
 }

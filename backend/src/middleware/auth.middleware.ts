@@ -1,8 +1,8 @@
-import { Response, NextFunction, Request } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config";
 import { AppDataSource } from "../data-source";
 import { User } from "../entities/User";
-import { JWT_SECRET } from "../config";
 
 export const authenticate = async (
   req: Request,
@@ -11,28 +11,35 @@ export const authenticate = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("❌ No authorization header or incorrect format.");
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded: any = jwt.verify(token, JWT_SECRET);
 
-    const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository.findOne({
-      where: { id: decoded.userId }, // ✅ FIXED: use userId from the token
+    const user = await AppDataSource.getRepository(User).findOneBy({
+      id: decoded.userId,
     });
 
     if (!user) {
+      console.error("❌ No user found for given token.");
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    req.user = user; // ✅ works because of your global type override
-    console.log("🧪 Decoded user:", req.user);
+    console.log("🧪 User authenticated:", user);
 
+    // Attach user to the request object
+    req.user = user;
     next();
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("❌ Authentication error:", error.message);
+    } else {
+      console.error("❌ Unknown authentication error.");
+    }
     return res.status(401).json({ message: "Unauthorized" });
   }
 };

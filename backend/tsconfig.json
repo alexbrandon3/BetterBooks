@@ -5,16 +5,13 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "outDir": "./dist",
+    "types": ["node", "jest"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-    "types": ["node"]
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*", "typeorm.config.ts"],
-  "exclude": ["node_modules", "src/utils/__tests__"]
+  "include": ["src/**/*"],
+  "exclude": ["../frontend", "../node_modules", "**/*.d.ts"]
 }

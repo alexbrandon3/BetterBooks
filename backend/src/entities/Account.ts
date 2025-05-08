@@ -4,22 +4,18 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
   OneToMany,
-  Unique,
-} from 'typeorm';
-import { User } from './User';
-import { Transaction } from './Transaction';
-import { RecurringTransaction } from './RecurringTransaction';
+} from "typeorm";
+import { Transaction } from "./Transaction";
+import { SplitTransaction } from "./SplitTransaction";
 
-@Unique(['number', 'user']) // 👈 enforce uniqueness per user
 @Entity()
 export class Account {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Column()
-  number!: string; // 👈 removed unique: true
+  number!: string;
 
   @Column()
   name!: string;
@@ -33,7 +29,7 @@ export class Account {
   @Column()
   subtype!: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
+  @Column({ type: "decimal", precision: 15, scale: 2, default: 0 })
   balance!: number;
 
   @Column({ default: true })
@@ -45,12 +41,12 @@ export class Account {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  @ManyToOne(() => User, (user) => user.accounts, { onDelete: 'CASCADE' })
-  user!: User;
-
   @OneToMany(() => Transaction, (transaction) => transaction.account)
   transactions!: Transaction[];
 
-  @OneToMany(() => RecurringTransaction, (recurring) => recurring.account)
-  recurringTransactions!: RecurringTransaction[];
+  @OneToMany(
+    () => SplitTransaction,
+    (splitTransaction) => splitTransaction.account
+  )
+  splitTransactions!: SplitTransaction[];
 }
