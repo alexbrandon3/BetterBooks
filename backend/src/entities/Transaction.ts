@@ -10,6 +10,11 @@ import {
 import { Account } from "./Account";
 import { SplitTransaction } from "./SplitTransaction";
 
+export enum TransactionType {
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+}
+
 @Entity()
 export class Transaction {
   @PrimaryGeneratedColumn()
