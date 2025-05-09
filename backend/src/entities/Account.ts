@@ -25,7 +25,10 @@ export class Account {
   @Column()
   balance!: number;
 
-  @ManyToOne(() => User, (user) => user.accounts, { onDelete: "CASCADE" })
+  @ManyToOne(() => User, (user) => user.accounts, {
+    eager: true,
+    onDelete: "CASCADE",
+  })
   user!: User;
 
   @OneToMany(() => Transaction, (transaction) => transaction.account)
