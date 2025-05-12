@@ -5,6 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "dotenv -e .env -- node dist/app.js",
+    "start:dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev": "dotenv -e .env -- ts-node-dev src/app.ts",
     "build": "tsc",
     "test": "jest"
