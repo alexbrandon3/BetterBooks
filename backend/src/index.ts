@@ -1,84 +1,57 @@
-// app.ts
-
 import express from "express";
+import dotenv from "dotenv";
 import cors from "cors";
-import * as dotenv from "dotenv";
+import path from "path";
 import { AppDataSource } from "./config/data-source";
 import routes from "./routes/routes";
 import reportRoutes from "./routes/report.routes";
-dotenv.config();
 
-console.log("📝 .env Path Check:", require("path").resolve(".env"));
+// Force-load the .env file
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-console.log("🔍 Environment Variables Check:");
+// Environment variables check
+console.log("📝 Environment Variables Check:");
+console.log("JWT_SECRET:", process.env.JWT_SECRET);
 console.log("DB_HOST:", process.env.DB_HOST);
 console.log("DB_PORT:", process.env.DB_PORT);
 console.log("DB_USER:", process.env.DB_USER);
 console.log("DB_PASS:", process.env.DB_PASS);
 console.log("DB_NAME:", process.env.DB_NAME);
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use((req, res, next) => {
-  console.log(`🌐 ${req.method} request to ${req.originalUrl}`);
-  next();
-});
+if (!process.env.JWT_SECRET) {
+  console.error("❌ JWT_SECRET is not set in .env file");
+  process.exit(1);
+}
 
-app._router.stack.forEach(function (r: any) {
-  ``;
-  if (r.route && r.route.path) {
-    console.log(`🔥 Registered Route: ${r.route.path}`);
-  }
-});
-
-console.log("🔥 Routes being registered:");
-app._router.stack.forEach((r: any) => {
-  if (r.route && r.route.path) {
-    console.log(`➡️ ${r.route.path}`);
-  }
-});
-
-console.log("🔥 All Registered Routes:");
-app._router.stack.forEach((r: any) => {
-  if (r.route && r.route.path) {
-    console.log(`➡️ ${r.route.stack[0].method.toUpperCase()} ${r.route.path}`);
-  }
-});
-
-app.use("/api", routes);
-
-console.log("🔥 Mounted Routes:");
-app._router.stack.forEach((middleware: any) => {
-  if (middleware.route) {
-    console.log(
-      `➡️ ${Object.keys(middleware.route.methods).join(", ").toUpperCase()} ${
-        middleware.route.path
-      }`
-    );
-  }
-});
-
-console.log("🔥 Final Route List:");
-app._router.stack.forEach((middleware: any) => {
-  if (middleware.route) {
-    console.log(
-      `➡️ [${Object.keys(middleware.route.methods).join(", ").toUpperCase()}] ${
-        middleware.route.path
-      }`
-    );
-  }
-});
-
+// Initialize Database Connection
 AppDataSource.initialize()
   .then(() => {
-    console.log("Data Source has been initialized!");
+    console.log("✅ Database connection established successfully.");
   })
-  .catch((err) => {
-    console.error("Error during Data Source initialization:", err);
+  .catch((error) => {
+    console.error("❌ Database connection failed:", error);
+    process.exit(1);
   });
 
+// Initialize Express
+const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.use("/api", routes);
+app.use("/api/reports", reportRoutes);
+
+// Listen on the defined port
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
