@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME } from "./index";
+import { DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME } from "../config/index";
 import { User } from "../entities/User";
 import { Account } from "../entities/Account";
 import { Transaction } from "../entities/Transaction";

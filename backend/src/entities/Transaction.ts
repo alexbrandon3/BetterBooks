@@ -42,4 +42,7 @@ export class Transaction {
     (splitTransaction) => splitTransaction.transaction
   )
   splitTransactions!: SplitTransaction[];
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  date!: Date;
 }

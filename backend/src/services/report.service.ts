@@ -3,6 +3,7 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { Account } from "../entities/Account";
+import { In } from "typeorm";
 
 export const generateIncomeStatement = async (
   startDate: string,
@@ -48,10 +49,49 @@ export const generateCashFlowStatement = async (
   startDate: string,
   endDate: string
 ) => {
-  // Placeholder for now. We can flesh this out after testing the other two.
+  console.log(`🌟 Generating Cash Flow for period: ${startDate} to ${endDate}`);
+
+  const transactions = await AppDataSource.getRepository(Transaction)
+    .createQueryBuilder("transaction")
+    .leftJoinAndSelect("transaction.account", "account")
+    .where("transaction.date BETWEEN :startDate AND :endDate", {
+      startDate,
+      endDate,
+    })
+    .getMany();
+
+  console.log(`✅ Found ${transactions.length} transactions`);
+
+  let operatingActivities = 0;
+  let investingActivities = 0;
+  let financingActivities = 0;
+
+  transactions.forEach((transaction) => {
+    console.log(
+      `📝 Processing: ${transaction.description} (${transaction.amount})`
+    );
+    if (transaction.account.type === "ASSET") {
+      console.log("🔄 Investing Activity");
+      investingActivities += transaction.amount;
+    } else if (transaction.account.type === "LIABILITY") {
+      console.log("💸 Financing Activity");
+      financingActivities += transaction.amount;
+    } else {
+      console.log("💼 Operating Activity");
+      operatingActivities += transaction.amount;
+    }
+  });
+
+  console.log(`📊 Summary:`);
+  console.log(`- Operating Activities: ${operatingActivities}`);
+  console.log(`- Investing Activities: ${investingActivities}`);
+  console.log(`- Financing Activities: ${financingActivities}`);
+
   return {
-    operating: 0,
-    investing: 0,
-    financing: 0,
+    operatingActivities,
+    investingActivities,
+    financingActivities,
+    netCashFlow:
+      operatingActivities + investingActivities + financingActivities,
   };
 };
