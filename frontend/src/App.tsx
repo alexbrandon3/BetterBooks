@@ -2,12 +2,14 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Navigation from "./components/Navigation";
-import { Accounts, Settings } from "./components/PageStubs";
+import { Settings } from "./components/PageStubs";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import SplitTransactions from "./pages/SplitTransactions";
 import RecurringTransactions from "./pages/RecurringTransactions";
 import Reports from "./pages/Reports";
+import Accounts from "./pages/Accounts";
+
 
 const App = () => {
   return (

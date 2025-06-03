@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "../utils/axios";
+import api from "../utils/axios";
 
 interface Account {
   id: number;
@@ -29,8 +29,8 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const [accountRes, transactionRes] = await Promise.all([
-          axios.get<Account[]>("/accounts"),
-          axios.get<Transaction[]>("/transactions"),
+          api.get<Account[]>("/accounts"),
+          api.get<Transaction[]>("/transactions"),
         ]);
         setAccounts(accountRes.data);
         setTransactions(transactionRes.data.slice(0, 5));
@@ -64,11 +64,11 @@ const Dashboard = () => {
               <p className="font-bold">
                 {account.name} - {account.type}
               </p>
-              <p>Balance: ${account.balance.toFixed(2)}</p>
+              <p>Balance: ${typeof account.balance === "number" ? account.balance.toFixed(2) : "—"}</p>
             </div>
           ))}
           <div className="font-bold mt-4">
-            Total Balance: ${totalBalance.toFixed(2)}
+            Total Balance: ${typeof totalBalance === "number" ? totalBalance.toFixed(2) : "—"}
           </div>
         </div>
       </div>
@@ -79,7 +79,8 @@ const Dashboard = () => {
           {transactions.map((transaction) => (
             <div key={transaction.id} className="mb-2">
               <p>
-                {transaction.description} - ${transaction.amount.toFixed(2)}
+                {transaction.description} - $
+                {typeof transaction.amount === "number" ? transaction.amount.toFixed(2) : "—"}
               </p>
               <p>
                 Type: {transaction.type} | Account: {transaction.account.name}

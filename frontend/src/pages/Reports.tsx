@@ -1,76 +1,73 @@
-import React, { useState } from "react";
-import CashFlowDrilldown from "../components/CashFlowDrilldown";
+import React, { useEffect, useState } from "react";
 import {
   fetchIncomeStatement,
   fetchBalanceSheet,
   fetchCashFlowStatement,
 } from "../services/ReportService";
 
+interface IncomeStatement {
+  income: number;
+  expenses: number;
+  netIncome: number;
+}
+
+interface BalanceSheet {
+  assets: number;
+  liabilities: number;
+  equity: number;
+}
+
+interface CashFlow {
+  operating: number;
+  investing: number;
+  financing: number;
+  netCashFlow: number;
+}
+
 const Reports = () => {
-  const [activeTab, setActiveTab] = useState("Income Statement");
-  const [incomeStatement, setIncomeStatement] = useState([]);
-  const [balanceSheet, setBalanceSheet] = useState([]);
-  const [cashFlow, setCashFlow] = useState([]);
+  const [incomeStatement, setIncomeStatement] = useState<IncomeStatement | null>(null);
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
+  const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
+  const [activeTab, setActiveTab] = useState("income");
 
-  const tabs = ["Income Statement", "Balance Sheet", "Cash Flow Statement"];
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const income = await fetchIncomeStatement();
+        const balance = await fetchBalanceSheet();
+        const cash = await fetchCashFlowStatement();
 
-  const fetchReports = async () => {
-    try {
-      const adjustedEndDate = new Date();
-      adjustedEndDate.setHours(23, 59, 59, 999);
+        console.log("Income statement response:", income);
+        console.log("Balance sheet response:", balance);
+        console.log("Cash flow response:", cash);
 
-      const [incomeData, balanceData, cashFlowData] = await Promise.all([
-        fetchIncomeStatement(
-          adjustedEndDate.toISOString(),
-          adjustedEndDate.toISOString()
-        ),
-        fetchBalanceSheet(
-          adjustedEndDate.toISOString(),
-          adjustedEndDate.toISOString()
-        ),
-        fetchCashFlowStatement(
-          adjustedEndDate.toISOString(),
-          adjustedEndDate.toISOString()
-        ),
-      ]);
+        setIncomeStatement(income);
+        setBalanceSheet(balance);
+        setCashFlow(cash);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    };
 
-      setIncomeStatement(incomeData);
-      setBalanceSheet(balanceData);
-      setCashFlow(cashFlowData);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-    }
-  };
+    fetchReports();
+  }, []);
 
-  const renderTable = (data: any) => {
-    if (!Array.isArray(data)) {
-      console.error("Expected an array but got:", data);
-      return <div>No data available</div>;
-    }
-
-    if (data.length === 0) {
-      return <div>No records found for this report.</div>;
-    }
+  const renderBalanceSheet = () => {
+    if (!balanceSheet) return <p className="text-gray-500">No data available.</p>;
 
     return (
-      <table className="w-full mt-4 border">
+      <table className="w-full border border-gray-300">
         <thead>
           <tr>
-            {Object.keys(data[0]).map((key) => (
-              <th key={key} className="border p-2">
-                {key}
-              </th>
-            ))}
+            <th className="border border-gray-300 p-2">Category</th>
+            <th className="border border-gray-300 p-2">Amount</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
-            <tr key={index}>
-              {Object.values(row).map((value, idx) => (
-                <td key={idx} className="border p-2">
-                  {String(value)}
-                </td>
-              ))}
+          {Object.entries(balanceSheet).map(([key, value]) => (
+            <tr key={key}>
+              <td className="border border-gray-300 p-2">{key}</td>
+              <td className="border border-gray-300 p-2">${value.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
@@ -78,46 +75,95 @@ const Reports = () => {
     );
   };
 
-  const getActiveData = () => {
-    if (activeTab === "Income Statement") return incomeStatement;
-    if (activeTab === "Balance Sheet") return balanceSheet;
-    if (activeTab === "Cash Flow Statement") return cashFlow;
-    return [];
+  const renderIncomeStatement = () => {
+    if (!incomeStatement) return <p className="text-gray-500">No data available.</p>;
+
+    return (
+      <table className="w-full border border-gray-300">
+        <thead>
+          <tr>
+            <th className="border border-gray-300 p-2">Category</th>
+            <th className="border border-gray-300 p-2">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(incomeStatement).map(([key, value]) => (
+            <tr key={key}>
+              <td className="border border-gray-300 p-2">{key}</td>
+              <td className="border border-gray-300 p-2">${value.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
+  const renderCashFlow = () => {
+    if (!cashFlow) return <p className="text-gray-500">No data available.</p>;
+
+    return (
+      <table className="w-full border border-gray-300">
+        <thead>
+          <tr>
+            <th className="border border-gray-300 p-2">Category</th>
+            <th className="border border-gray-300 p-2">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(cashFlow).map(([key, value]) => (
+            <tr key={key}>
+              <td className="border border-gray-300 p-2">{key}</td>
+              <td className="border border-gray-300 p-2">${value.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "income":
+        return renderIncomeStatement();
+      case "balance":
+        return renderBalanceSheet();
+      case "cash":
+        return renderCashFlow();
+      default:
+        return <p>Select a report type</p>;
+    }
   };
 
   return (
     <div className="p-4">
-      <div className="flex space-x-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 ${
-              activeTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-4">
-        <h2 className="text-xl font-semibold">{activeTab}</h2>
-        {activeTab === "Cash Flow Statement" ? (
-          <CashFlowDrilldown />
-        ) : (
-          renderTable(getActiveData() || [])
-        )}
-      </div>
-
-      <div className="mt-4">
+      <h1 className="text-xl font-bold mb-4">Reports</h1>
+      <div className="flex space-x-4 mb-4">
         <button
-          onClick={fetchReports}
-          className="px-4 py-2 bg-green-500 text-white"
+          className={`px-4 py-2 rounded ${
+            activeTab === "income" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("income")}
         >
-          Fetch Reports
+          Income Statement
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            activeTab === "balance" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("balance")}
+        >
+          Balance Sheet
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            activeTab === "cash" ? "bg-blue-500 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("cash")}
+        >
+          Cash Flow
         </button>
       </div>
+      {renderContent()}
     </div>
   );
 };

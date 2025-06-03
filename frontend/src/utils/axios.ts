@@ -32,4 +32,13 @@ instance.interceptors.response.use(
   }
 );
 
-export default instance;
+// API wrapper with shorthand methods
+const api = {
+  get: <T = any>(url: string, config = {}) => instance.get<T>(url, config),
+  post: <T = any>(url: string, data = {}, config = {}) => instance.post<T>(url, data, config),
+  put: <T = any>(url: string, data = {}, config = {}) => instance.put<T>(url, data, config),
+  delete: <T = any>(url: string, config = {}) => instance.delete<T>(url, config),
+  patch: <T = any>(url: string, data = {}, config = {}) => instance.patch<T>(url, data, config),
+};
+
+export default api;

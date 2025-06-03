@@ -11,6 +11,18 @@ import { User } from "./User";
 import { Transaction } from "./Transaction";
 import { RecurringTransaction } from "./RecurringTransaction";
 
+export enum FinancialCategory {
+  CURRENT_ASSET = "CURRENT_ASSET",
+  FIXED_ASSET = "FIXED_ASSET",
+  CURRENT_LIABILITY = "CURRENT_LIABILITY",
+  LONG_TERM_LIABILITY = "LONG_TERM_LIABILITY",
+  EQUITY = "EQUITY",
+  OPERATING_REVENUE = "OPERATING_REVENUE",
+  NON_OPERATING_REVENUE = "NON_OPERATING_REVENUE",
+  OPERATING_EXPENSE = "OPERATING_EXPENSE",
+  NON_OPERATING_EXPENSE = "NON_OPERATING_EXPENSE"
+}
+
 @Entity()
 export class Account {
   @PrimaryGeneratedColumn()
@@ -39,4 +51,19 @@ export class Account {
     (recurringTransaction) => recurringTransaction.account
   )
   recurringTransactions!: RecurringTransaction[];
+
+  @Column({ default: "Uncategorized" })
+  category!: string;
+
+  @Column({ default: "" })
+  subcategory!: string;
+
+  @Column({
+    type: "enum",
+    enum: FinancialCategory,
+  })
+  financialCategory!: FinancialCategory;
+
+  @Column({ default: "Uncategorized" })
+  financialSubcategory!: string;
 }

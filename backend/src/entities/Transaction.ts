@@ -1,12 +1,13 @@
-// Transaction.ts
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
   OneToMany,
 } from "typeorm";
+import { User } from "./User";
 import { Account } from "./Account";
 import { SplitTransaction } from "./SplitTransaction";
 
@@ -15,34 +16,43 @@ export enum TransactionType {
   EXPENSE = "EXPENSE",
 }
 
+export enum CashFlowCategory {
+  OPERATING = "OPERATING",
+  INVESTING = "INVESTING",
+  FINANCING = "FINANCING",
+}
+
 @Entity()
 export class Transaction {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column("decimal", { precision: 10, scale: 2 })
   amount!: number;
 
   @Column()
   description!: string;
 
-  @Column({
-    type: "enum",
-    enum: ["INCOME", "EXPENSE"],
-  })
-  type!: "INCOME" | "EXPENSE";
+  @Column({ type: "enum", enum: TransactionType })
+  type!: TransactionType;
 
-  @ManyToOne(() => Account, (account) => account.transactions, {
-    onDelete: "CASCADE",
-  })
+  @ManyToOne(() => User, (user) => user.transactions, { eager: true })
+  user!: User;
+
+  @ManyToOne(() => Account, (account) => account.transactions, { eager: true })
   account!: Account;
 
-  @OneToMany(
-    () => SplitTransaction,
-    (splitTransaction) => splitTransaction.transaction
-  )
-  splitTransactions!: SplitTransaction[];
+  @Column({ type: "enum", enum: CashFlowCategory, nullable: true })
+  cashFlowCategory?: CashFlowCategory;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-  date!: Date;
+  @OneToMany(() => SplitTransaction, (split) => split.transaction, {
+    cascade: true,
+  })
+  splits!: SplitTransaction[];
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

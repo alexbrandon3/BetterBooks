@@ -19,6 +19,7 @@ import {
   createAccount,
   getAccounts,
   deleteAccount,
+  suggestAccountMetadata,
 } from "../controllers/account.controller";
 
 const router = Router();
@@ -56,6 +57,13 @@ router.get("/accounts", (req, res) => {
 router.delete("/accounts/:id", (req, res) => {
   deleteAccount(req, res).catch((err) => {
     console.error("Error in deleteAccount:", err);
+    res.status(500).send("Internal Server Error");
+  });
+});
+
+router.post('/accounts/suggest-metadata', (req: Request, res: Response) => {
+  suggestAccountMetadata(req, res).catch((err) => {
+    console.error("Error in suggestAccountMetadata:", err);
     res.status(500).send("Internal Server Error");
   });
 });
@@ -127,3 +135,30 @@ router.delete("/split-transactions/:id", (req, res) => {
 });
 
 export default router;
+
+// Report Routes
+import {
+  getIncomeStatement,
+  getBalanceSheet,
+} from "../controllers/report.controller";
+
+router.get("/reports/income-statement", (req: Request, res: Response) => {
+  getIncomeStatement(req, res).catch((err) => {
+    console.error("Income statement error:", err);
+    res.status(500).send("Server error");
+  });
+});
+
+router.get("/reports/balance-sheet", (req: Request, res: Response) => {
+  getBalanceSheet(req, res).catch((err) => {
+    console.error("Balance sheet error:", err);
+    res.status(500).send("Server error");
+  });
+});
+
+// router.get("/reports/cash-flow-statement", (req: Request, res: Response) => {
+//   getCashFlowBreakdown(req, res).catch((err) => {
+//     console.error("Cash flow error:", err);
+//     res.status(500).send("Server error");
+//   });
+// });
