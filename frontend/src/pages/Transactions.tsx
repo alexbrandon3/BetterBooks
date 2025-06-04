@@ -45,6 +45,7 @@ const Transactions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -56,7 +57,11 @@ const Transactions = () => {
     setError(null);
     try {
       const res = await axios.get("/transactions");
-      setTransactions(res.data);
+      // Sort transactions by date descending
+      const sortedTransactions = res.data.sort((a: Transaction, b: Transaction) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      setTransactions(sortedTransactions);
     } catch (err) {
       setError("Failed to fetch transactions. Please try again later.");
       console.error("Error fetching transactions", err);
@@ -75,44 +80,102 @@ const Transactions = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate form
-    if (!form.description.trim()) {
-      setError("Description is required");
-      return;
-    }
-
+  const validateForm = () => {
     const amount = parseFloat(form.amount);
     if (isNaN(amount) || amount <= 0) {
       setError("Amount must be a positive number");
-      return;
+      return false;
+    }
+
+    if (!form.description.trim()) {
+      setError("Description is required");
+      return false;
     }
 
     if (!form.accountId) {
       setError("Please select an account");
+      return false;
+    }
+
+    if (!form.date) {
+      setError("Date is required");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setSuccessMessage(null);
+
+    try {
+      const amount = parseFloat(form.amount);
+      const payload = { ...form, amount };
+
+      if (editingTransactionId) {
+        await axios.put(`/transactions/${editingTransactionId}`, payload);
+        setSuccessMessage("Transaction updated successfully!");
+      } else {
+        await axios.post("/transactions", payload);
+        setSuccessMessage("Transaction created successfully!");
+      }
+
+      setForm(initialFormState);
+      setEditingTransactionId(null);
+      setError(null);
+      fetchTransactions();
+    } catch (err) {
+      setError(editingTransactionId 
+        ? "Failed to update transaction. Please try again."
+        : "Failed to create transaction. Please try again.");
+      console.error("Error saving transaction", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransactionId(transaction.id);
+    setForm({
+      amount: transaction.amount.toString(),
+      type: transaction.type,
+      description: transaction.description,
+      accountId: transaction.accountId,
+      date: transaction.date.split("T")[0],
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this transaction?")) {
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setSuccessMessage(null);
-
     try {
-      await axios.post("/transactions", {
-        ...form,
-        amount: amount,
-      });
-      setForm(initialFormState);
-      setSuccessMessage("Transaction created successfully!");
+      await axios.delete(`/transactions/${id}`);
+      setSuccessMessage("Transaction deleted successfully!");
       fetchTransactions();
     } catch (err) {
-      setError("Failed to create transaction. Please try again.");
-      console.error("Error creating transaction", err);
+      setError("Failed to delete transaction. Please try again.");
+      console.error("Error deleting transaction", err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    setForm(initialFormState);
+    setEditingTransactionId(null);
+    setError(null);
   };
 
   const handleInputChange = (
@@ -135,30 +198,39 @@ const Transactions = () => {
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Add New Transaction</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {editingTransactionId ? "Edit Transaction" : "Add New Transaction"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="text-red-600 text-sm mb-4" role="alert">
+              {error}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
                 Amount *
               </label>
               <input
+                id="amount"
                 type="number"
                 name="amount"
-                value={form.amount}
+                value={form.amount?.toString() || ""}
                 onChange={handleInputChange}
-                step="0.01"
-                min="0"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                min="0"
+                step="0.01"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
                 Type *
               </label>
               <select
+                id="type"
                 name="type"
                 value={form.type}
                 onChange={handleInputChange}
@@ -171,10 +243,11 @@ const Transactions = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
                 Date *
               </label>
               <input
+                id="date"
                 type="date"
                 name="date"
                 value={form.date}
@@ -185,10 +258,11 @@ const Transactions = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description *
               </label>
               <input
+                id="description"
                 type="text"
                 name="description"
                 value={form.description}
@@ -199,10 +273,11 @@ const Transactions = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="accountId" className="block text-sm font-medium text-gray-700 mb-1">
                 Account *
               </label>
               <select
+                id="accountId"
                 name="accountId"
                 value={form.accountId}
                 onChange={handleInputChange}
@@ -219,23 +294,27 @@ const Transactions = () => {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-4">
+            {editingTransactionId && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading}
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Creating..." : "Add Transaction"}
+              {editingTransactionId ? "Update Transaction" : "Add Transaction"}
             </button>
           </div>
         </form>
 
         {/* Status Messages */}
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
         {successMessage && (
           <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
             {successMessage}
@@ -264,18 +343,27 @@ const Transactions = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Account
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                    Loading transactions...
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <div className="flex justify-center items-center">
+                      <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="ml-2">Loading transactions...</span>
+                    </div>
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     No transactions found
                   </td>
                 </tr>
@@ -288,7 +376,9 @@ const Transactions = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {tx.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                      tx.type === "INCOME" ? "text-green-600" : "text-red-600"
+                    }`}>
                       {formatCurrency(tx.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -304,6 +394,22 @@ const Transactions = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {tx.account?.name || "Unknown"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(tx)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

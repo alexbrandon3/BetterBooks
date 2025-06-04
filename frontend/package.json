@@ -64,6 +64,8 @@
     "postcss": "^8.5.3"
   },
   "devDependencies": {
-    "@types/react-csv": "^1.1.10"
+    "@types/react-csv": "^1.1.10",
+    "axios-mock-adapter": "^2.1.0",
+    "ts-jest": "^29.3.4"
   }
 }

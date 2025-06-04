@@ -1,48 +1,7 @@
-import React, { useEffect, useState } from "react";
-import api from "../utils/axios";
-
-// Enums for account types and financial categories
-enum AccountType {
-  ASSET = "ASSET",
-  LIABILITY = "LIABILITY",
-  EQUITY = "EQUITY",
-  REVENUE = "REVENUE",
-  EXPENSE = "EXPENSE"
-}
-
-// src/entities/Account.ts
-
-export enum FinancialCategory {
-  CURRENT_ASSET = "CURRENT_ASSET",
-  FIXED_ASSET = "FIXED_ASSET",
-  CURRENT_LIABILITY = "CURRENT_LIABILITY",
-  LONG_TERM_LIABILITY = "LONG_TERM_LIABILITY",
-  EQUITY = "EQUITY",
-  OPERATING_REVENUE = "OPERATING_REVENUE",
-  NON_OPERATING_REVENUE = "NON_OPERATING_REVENUE",
-  OPERATING_EXPENSE = "OPERATING_EXPENSE",
-  NON_OPERATING_EXPENSE = "NON_OPERATING_EXPENSE"
-}
-
-// TypeScript interfaces
-interface Account {
-  id: string;
-  name: string;
-  type: AccountType;
-  category: string;
-  subcategory: string;
-  financialCategory: FinancialCategory;
-  financialSubcategory: string;
-}
-
-interface AccountForm {
-  name: string;
-  type: AccountType;
-  category: string;
-  subcategory: string;
-  financialCategory: FinancialCategory;
-  financialSubcategory: string;
-}
+import React, { useEffect, useState, useRef } from "react";
+import { formatEnumLabel } from "../utils/formatEnumLabel";
+import { Account, AccountForm, AccountType, FinancialCategory } from "../types/account";
+import * as AccountService from "../services/AccountService";
 
 const initialFormState: AccountForm = {
   name: "",
@@ -50,42 +9,24 @@ const initialFormState: AccountForm = {
   category: "",
   subcategory: "",
   financialCategory: FinancialCategory.OPERATING_EXPENSE,
-  financialSubcategory: ""
+  financialSubcategory: "",
+  balance: "0"
 };
 
-const suggestAccountMetadata = (name: string) => {
-  const nameLower = name.toLowerCase();
-  if (nameLower.includes("rent")) {
-    return {
-      category: "Facilities",
-      subcategory: "Monthly Rent",
-      financialSubcategory: "Occupancy Costs",
-    };
-  } else if (nameLower.includes("utilities")) {
-    return {
-      category: "Utilities",
-      subcategory: "Monthly Utilities",
-      financialSubcategory: "Utilities",
-    };
-  } else if (nameLower.includes("revenue")) {
-    return {
-      category: "Sales",
-      subcategory: "Sales Revenue",
-      financialSubcategory: "Sales Revenue",
-    };
-  } else if (nameLower.includes("loan")) {
-    return {
-      category: "Loans",
-      subcategory: "Loan Payable",
-      financialSubcategory: "Loan Payable",
-    };
-  } else {
-    return {
-      category: "Uncategorized",
-      subcategory: "",
-      financialSubcategory: "Uncategorized",
-    };
-  }
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
+const isNegativeType = (type: AccountType) =>
+  type === AccountType.EXPENSE || type === AccountType.LIABILITY;
+
+const displayBalance = (account: Account) => {
+  return formatCurrency(Math.abs(account.balance));
 };
 
 const Accounts = () => {
@@ -96,17 +37,25 @@ const Accounts = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [suggestedFields, setSuggestedFields] = useState<string[]>([]);
+  const [editingAccountId, setEditingAccountId] = useState<number | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAccounts();
   }, []);
 
+  useEffect(() => {
+    if (editingAccountId && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [editingAccountId]);
+
   const fetchAccounts = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.get("/accounts");
-      setAccounts(res.data);
+      const data = await AccountService.fetchAccounts();
+      setAccounts(data);
     } catch (err) {
       setError("Failed to fetch accounts. Please try again later.");
       console.error("Error fetching accounts", err);
@@ -115,20 +64,36 @@ const Accounts = () => {
     }
   };
 
+  const validateForm = () => {
+    if (!form.name.trim()) {
+      setError("Account name is required");
+      return false;
+    }
+
+    const balance = parseFloat(form.balance);
+    if (isNaN(balance) || balance < 0) {
+      setError("Balance must be a positive number");
+      return false;
+    }
+
+    if (!form.type) {
+      setError("Account type is required");
+      return false;
+    }
+
+    if (!form.financialCategory) {
+      setError("Financial category is required");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!form.name.trim()) {
-      setError("Account name is required");
-      return;
-    }
-    if (!form.type) {
-      setError("Account type is required");
-      return;
-    }
-    if (!form.financialCategory) {
-      setError("Financial category is required");
+    if (!validateForm()) {
       return;
     }
 
@@ -136,42 +101,37 @@ const Accounts = () => {
     setError(null);
     setSuccessMessage(null);
 
-    // Prepare the payload with proper data types and defaults
-    const payload = {
-      name: form.name.trim(),
-      type: form.type,
-      category: form.category.trim() || "Uncategorized",
-      subcategory: form.subcategory.trim() || "",
-      financialCategory: form.financialCategory,
-      financialSubcategory: form.financialSubcategory.trim() || "Uncategorized",
-      balance: 0,
-    };
-    console.log("Submitting account payload:", payload);
-
     try {
-      const response = await api.post("/accounts", payload);
-      
-      if (response.status >= 400) {
-        throw new Error(response.data.message || "Failed to create account");
+      const payload = {
+        name: form.name.trim(),
+        type: form.type,
+        category: form.category?.trim() || null,
+        subcategory: form.subcategory?.trim() || null,
+        financialCategory: form.financialCategory,
+        financialSubcategory: form.financialSubcategory?.trim() || null,
+        balance: parseFloat(form.balance)
+      };
+
+      if (editingAccountId) {
+        await AccountService.updateAccount(editingAccountId, payload);
+        setSuccessMessage("Account updated successfully!");
+      } else {
+        await AccountService.createAccount(payload);
+        setSuccessMessage("Account created successfully!");
       }
 
       setForm(initialFormState);
-      setSuccessMessage("Account created successfully!");
+      setEditingAccountId(null);
       fetchAccounts();
     } catch (err: any) {
-      // Handle different types of errors
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         const errorMessage = err.response.data?.message || err.response.data?.error || "Server error occurred";
-        setError(`Failed to create account: ${errorMessage}`);
+        setError(`Failed to ${editingAccountId ? 'update' : 'create'} account: ${errorMessage}`);
         console.error("Server error:", err.response.data);
       } else if (err.request) {
-        // The request was made but no response was received
         setError("No response from server. Please check your connection.");
         console.error("Network error:", err.request);
       } else {
-        // Something happened in setting up the request that triggered an Error
         setError("An unexpected error occurred. Please try again.");
         console.error("Error:", err.message);
       }
@@ -180,41 +140,94 @@ const Accounts = () => {
     }
   };
 
+  const handleEdit = (account: Account) => {
+    setForm({
+      name: account.name,
+      type: account.type,
+      category: account.category,
+      subcategory: account.subcategory,
+      financialCategory: account.financialCategory,
+      financialSubcategory: account.financialSubcategory,
+      balance: account.balance.toString()
+    });
+    setEditingAccountId(Number(account.id));
+    setShowAdvanced(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this account? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      await AccountService.deleteAccount(id);
+      setSuccessMessage("Account deleted successfully!");
+      fetchAccounts();
+    } catch (err: any) {
+      if (err.response) {
+        const errorMessage = err.response.data?.message || err.response.data?.error || "Server error occurred";
+        setError(`Failed to delete account: ${errorMessage}`);
+        console.error("Server error:", err.response.data);
+      } else if (err.request) {
+        setError("No response from server. Please check your connection.");
+        console.error("Network error:", err.request);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+        console.error("Error:", err.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setForm(initialFormState);
+    setEditingAccountId(null);
+    setSuggestedFields([]);
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-
-    // Remove field from suggestions if user overrides it
     setSuggestedFields((prev) => prev.filter((field) => field !== name));
   };
 
   const handleNameBlur = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || editingAccountId) return;
 
     try {
-      const res = await api.post("/accounts/suggest-metadata", { name: form.name });
-      console.log("Suggested metadata:", res.data);
+      const suggestions = await AccountService.suggestAccountMetadata(form.name.trim());
+      
+      if (suggestions) {
+        const updates: Partial<AccountForm> = {};
+        
+        if (!form.type) updates.type = suggestions.type;
+        if (!form.category) updates.category = suggestions.category;
+        if (!form.subcategory) updates.subcategory = suggestions.subcategory;
+        
+        if (!form.financialCategory || form.financialCategory === FinancialCategory.OPERATING_EXPENSE) {
+          updates.financialCategory = suggestions.financialCategory;
+        }
+        if (!form.financialSubcategory || form.financialSubcategory === "Uncategorized") {
+          updates.financialSubcategory = suggestions.financialSubcategory;
+        }
 
-      setForm((prev) => {
-        const newForm = { ...prev };
-        if (res.data.category && !prev.category) newForm.category = res.data.category;
-        if (res.data.subcategory && !prev.subcategory) newForm.subcategory = res.data.subcategory;
-        if (res.data.financialCategory && !prev.financialCategory) newForm.financialCategory = res.data.financialCategory;
-        if (res.data.financialSubcategory && !prev.financialSubcategory) newForm.financialSubcategory = res.data.financialSubcategory;
-        return newForm;
-      });
-
-      // Update suggestedFields based on what was suggested
-      const suggested = [];
-      if (res.data.category) suggested.push("category");
-      if (res.data.subcategory) suggested.push("subcategory");
-      if (res.data.financialCategory) suggested.push("financialCategory");
-      if (res.data.financialSubcategory) suggested.push("financialSubcategory");
-      setSuggestedFields(suggested);
+        if (Object.keys(updates).length > 0) {
+          setForm(prev => ({
+            ...prev,
+            ...updates
+          }));
+          setSuggestedFields(Object.keys(updates));
+        }
+      }
     } catch (err) {
-      console.error("Error fetching metadata suggestions:", err);
+      console.error("Error getting account suggestions:", err);
     }
   };
 
@@ -224,7 +237,9 @@ const Accounts = () => {
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Add New Account</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {editingAccountId ? "Edit Account" : "Add New Account"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic Info Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -233,6 +248,7 @@ const Accounts = () => {
                 Account Name *
               </label>
               <input
+                ref={nameInputRef}
                 type="text"
                 name="name"
                 value={form.name}
@@ -256,11 +272,24 @@ const Accounts = () => {
               >
                 {Object.values(AccountType).map((type) => (
                   <option key={type} value={type}>
-                    {type.replace(/_/g, " ")}
+                    {formatEnumLabel(type)}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Initial Balance
+            </label>
+            <input
+              type="number"
+              name="balance"
+              value={form.balance}
+              onChange={handleInputChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {/* Advanced Classification Section */}
@@ -322,7 +351,7 @@ const Accounts = () => {
                   >
                     {Object.values(FinancialCategory).map((category) => (
                       <option key={category} value={category}>
-                        {category.replace(/_/g, " ")}
+                        {formatEnumLabel(category)}
                       </option>
                     ))}
                   </select>
@@ -346,13 +375,24 @@ const Accounts = () => {
             )}
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-4">
+            {editingAccountId && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading}
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Creating..." : "Add Account"}
+              {isLoading 
+                ? (editingAccountId ? "Updating..." : "Creating...") 
+                : (editingAccountId ? "Update Account" : "Add Account")}
             </button>
           </div>
         </form>
@@ -394,41 +434,111 @@ const Accounts = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Financial Subcategory
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Balance
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                     Loading accounts...
                   </td>
                 </tr>
               ) : accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                     No accounts found
                   </td>
                 </tr>
               ) : (
                 accounts.map((account) => (
-                  <tr key={account.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={account.id} 
+                    className={`hover:bg-gray-50 ${
+                      editingAccountId === Number(account.id) 
+                        ? 'bg-yellow-50 border-l-4 border-yellow-400' 
+                        : ''
+                    }`}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {account.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {typeof account.type === "string" ? account.type.replace(/_/g, " ") : "Uncategorized"}
+                      {formatEnumLabel(account.type)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.category || "—"}
+                      <div className="flex items-center gap-1">
+                        {account.category || "—"}
+                        {suggestedFields.includes("category") && (
+                          <span 
+                            className="text-blue-500 cursor-help" 
+                            title="Category suggested based on the account name"
+                          >
+                            💡
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.subcategory || "—"}
+                      <div className="flex items-center gap-1">
+                        {account.subcategory || "—"}
+                        {suggestedFields.includes("subcategory") && (
+                          <span 
+                            className="text-blue-500 cursor-help" 
+                            title="Subcategory suggested based on the account name"
+                          >
+                            💡
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {typeof account.financialCategory === "string" ? account.financialCategory.replace(/_/g, " ") : "Uncategorized"}
+                      <div className="flex items-center gap-1">
+                        {formatEnumLabel(account.financialCategory)}
+                        {suggestedFields.includes("financialCategory") && (
+                          <span 
+                            className="text-blue-500 cursor-help" 
+                            title="Financial category suggested based on the account name"
+                          >
+                            💡
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.financialSubcategory || "—"}
+                      <div className="flex items-center gap-1">
+                        {formatEnumLabel(account.financialSubcategory)}
+                        {suggestedFields.includes("financialSubcategory") && (
+                          <span 
+                            className="text-blue-500 cursor-help" 
+                            title="Financial subcategory suggested based on the account name"
+                          >
+                            💡
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                      {displayBalance(account)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right space-x-2">
+                      <button
+                        onClick={() => handleEdit(account)}
+                        className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(Number(account.id))}
+                        className="text-red-600 hover:text-red-800 focus:outline-none"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
