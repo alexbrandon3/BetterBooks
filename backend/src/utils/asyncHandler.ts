@@ -1,9 +1,13 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Request, Response, NextFunction } from "express";
 
-export function wrapAuthedHandler<T extends Request>(
-  handler: (req: T, res: Response, next: NextFunction) => Promise<Response | undefined>
-): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(handler(req as T, res, next)).catch(next);
+type AsyncRequestHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<any>;
+
+export const wrapAsync = (fn: AsyncRequestHandler) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
   };
-} 
+}; 

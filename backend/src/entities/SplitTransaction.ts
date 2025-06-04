@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from "typeorm";
 import { Transaction } from "./Transaction";
+import { Account } from "./Account";
+import { User } from "./User";
 
 @Entity()
 export class SplitTransaction {
@@ -12,6 +14,18 @@ export class SplitTransaction {
   @Column()
   description!: string;
 
+  @Column()
+  type!: "INCOME" | "EXPENSE";
+
+  @ManyToOne(() => Account, (account) => account.transactions)
+  account!: Account;
+
+  @ManyToOne(() => User, (user) => user.transactions)
+  user!: User;
+
   @ManyToOne(() => Transaction, (transaction) => transaction.splits)
   transaction!: Transaction;
+
+  @OneToMany(() => SplitTransaction, (split) => split.transaction)
+  entries!: SplitTransaction[];
 }

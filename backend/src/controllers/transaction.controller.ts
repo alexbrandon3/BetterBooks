@@ -6,6 +6,7 @@ import { Transaction } from "../entities/Transaction";
 import { Account } from "../entities/Account";
 import { getUser } from "../utils/getUser";
 import { AuthedRequest } from "../middleware/auth.middleware";
+import { NotFoundError, AuthenticationError, AuthorizationError } from "../utils/errors";
 
 const transactionRepo = AppDataSource.getRepository(Transaction);
 const accountRepo = AppDataSource.getRepository(Account);
@@ -19,19 +20,10 @@ export const createTransaction = async (
   try {
     const user = await getUser(req);
     if (!user) {
-      console.error("User not authorized");
-      res.status(401).json({ message: "Unauthorized" });
-      return;
+      throw new AuthenticationError();
     }
 
     const { amount, description, type, accountId } = req.body;
-
-    // Validate input
-    if (!amount || !description || !type || !accountId) {
-      console.error("Missing required fields");
-      res.status(400).json({ message: "All fields are required" });
-      return;
-    }
 
     // Ensure the account belongs to the user
     const account = await accountRepo.findOne({
@@ -42,9 +34,7 @@ export const createTransaction = async (
     });
 
     if (!account) {
-      console.error("Account not found or does not belong to the user");
-      res.status(404).json({ message: "Account not found" });
-      return;
+      throw new NotFoundError("Account not found");
     }
 
     // Create the transaction
@@ -83,12 +73,8 @@ export const getTransactions = async (
   try {
     const user = await getUser(req);
     if (!user) {
-      console.error("User not authorized");
-      res.status(401).json({ message: "Unauthorized" });
-      return;
+      throw new AuthenticationError();
     }
-
-    console.log(`Fetching transactions for User ID: ${user.id}`);
 
     const transactions = await transactionRepo.find({
       where: {
@@ -98,8 +84,6 @@ export const getTransactions = async (
       },
       relations: ["account"],
     });
-
-    console.log(`Found ${transactions.length} transactions.`);
 
     const formattedTransactions = transactions.map((transaction) => ({
       id: transaction.id,
@@ -125,33 +109,22 @@ export const getTransactionById = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    console.log("Transaction ID received from request:", id);
-
     const user = await getUser(req);
     if (!user) {
-      console.error("User not authorized");
-      res.status(401).json({ message: "Unauthorized" });
-      return;
+      throw new AuthenticationError();
     }
-    console.log("Authenticated User ID:", user.id);
 
-    console.log("Fetching transaction from database...");
     const transaction = await transactionRepo.findOne({
       where: { id: parseInt(id) },
       relations: ["account", "account.user"],
     });
 
     if (!transaction) {
-      console.error("Transaction not found in DB.");
-      res.status(404).json({ message: "Transaction not found" });
-      return;
+      throw new NotFoundError("Transaction not found");
     }
-    console.log("Transaction found:", transaction);
 
     if (transaction.account.user.id !== user.id) {
-      console.error("Transaction does not belong to this user");
-      res.status(403).json({ message: "Forbidden" });
-      return;
+      throw new AuthorizationError("Transaction does not belong to this user");
     }
 
     const responsePayload = {
@@ -165,7 +138,6 @@ export const getTransactionById = async (
       },
     };
 
-    console.log("Responding with transaction data:", responsePayload);
     res.status(200).json(responsePayload);
   } catch (error) {
     next(error);
@@ -181,15 +153,10 @@ export const updateTransaction = async (
     const { id } = req.params;
     const { amount, description, type, accountId } = req.body;
 
-    console.log("Transaction ID received for update:", id);
-
     const user = await getUser(req);
     if (!user) {
-      console.error("User not authorized");
-      res.status(401).json({ message: "Unauthorized" });
-      return;
+      throw new AuthenticationError();
     }
-    console.log("Authenticated User ID:", user.id);
 
     const transaction = await transactionRepo.findOne({
       where: { id: parseInt(id) },
@@ -197,17 +164,11 @@ export const updateTransaction = async (
     });
 
     if (!transaction) {
-      console.error("Transaction not found in DB.");
-      res.status(404).json({ message: "Transaction not found" });
-      return;
+      throw new NotFoundError("Transaction not found");
     }
 
-    console.log("Transaction found:", transaction);
-
     if (transaction.account.user.id !== user.id) {
-      console.error("Transaction does not belong to this user");
-      res.status(403).json({ message: "Forbidden" });
-      return;
+      throw new AuthorizationError("Transaction does not belong to this user");
     }
 
     transaction.amount = amount ?? transaction.amount;
@@ -221,22 +182,17 @@ export const updateTransaction = async (
       });
 
       if (!newAccount) {
-        console.error("New account not found");
-        res.status(404).json({ message: "Account not found" });
-        return;
+        throw new NotFoundError("Account not found");
       }
 
       if (newAccount.user.id !== user.id) {
-        console.error("New account does not belong to the user");
-        res.status(403).json({ message: "Forbidden" });
-        return;
+        throw new AuthorizationError("Account does not belong to this user");
       }
 
       transaction.account = newAccount;
     }
 
     await transactionRepo.save(transaction);
-    console.log("Transaction updated successfully:", transaction);
 
     const responsePayload = {
       id: transaction.id,
@@ -262,6 +218,24 @@ export const deleteTransaction = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const user = await getUser(req);
+    if (!user) {
+      throw new AuthenticationError();
+    }
+
+    const transaction = await transactionRepo.findOne({
+      where: { id: parseInt(id) },
+      relations: ["account", "account.user"],
+    });
+
+    if (!transaction) {
+      throw new NotFoundError("Transaction not found");
+    }
+
+    if (transaction.account.user.id !== user.id) {
+      throw new AuthorizationError("Transaction does not belong to this user");
+    }
+
     await transactionRepo.delete(id);
     res.status(204).send();
   } catch (error) {
@@ -277,16 +251,10 @@ export const suggestAccount = async (
   try {
     const user = await getUser(req);
     if (!user) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
+      throw new AuthenticationError();
     }
 
     const { description } = req.body;
-
-    if (!description || typeof description !== "string") {
-      res.status(400).json({ message: "Invalid or missing description" });
-      return;
-    }
 
     const accountRepo = AppDataSource.getRepository(Account);
     const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
@@ -305,7 +273,7 @@ export const suggestAccount = async (
         suggestedAccountName: match.name,
       });
     } else {
-      res.status(404).json({ message: "No matching account found" });
+      throw new NotFoundError("No matching account found");
     }
   } catch (error) {
     next(error);

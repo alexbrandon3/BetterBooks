@@ -1,9 +1,12 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { loginUser, registerUser } from "../controllers/user.controller";
 import {
   createTransaction,
   getTransactions,
   deleteTransaction,
+  suggestAccount,
+  getTransactionById,
+  updateTransaction,
 } from "../controllers/transaction.controller";
 import {
   createRecurringTransaction,
@@ -16,149 +19,43 @@ import {
   deleteSplitTransaction,
 } from "../controllers/splitTransaction.controller";
 import {
-  createAccount,
-  getAccounts,
-  deleteAccount,
-  suggestAccountMetadata,
-} from "../controllers/account.controller";
+  getIncomeStatement,
+  getBalanceSheet,
+} from "../controllers/report.controller";
+import { validate, validateParams, validateQuery, schemas } from "../utils/validation";
+import { wrapAsync } from "../utils/wrap";
+import { authenticate } from "../middleware/auth.middleware";
+import accountRoutes from "./account.routes";
 
 const router = Router();
 
 // Auth Routes
-router.post("/auth/login", (req: Request, res: Response) => {
-  loginUser(req, res).catch((err) => {
-    console.error("Error in loginUser:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.post("/auth/register", (req: Request, res: Response) => {
-  registerUser(req, res).catch((err) => {
-    console.error("Error in registerUser:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
+router.post("/auth/login", validate(schemas.login), wrapAsync(loginUser));
+router.post("/auth/register", validate(schemas.register), wrapAsync(registerUser));
 
 // Account Routes
-router.post("/accounts", (req, res) => {
-  createAccount(req, res).catch((err) => {
-    console.error("Error in createAccount:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.get("/accounts", (req, res) => {
-  getAccounts(req, res).catch((err) => {
-    console.error("Error in getAccounts:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.delete("/accounts/:id", (req, res) => {
-  deleteAccount(req, res).catch((err) => {
-    console.error("Error in deleteAccount:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.post('/accounts/suggest-metadata', (req: Request, res: Response) => {
-  suggestAccountMetadata(req, res).catch((err) => {
-    console.error("Error in suggestAccountMetadata:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
+router.use("/accounts", accountRoutes);
 
 // Transaction Routes
-router.post("/transactions", (req, res) => {
-  createTransaction(req, res).catch((err) => {
-    console.error("Error in createTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.get("/transactions", (req, res) => {
-  getTransactions(req, res).catch((err) => {
-    console.error("Error in getTransactions:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.delete("/transactions/:id", (req, res) => {
-  deleteTransaction(req, res).catch((err) => {
-    console.error("Error in deleteTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
+router.post("/transactions", authenticate, validate(schemas.createTransaction), wrapAsync(createTransaction));
+router.get("/transactions", authenticate, wrapAsync(getTransactions));
+router.get("/transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(getTransactionById));
+router.put("/transactions/:id", authenticate, validateParams(schemas.idParam), validate(schemas.createTransaction), wrapAsync(updateTransaction));
+router.delete("/transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(deleteTransaction));
+router.post("/transactions/suggest-account", authenticate, validate(schemas.suggestAccount), wrapAsync(suggestAccount));
 
 // Recurring Transaction Routes
-router.post("/recurring-transactions", (req, res) => {
-  createRecurringTransaction(req, res).catch((err) => {
-    console.error("Error in createRecurringTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.get("/recurring-transactions", (req, res) => {
-  getRecurringTransactions(req, res).catch((err) => {
-    console.error("Error in getRecurringTransactions:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.delete("/recurring-transactions/:id", (req, res) => {
-  deleteRecurringTransaction(req, res).catch((err) => {
-    console.error("Error in deleteRecurringTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
+router.post("/recurring-transactions", authenticate, validate(schemas.createRecurringTransaction), wrapAsync(createRecurringTransaction));
+router.get("/recurring-transactions", authenticate, wrapAsync(getRecurringTransactions));
+router.delete("/recurring-transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(deleteRecurringTransaction));
 
 // Split Transaction Routes
-router.post("/split-transactions", (req, res) => {
-  createSplitTransaction(req, res).catch((err) => {
-    console.error("Error in createSplitTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.get("/split-transactions", (req, res) => {
-  getSplitTransactions(req, res).catch((err) => {
-    console.error("Error in getSplitTransactions:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-router.delete("/split-transactions/:id", (req, res) => {
-  deleteSplitTransaction(req, res).catch((err) => {
-    console.error("Error in deleteSplitTransaction:", err);
-    res.status(500).send("Internal Server Error");
-  });
-});
-
-export default router;
+router.post("/split-transactions", authenticate, validate(schemas.createSplitTransaction), wrapAsync(createSplitTransaction));
+router.get("/split-transactions", authenticate, wrapAsync(getSplitTransactions));
+router.delete("/split-transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(deleteSplitTransaction));
 
 // Report Routes
-import {
-  getIncomeStatement,
-  getBalanceSheet,
-} from "../controllers/report.controller";
+router.get("/reports/income-statement", authenticate, validateQuery(schemas.dateRange), wrapAsync(getIncomeStatement));
+router.get("/reports/balance-sheet", authenticate, validateQuery(schemas.dateRange), wrapAsync(getBalanceSheet));
 
-router.get("/reports/income-statement", (req: Request, res: Response) => {
-  getIncomeStatement(req, res).catch((err) => {
-    console.error("Income statement error:", err);
-    res.status(500).send("Server error");
-  });
-});
-
-router.get("/reports/balance-sheet", (req: Request, res: Response) => {
-  getBalanceSheet(req, res).catch((err) => {
-    console.error("Balance sheet error:", err);
-    res.status(500).send("Server error");
-  });
-});
-
-// router.get("/reports/cash-flow-statement", (req: Request, res: Response) => {
-//   getCashFlowBreakdown(req, res).catch((err) => {
-//     console.error("Cash flow error:", err);
-//     res.status(500).send("Server error");
-//   });
-// });
+export default router;

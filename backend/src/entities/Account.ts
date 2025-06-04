@@ -11,6 +11,14 @@ import { User } from "./User";
 import { Transaction } from "./Transaction";
 import { RecurringTransaction } from "./RecurringTransaction";
 
+export enum AccountType {
+  ASSET = "ASSET",
+  LIABILITY = "LIABILITY",
+  EQUITY = "EQUITY",
+  REVENUE = "REVENUE",
+  EXPENSE = "EXPENSE"
+}
+
 export enum FinancialCategory {
   CURRENT_ASSET = "CURRENT_ASSET",
   FIXED_ASSET = "FIXED_ASSET",
@@ -31,10 +39,13 @@ export class Account {
   @Column()
   name!: string;
 
-  @Column()
-  type!: string;
+  @Column({
+    type: "enum",
+    enum: AccountType,
+  })
+  type!: AccountType;
 
-  @Column()
+  @Column("numeric", { precision: 12, scale: 2 })
   balance!: number;
 
   @ManyToOne(() => User, (user) => user.accounts, {

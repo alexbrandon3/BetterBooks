@@ -1,277 +1,286 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/data-source";
-import { Account } from "../entities/Account";
-import { getUser } from "../utils/getUser"; // <-- Changed path
-import { QueryFailedError } from "typeorm";
-import { FinancialCategory } from "../entities/Account";
+import { Account, FinancialCategory, AccountType } from "../entities/Account";
+import { getUser } from "../utils/getUser";
+import { AuthenticationError, AuthorizationError, NotFoundError } from "../utils/errors";
+import { AuthedRequest } from "../middleware/auth.middleware";
+import { getSuggestedMetadata } from "../utils/accountCategorizer";
 
 const accountRepo = AppDataSource.getRepository(Account);
 
-const validFinancialCategories = Object.values(FinancialCategory);
+const isValidEnumValue = <T extends { [key: string]: string }>(enumObj: T, value: any): value is T[keyof T] =>
+  Object.values(enumObj).includes(value);
 
-// Create Account
-export const createAccount = async (req: Request, res: Response) => {
+export const createAccount = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log("📥 Account creation payload:", req.body);
-
     const user = await getUser(req);
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (!user) throw new AuthenticationError();
 
     const {
       name,
       type,
-      balance,
-      category = "Uncategorized",
-      subcategory = "",
+      category,
+      subcategory,
       financialCategory,
-      financialSubcategory = "",
+      financialSubcategory,
+      balance,
     } = req.body;
 
-    // Set default financialCategory based on type
-    let resolvedFinancialCategory = financialCategory;
-    if (!resolvedFinancialCategory) {
-      if (type === "REVENUE") {
-        resolvedFinancialCategory = FinancialCategory.OPERATING_REVENUE;
-      } else if (type === "EXPENSE") {
-        resolvedFinancialCategory = FinancialCategory.OPERATING_EXPENSE;
-      } else {
-        resolvedFinancialCategory = FinancialCategory.CURRENT_ASSET;
+    const normalized = name.toLowerCase();
+    const existing = await accountRepo
+      .createQueryBuilder("account")
+      .where("LOWER(account.name) = :name", { name: normalized })
+      .andWhere("account.userId = :userId", { userId: user.id })
+      .getOne();
+
+    if (existing) {
+      return res.status(400).json({
+        message: "An account with that name already exists."
+      });
+    }
+
+    // Field validation
+    if (!name?.trim()) {
+      return res.status(400).json({ 
+        message: "Account name is required" 
+      });
+    }
+
+    if (!type) {
+      return res.status(400).json({ 
+        message: "Account type is required" 
+      });
+    }
+
+    if (balance === undefined || balance === null || isNaN(parseFloat(balance))) {
+      return res.status(400).json({ 
+        message: "A valid balance is required" 
+      });
+    }
+
+    // Enum validation
+    if (!isValidEnumValue(AccountType, type)) {
+      return res.status(400).json({ 
+        message: "Invalid account type. Must be one of: " + Object.values(AccountType).join(", ") 
+      });
+    }
+
+    if (!isValidEnumValue(FinancialCategory, financialCategory)) {
+      return res.status(400).json({ 
+        message: "Invalid financial category. Must be one of: " + Object.values(FinancialCategory).join(", ") 
+      });
+    }
+
+    const account = accountRepo.create({
+      name: name.trim(),
+      type,
+      category: category?.trim() || "Uncategorized",
+      subcategory: subcategory?.trim() || "",
+      financialCategory,
+      financialSubcategory: financialSubcategory?.trim() || "Uncategorized",
+      balance: parseFloat(balance),
+      user,
+    });
+
+    await accountRepo.save(account);
+    res.status(201).json(account);
+  } catch (error) {
+    console.error("Error creating account:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+export const getAccounts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await getUser(req);
+    if (!user) throw new AuthenticationError();
+
+    const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
+    res.status(200).json(accounts);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAccountById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await getUser(req);
+    if (!user) throw new AuthenticationError();
+
+    const account = await accountRepo.findOne({
+      where: { id: parseInt(req.params.id), user: { id: user.id } },
+    });
+
+    if (!account) throw new NotFoundError("Account not found");
+    res.status(200).json(account);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateAccount = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await getUser(req);
+    if (!user) throw new AuthenticationError();
+
+    const account = await accountRepo.findOne({
+      where: { id: parseInt(req.params.id), user: { id: user.id } },
+    });
+
+    if (!account) throw new NotFoundError("Account not found");
+
+    const { name } = req.body;
+    if (name) {
+      const normalized = name.toLowerCase();
+      const duplicate = await accountRepo
+        .createQueryBuilder("account")
+        .where("LOWER(account.name) = :name", { name: normalized })
+        .andWhere("account.userId = :userId", { userId: user.id })
+        .andWhere("account.id != :currentId", { currentId: account.id })
+        .getOne();
+
+      if (duplicate) {
+        return res.status(400).json({
+          message: "Another account with that name already exists."
+        });
       }
     }
 
-    // Validate financial category
-    if (!validFinancialCategories.includes(resolvedFinancialCategory)) {
-      return res.status(400).json({ message: "Invalid financial category" });
-    }
-
-    if (!name || !type || typeof balance !== "number") {
-      console.warn("⚠️ Validation failed. Payload:", {
-        name,
-        type,
-        balance,
-        financialCategory: resolvedFinancialCategory,
-      });
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    const account = new Account();
-    account.name = name;
-    account.type = type;
-    account.balance = balance;
-    account.category = category;
-    account.subcategory = subcategory;
-    account.financialCategory = resolvedFinancialCategory;
-    account.financialSubcategory = financialSubcategory;
-    account.user = user;
-
-    const saved = await accountRepo.save(account);
-
-    res.status(201).json({
-      id: saved.id,
-      name: saved.name,
-      type: saved.type,
-      category: saved.category,
-      subcategory: saved.subcategory,
-      financialCategory: saved.financialCategory,
-      financialSubcategory: saved.financialSubcategory,
-    });
-  } catch (error: unknown) {
-    console.error("💥 Error creating account:", error);
-    if (error instanceof QueryFailedError) {
-      console.error("Database error details:", {
-        message: error.message,
-        query: error.query,
-        parameters: error.parameters,
-      });
-    }
-    res.status(500).json({
-      message:
-        process.env.NODE_ENV === "production"
-          ? "An error occurred while creating the account"
-          : error instanceof Error
-          ? error.message
-          : "Unknown error",
-    });
-  }
-};
-
-
-// Get Account by ID
-export const getAccountById = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const account = await accountRepo.findOne({
-      where: { id: parseInt(id) },
-      relations: ["user"],
-    });
-
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
-
-    const cleanAccount = {
-      id: account.id,
-      name: account.name,
-      type: account.type,
-      balance: account.balance,
-      user: {
-        id: account.user.id,
-        email: account.user.email,
-      },
-    };
-
-    res.status(200).json(cleanAccount);
-  } catch (error) {
-    console.error("Error in getAccountById:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
-// Update Account
-export const updateAccount = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const {
-      name,
-      type,
-      balance,
-      category = "Uncategorized",
-      subcategory = "",
-    } = req.body;
-
-    const account = await accountRepo.findOneBy({ id: parseInt(id) });
-
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
-
-    // Update fields
-    account.name = name ?? account.name;
-    account.type = type ?? account.type;
-    account.balance = balance ?? account.balance;
-
+    Object.assign(account, req.body);
     await accountRepo.save(account);
 
-    const responsePayload = {
-      id: account.id,
-      name: account.name,
-      type: account.type,
-      balance: account.balance,
-    };
-
-    res.status(200).json(responsePayload);
+    res.status(200).json(account);
   } catch (error) {
-    console.error("Error in updateAccount:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    next(error);
   }
 };
 
-// Get All Accounts
-export const getAccounts = async (req: Request, res: Response) => {
+export const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await getUser(req);
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (!user) throw new AuthenticationError();
 
-    const accounts = await accountRepo.find({
-      where: { user: { id: user.id } },
+    const account = await accountRepo.findOne({
+      where: { id: parseInt(req.params.id), user: { id: user.id } },
     });
 
-    const response = accounts.map((acc) => ({
-      id: acc.id,
-      name: acc.name,
-      type: acc.type,
-      category: acc.category,
-      subcategory: acc.subcategory,
-      financialCategory: acc.financialCategory,
-      financialSubcategory: acc.financialSubcategory,
-    }));
+    if (!account) throw new NotFoundError("Account not found");
 
-    res.status(200).json(response);
+    await accountRepo.delete(account.id);
+    res.status(204).send();
   } catch (error) {
-    console.error("Error fetching accounts:", error);
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 };
 
-// Delete Account
-export const deleteAccount = async (req: Request, res: Response) => {
+export const suggestAccountMetadata = async (req: AuthedRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const user = await getUser(req);
+    if (!user) throw new AuthenticationError();
 
-    const account = await accountRepo.findOneBy({ id: parseInt(id) });
+    const { description } = req.body;
+    const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
 
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
+    const lower = description.toLowerCase();
+    const match = accounts.find(acc =>
+      acc.name.toLowerCase().includes(lower) ||
+      acc.category?.toLowerCase().includes(lower) ||
+      acc.subcategory?.toLowerCase().includes(lower)
+    );
 
-    await accountRepo.remove(account);
+    if (!match) throw new NotFoundError("No matching account found");
 
-    res.status(204).send(); // No Content, delete was successful
+    res.json({
+      suggestedAccountId: match.id,
+      suggestedAccountName: match.name,
+    });
   } catch (error) {
-    console.error("Error in deleteAccount:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    next(error);
   }
 };
 
-const suggestionMap: Record<string, Partial<Account>> = {
-  rent: {
-    category: "Facilities",
-    subcategory: "Monthly Rent",
-    financialCategory: FinancialCategory.OPERATING_EXPENSE,
-    financialSubcategory: "Occupancy Costs"
-  },
-  utilities: {
-    category: "Utilities",
-    subcategory: "Electricity",
-    financialCategory: FinancialCategory.OPERATING_EXPENSE,
-    financialSubcategory: "Operating Overhead"
-  },
-  salary: {
-    category: "Payroll",
-    subcategory: "Employee Wages",
-    financialCategory: FinancialCategory.OPERATING_EXPENSE,
-    financialSubcategory: "Labor"
-  },
-  sales: {
-    category: "Revenue",
-    subcategory: "Product Sales",
-    financialCategory: FinancialCategory.OPERATING_REVENUE,
-    financialSubcategory: "Primary Income"
-  }
-};
-
-export const suggestAccountMetadata = async (req: Request, res: Response) => {
-  const { name } = req.body;
-  if (!name) {
-    return res.status(400).json({ message: "Name is required" });
-  }
-
-  const normalizedName = name.toLowerCase().trim();
-  const suggestion = suggestionMap[normalizedName] || {};
-
-  if (!suggestion.financialCategory) {
-    if (normalizedName.includes("rent")) {
-      suggestion.financialCategory = FinancialCategory.OPERATING_EXPENSE;
-      suggestion.financialSubcategory = "Occupancy Costs";
-    } else if (normalizedName.includes("utilities")) {
-      suggestion.financialCategory = FinancialCategory.OPERATING_EXPENSE;
-      suggestion.financialSubcategory = "Utilities";
-    } else if (normalizedName.includes("revenue") || name === "INCOME") {
-      suggestion.financialCategory = FinancialCategory.OPERATING_REVENUE;
-      suggestion.financialSubcategory = "Sales Revenue";
-    } else if (normalizedName.includes("loan")) {
-      suggestion.financialCategory = FinancialCategory.CURRENT_LIABILITY;
-      suggestion.financialSubcategory = "Loan Payable";
-    } else {
-      return {
-        category: "Uncategorized",
-        subcategory: "",
-        financialCategory: req.body.type === 'REVENUE' ? FinancialCategory.OPERATING_REVENUE : FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "Uncategorized",
-      };
+// 💡 New smarter auto-categorization logic
+export const suggestAccount = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Account name is required." });
     }
-  }
 
-  res.status(200).json(suggestion);
+    const suggestion = getSuggestedMetadata(name);
+    if (suggestion) {
+      return res.json(suggestion);
+    }
+
+    return res.json({
+      type: "ASSET",
+      category: "Uncategorized",
+      subcategory: "",
+      financialCategory: "OPERATING_EXPENSE",
+      financialSubcategory: "Uncategorized",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+export const suggestAccountAutoCategory = async (
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await getUser(req);
+    if (!user) throw new AuthenticationError();
+
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Account name is required." });
+    }
+
+    console.log("[AutoCategory] Incoming name:", name);
+
+    // 1. Check against keyword map FIRST
+    const suggestion = getSuggestedMetadata(name);
+    if (suggestion) {
+      console.log("[AutoCategory] Keyword match found");
+      return res.status(200).json(suggestion);
+    }
+
+    // 2. If no keyword match, look through user's existing accounts
+    const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
+    const match = accounts.find((acc) =>
+      acc.name.toLowerCase().includes(name.toLowerCase()) ||
+      acc.category?.toLowerCase().includes(name.toLowerCase()) ||
+      acc.subcategory?.toLowerCase().includes(name.toLowerCase())
+    );
+
+    if (match) {
+      console.log("[AutoCategory] Fallback matched user account:", match.name);
+      return res.status(200).json({
+        type: match.type,
+        category: match.category,
+        subcategory: match.subcategory,
+        financialCategory: match.financialCategory,
+        financialSubcategory: match.financialSubcategory,
+      });
+    }
+
+    // 3. Final fallback
+    console.log("[AutoCategory] No match found, using full fallback");
+    return res.status(200).json({
+      type: "ASSET",
+      category: "Uncategorized",
+      subcategory: "",
+      financialCategory: "CURRENT_ASSET",
+      financialSubcategory: "Uncategorized",
+    });
+  } catch (error) {
+    console.error("[AutoCategory] Error:", error);
+    next(error);
+  }
+};
+
+
+

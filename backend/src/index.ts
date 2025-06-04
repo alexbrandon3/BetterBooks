@@ -1,10 +1,10 @@
-import express from "express";
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import { AppDataSource } from "./config/data-source";
 import routes from "./routes/routes";
-import reportRoutes from "./routes/report.routes";
+import { errorHandler } from "./utils/errors";
 
 // Force-load the .env file
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -49,7 +49,12 @@ app.use(express.json());
 
 // Routes
 app.use("/api", routes);
-app.use("/api/reports", reportRoutes);
+
+// Global error handler (must be last)
+const errorHandlerMiddleware: ErrorRequestHandler = (err, req, res, next) => {
+  errorHandler(err, req, res, next);
+};
+app.use(errorHandlerMiddleware);
 
 // Listen on the defined port
 app.listen(PORT, () => {
