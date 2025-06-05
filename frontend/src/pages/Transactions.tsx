@@ -486,7 +486,7 @@ const Transactions = () => {
               const isRecurring = isRecurringTransaction(transaction);
               const date = isRecurring ? transaction.startDate : transaction.date;
               return (
-                <tr key={transaction.id}>
+                <tr key={transaction.id} data-testid={`transaction-row-${transaction.id}`}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(date).toLocaleDateString()}
                   </td>
@@ -509,6 +509,7 @@ const Transactions = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
+                      data-testid={`edit-transaction-${transaction.id}`}
                       onClick={() => handleEdit(transaction)}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
