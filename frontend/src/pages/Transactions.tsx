@@ -20,6 +20,12 @@ interface Transaction {
   accountId: string;
   account?: Account;
   date: string;  // This is the transaction date
+  isSplit: boolean;
+  splits: Array<{
+    amount: string;
+    description: string;
+    category: string;
+  }>;
 }
 
 interface RecurringTransaction {
@@ -43,6 +49,12 @@ interface TransactionForm {
   isRecurring: boolean;
   recurrencePattern?: "DAILY" | "WEEKLY" | "MONTHLY";
   endDate?: string;
+  isSplit: boolean;
+  splits: Array<{
+    amount: string;
+    description: string;
+    category: string;
+  }>;
 }
 
 const initialFormState: TransactionForm = {
@@ -50,8 +62,10 @@ const initialFormState: TransactionForm = {
   type: "INCOME",
   description: "",
   accountId: "",
-  date: new Date().toISOString().split("T")[0],
+  date: "",
   isRecurring: false,
+  isSplit: false,
+  splits: [],
 };
 
 const Transactions = () => {
@@ -143,8 +157,20 @@ const Transactions = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
+    setError("");
+    setSuccessMessage("");
+
+    // Split validation before API call
+    if (form.isSplit) {
+      const hasInvalidSplit = form.splits.some(
+        (split) => !split.amount || parseFloat(split.amount) <= 0
+      );
+      if (hasInvalidSplit) {
+        setError("Amount is required");
+        setIsLoading(false);
+        return;
+      }
+    }
 
     if (!validateForm()) {
       setIsLoading(false);
@@ -152,8 +178,89 @@ const Transactions = () => {
     }
 
     try {
-      if (form.isRecurring) {
-        const recurringTransaction = {
+      if (editingTransactionId) {
+        await saveTransaction();
+        setSuccessMessage("Transaction updated successfully!");
+      } else {
+        if (form.isSplit) {
+          // Create new split transaction
+          await axios.post("/split-transactions", {
+            splits: form.splits.map((s) => ({
+              amount: parseFloat(s.amount),
+              description: s.description,
+              category: s.category,
+            })),
+            date: form.date,
+            accountId: form.accountId,
+            type: form.type,
+            description: form.description,
+          });
+        } else if (form.isRecurring) {
+          const recurringTransaction = {
+            amount: parseFloat(form.amount),
+            type: form.type,
+            description: form.description,
+            accountId: form.accountId,
+            startDate: form.date,
+            recurrencePattern: form.recurrencePattern,
+            endDate: form.endDate || undefined,
+          };
+          await axios.post("/recurring-transactions", recurringTransaction);
+          setSuccessMessage("Recurring transaction created successfully!");
+        } else {
+          const transaction = {
+            amount: parseFloat(form.amount),
+            type: form.type,
+            description: form.description,
+            accountId: form.accountId,
+            date: form.date,
+          };
+          await axios.post("/transactions", transaction);
+          setSuccessMessage("Transaction created successfully!");
+        }
+
+        // Reset form and states
+        setForm(initialFormState);
+        setEditingTransactionId(null);
+        setIsEditingRecurring(false);
+        fetchTransactions();
+      }
+    } catch (err) {
+      setError("Failed to save transaction. Please try again.");
+      console.error("Error saving transaction", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveTransaction = async () => {
+    try {
+      // Split validation before API call
+      if (form.isSplit) {
+        const hasInvalidSplit = form.splits.some(
+          (split) => !split.amount || parseFloat(split.amount) <= 0
+        );
+        if (hasInvalidSplit) {
+          setError("Amount is required");
+          return;
+        }
+      }
+      if (form.isSplit) {
+        // Submit the split transaction
+        await axios.put(`/split-transactions/${editingTransactionId}`, {
+          splits: form.splits.map((s) => ({
+            amount: parseFloat(s.amount),
+            description: s.description,
+            category: s.category,
+          })),
+          date: form.date,
+          accountId: form.accountId,
+          type: form.type,
+          description: form.description,
+        });
+      } else if (isEditingRecurring) {
+        // Submit the recurring transaction
+        await axios.put(`/recurring-transactions/${editingTransactionId}`, {
           amount: parseFloat(form.amount),
           type: form.type,
           description: form.description,
@@ -161,46 +268,26 @@ const Transactions = () => {
           startDate: form.date,
           recurrencePattern: form.recurrencePattern,
           endDate: form.endDate || undefined,
-        };
-
-        if (isEditingRecurring && editingTransactionId) {
-          await axios.put(`/recurring-transactions/${editingTransactionId}`, recurringTransaction);
-          setSuccessMessage("Recurring transaction updated successfully!");
-        } else {
-          await axios.post("/recurring-transactions", recurringTransaction);
-          setSuccessMessage("Recurring transaction created successfully!");
-        }
+        });
       } else {
-        const transaction = {
+        // Submit the regular transaction
+        await axios.put(`/transactions/${editingTransactionId}`, {
           amount: parseFloat(form.amount),
           type: form.type,
           description: form.description,
           accountId: form.accountId,
           date: form.date,
-        };
-
-        if (editingTransactionId) {
-          await axios.put(`/transactions/${editingTransactionId}`, transaction);
-          setSuccessMessage("Transaction updated successfully!");
-        } else {
-          await axios.post("/transactions", transaction);
-          setSuccessMessage("Transaction created successfully!");
-        }
+        });
       }
 
-      // Reset form and states
-      setForm({
-        ...initialFormState,
-        date: new Date().toISOString().split("T")[0],
-      });
+      // Reset form and states after successful update
+      setForm(initialFormState);
       setEditingTransactionId(null);
       setIsEditingRecurring(false);
-      fetchTransactions();
+      await fetchTransactions();
     } catch (err) {
-      setError("Failed to save transaction. Please try again.");
-      console.error("Error saving transaction", err);
-    } finally {
-      setIsLoading(false);
+      setError("Failed to update transaction. Please try again.");
+      console.error("Error updating transaction:", err);
     }
   };
 
@@ -220,7 +307,9 @@ const Transactions = () => {
         date: recurringTx.startDate.split("T")[0],
         isRecurring: true,
         recurrencePattern: recurringTx.recurrencePattern,
-        endDate: recurringTx.endDate?.split("T")[0] || undefined
+        endDate: recurringTx.endDate?.split("T")[0] || undefined,
+        isSplit: false,
+        splits: [],
       });
     } else {
       const regularTx = transaction as Transaction;
@@ -231,8 +320,40 @@ const Transactions = () => {
         accountId: regularTx.accountId,
         date: regularTx.date.split("T")[0],
         isRecurring: false,
+        isSplit: regularTx.isSplit || false,
+        splits: regularTx.splits?.map(split => ({
+          amount: split.amount.toString(),
+          description: split.description,
+          category: split.category || '',
+        })) || [],
       });
     }
+  };
+
+  const updateSplit = (index: number, field: string, value: string) => {
+    setForm(prev => ({
+      ...prev,
+      splits: prev.splits.map((split, i) => 
+        i === index ? { ...split, [field]: value } : split
+      ),
+    }));
+  };
+
+  const removeSplit = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      splits: prev.splits.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addSplit = () => {
+    setForm((prev) => ({
+      ...prev,
+      splits: [
+        ...prev.splits,
+        { description: "", amount: "", category: "" },
+      ],
+    }));
   };
 
   // Helper function to check if a transaction is recurring
@@ -446,7 +567,81 @@ const Transactions = () => {
                 </div>
               </>
             )}
+
+            <div className="flex items-center">
+              <input
+                id="isSplit"
+                type="checkbox"
+                name="isSplit"
+                checked={form.isSplit}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isSplit" className="ml-2 block text-sm text-gray-700">
+                Split Transaction
+              </label>
+            </div>
           </div>
+
+          {form.isSplit && (
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4">Split Details</h3>
+              <div className="space-y-4">
+                {form.splits.map((split, index) => (
+                  <div key={index} className="mb-2 flex items-center gap-2 border p-2 rounded">
+                    <div className="flex-1">
+                      <label className="block text-sm">Description</label>
+                      <input
+                        className="input w-full"
+                        value={split.description}
+                        onChange={(e) => updateSplit(index, "description", e.target.value)}
+                        aria-label={`Split ${index + 1} Description`}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm">Amount</label>
+                      <input
+                        className="input w-full"
+                        type="number"
+                        value={split.amount}
+                        onChange={(e) => updateSplit(index, "amount", e.target.value)}
+                        required
+                        aria-label={`Split ${index + 1} Amount`}
+                      />
+                      {split.amount === "" && (
+                        <span className="text-red-500 text-sm">Amount is required</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm">Category</label>
+                      <input
+                        className="input w-full"
+                        value={split.category}
+                        onChange={(e) => updateSplit(index, "category", e.target.value)}
+                        aria-label={`Split ${index + 1} Category`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="text-red-600 ml-2"
+                      onClick={() => removeSplit(index)}
+                      aria-label={`Remove Split ${index + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  onClick={addSplit}
+                  aria-label="Add Split"
+                >
+                  Add Split
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-4">
             {editingTransactionId && (
@@ -508,19 +703,25 @@ const Transactions = () => {
                     {transaction.account?.name || "Unknown Account"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      data-testid={`edit-transaction-${transaction.id}`}
-                      onClick={() => handleEdit(transaction)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(transaction.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                    {editingTransactionId === transaction.id ? (
+                      <form data-testid={`edit-form-${transaction.id}`}>Edit Form Here</form>
+                    ) : (
+                      <>
+                        <button
+                          data-testid={`edit-transaction-${transaction.id}`}
+                          onClick={() => handleEdit(transaction)}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(transaction.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               );

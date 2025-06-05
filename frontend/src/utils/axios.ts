@@ -1,4 +1,4 @@
-import axios from "axios";
+const axios = require("axios");
 
 const instance = axios.create({
   baseURL: "http://localhost:5000/api",
@@ -9,22 +9,22 @@ const instance = axios.create({
 
 // Add a request interceptor to attach the token if it exists
 instance.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   }
 );
 
 // Add a response interceptor to handle global errors
 instance.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: any) => response,
+  (error: any) => {
     if (error.response && error.response.status === 401) {
       console.error("Unauthorized - Redirect to login or refresh token");
     }
@@ -34,11 +34,12 @@ instance.interceptors.response.use(
 
 // API wrapper with shorthand methods
 const api = {
-  get: <T = any>(url: string, config = {}) => instance.get<T>(url, config),
-  post: <T = any>(url: string, data = {}, config = {}) => instance.post<T>(url, data, config),
-  put: <T = any>(url: string, data = {}, config = {}) => instance.put<T>(url, data, config),
-  delete: <T = any>(url: string, config = {}) => instance.delete<T>(url, config),
-  patch: <T = any>(url: string, data = {}, config = {}) => instance.patch<T>(url, data, config),
+  get: (url: string, config = {}) => instance.get(url, config),
+  post: (url: string, data = {}, config = {}) => instance.post(url, data, config),
+  put: (url: string, data = {}, config = {}) => instance.put(url, data, config),
+  delete: (url: string, config = {}) => instance.delete(url, config),
+  patch: (url: string, data = {}, config = {}) => instance.patch(url, data, config),
 };
 
 export default api;
+export { instance };
