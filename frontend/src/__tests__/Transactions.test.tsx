@@ -3,129 +3,780 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import Transactions from "../pages/Transactions";
-import { AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
-import api from "../utils/axios";
+import * as TransactionService from "../services/TransactionService";
+import * as AccountService from "../services/AccountService";
+import MockAdapter from 'axios-mock-adapter';
+import instance from "../utils/axios";
+import { AccountType, FinancialCategory } from "../types/account";
 
-// Mock axios
-jest.mock("../utils/axios");
-const mockApi = api as jest.Mocked<typeof api>;
+// Debug log
+console.log('Axios instance:', instance);
 
-const createAxiosResponse = <T,>(data: T): AxiosResponse<T> => ({
-  data,
-  status: 200,
-  statusText: "OK",
-  headers: {},
-  config: {} as any
-});
+// Create mock adapter for the axios instance
+const mock = new MockAdapter(instance);
 
-describe("Transactions", () => {
-  const mockAccounts = [
-    { id: "1", name: "Checking" },
-    { id: "2", name: "Savings" },
-  ];
+// Mock data
+const mockAccounts = [
+  { id: "1", name: "Checking", type: AccountType.ASSET, category: "Bank", subcategory: "Checking", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Bank", balance: 1000 },
+  { id: "2", name: "Savings", type: AccountType.ASSET, category: "Bank", subcategory: "Savings", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Bank", balance: 2000 },
+  { id: "3", name: "Groceries", type: AccountType.EXPENSE, category: "Expense", subcategory: "Groceries", financialCategory: FinancialCategory.OPERATING_EXPENSE, financialSubcategory: "Food", balance: 0 }
+];
 
-  const mockTransactions = [
-    {
-      id: "1",
-      amount: 100,
-      type: "EXPENSE",
-      description: "Test Transaction",
-      accountId: "1",
-      date: "2025-06-05",
-      isRecurring: false,
-    },
-  ];
+const mockTransactions = [
+  {
+    id: 1,
+    description: "Grocery Shopping",
+    startDate: "2024-03-14",
+    type: "EXPENSE" as "EXPENSE",
+    entries: [
+      { accountId: "3", amount: 100, type: "CREDIT" as "CREDIT" },
+      { accountId: "1", amount: 100, type: "DEBIT" as "DEBIT" }
+    ],
+    userId: 1
+  },
+  {
+    id: 2,
+    description: "Split Transaction",
+    startDate: "",
+    type: "EXPENSE" as "EXPENSE",
+    entries: [
+      { accountId: "1", amount: 50, type: "DEBIT" as "DEBIT" },
+      { accountId: "2", amount: 50, type: "CREDIT" as "CREDIT" }
+    ],
+    userId: 1
+  }
+];
 
+describe("Transactions Component", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockApi.get.mockImplementation((url) => {
-      if (url === "/accounts") {
-        return Promise.resolve(createAxiosResponse(mockAccounts));
-      }
-      if (url === "/transactions") {
-        return Promise.resolve(createAxiosResponse(mockTransactions));
-      }
-      return Promise.reject(new Error("Not found"));
-    });
+    // Mock accounts endpoint
+    mock.onGet("/accounts").reply(200, mockAccounts);
+    jest.spyOn(AccountService, "fetchAccounts").mockResolvedValue(mockAccounts);
+
+    // Mock transactions endpoint
+    mock.onGet("/transactions").reply(200, mockTransactions);
+    jest.spyOn(TransactionService, "fetchTransactions").mockResolvedValue(mockTransactions);
+
+    // Mock transaction creation
+    mock.onPost("/transactions").reply(200, mockTransactions[0]);
+    jest.spyOn(TransactionService, "createTransaction").mockResolvedValue(mockTransactions[0]);
+
+    // Mock transaction update
+    mock.onPut(/\/transactions\/\d+/).reply(200, mockTransactions[0]);
+    jest.spyOn(TransactionService, "updateTransaction").mockResolvedValue(mockTransactions[0]);
+
+    // Mock transaction deletion
+    mock.onDelete(/\/transactions\/\d+/).reply(200, { message: "Transaction deleted" });
+    jest.spyOn(TransactionService, "deleteTransaction").mockResolvedValue();
+
+    // Mock account suggestion
+    mock.onPost("/transactions/suggest-account").reply(200, { suggestedAccountId: "3", suggestedAccountName: "Groceries" });
+    jest.spyOn(TransactionService, "getSuggestedAccount").mockResolvedValue({ suggestedAccountId: "3", suggestedAccountName: "Groceries" });
   });
 
-  describe("Initial Render", () => {
-    it("loads accounts and transactions on mount", async () => {
+  afterEach(() => {
+    mock.reset();
+    jest.restoreAllMocks();
+  });
+
+  // Utility to wait for loading to finish before assertions
+  const waitForForm = async () => {
+    await waitFor(() => {
+      expect(screen.queryByText("Loading transactions...")).not.toBeInTheDocument();
+    });
+  };
+
+  describe("Loading States", () => {
+    it("shows loading indicator while fetching transactions", async () => {
       render(
         <MemoryRouter>
           <Transactions />
         </MemoryRouter>
       );
 
-      // Wait for accounts to load
+      // Check for loading state
+      expect(screen.getByText("Loading transactions...")).toBeInTheDocument();
+
+      // Wait for loading to complete
+      await waitForForm();
+    });
+
+    it("shows loading state during form submission", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+      // Wait for loading indicator
+      expect(screen.getByText(/loading transactions/i)).toBeInTheDocument();
+      // Wait for form to load
       await waitFor(() => {
-        expect(mockApi.get).toHaveBeenCalledWith("/accounts");
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
       });
+      // Now interact with the form as needed...
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("displays error message when fetch fails", async () => {
+      mock.onGet("/transactions").reply(500);
+      jest.spyOn(TransactionService, "fetchTransactions").mockRejectedValue(new Error("Boom"));
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+      // Wait for error message
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Failed to fetch transactions. Please try again later.');
+      });
+    });
+
+    it("handles create transaction failure", async () => {
+      mock.onPost("/transactions").reply(500);
+      jest.spyOn(TransactionService, "createTransaction").mockRejectedValue(new Error("Boom"));
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+      // Fill out form and submit, then check for error
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      await userEvent.click(screen.getByRole("button", { name: /create transaction/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Failed to save transaction. Please try again.');
+      });
+    });
+
+    it("handles delete transaction failure", async () => {
+      mock.onDelete("/transactions/1").reply(500);
+      jest.spyOn(TransactionService, "deleteTransaction").mockRejectedValue(new Error("Boom"));
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+      // Use getAllByRole to disambiguate delete buttons
+      const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+      // Click the first delete button (or use data-testid if available)
+      fireEvent.click(deleteButtons[0]);
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Failed to delete transaction');
+      });
+    });
+  });
+
+  describe("UI Feedback", () => {
+    it("shows success message after creating transaction", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      // Verify success message
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/transaction created successfully/i);
+    });
+
+    it("shows success message after updating transaction", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
 
       // Wait for transactions to load
       await waitFor(() => {
-        expect(mockApi.get).toHaveBeenCalledWith("/transactions");
+        expect(screen.getByTestId("transaction-row-1")).toBeInTheDocument();
       });
 
-      // Verify form elements are present
-      expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/type/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/account/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
+      // Click edit button
+      const editButton = screen.getByTestId("edit-transaction-1");
+      await userEvent.click(editButton);
 
-      // Verify transaction data is displayed
-      expect(screen.getByText("Test Transaction")).toBeInTheDocument();
-      expect(screen.getByText("$100.00")).toBeInTheDocument();
-      expect(screen.getByText("Checking")).toBeInTheDocument();
+      // Verify form populated
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toHaveValue("Grocery Shopping");
+      });
+
+      // Update description
+      await userEvent.clear(screen.getByLabelText(/description/i));
+      await userEvent.type(screen.getByLabelText(/description/i), "Updated Transaction");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /update transaction/i });
+      await userEvent.click(submitButton);
+
+      // Verify success message
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/transaction updated successfully/i);
     });
   });
 
-  describe("Form Submission", () => {
-    it("creates a new transaction successfully", async () => {
-      mockApi.post.mockResolvedValueOnce(createAxiosResponse(mockTransactions[0]));
-
+  describe("Field-Specific Validation", () => {
+    it("rejects zero amounts", async () => {
       render(
         <MemoryRouter>
           <Transactions />
         </MemoryRouter>
       );
 
-      // Wait for accounts to load
+      // Wait for form to load
       await waitFor(() => {
-        expect(mockApi.get).toHaveBeenCalledWith("/accounts");
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Try to enter zero amount
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "0");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Amount must be positive");
+    });
+
+    it("rejects negative amounts", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Try to enter negative amount
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "-100");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Amount must be positive");
+    });
+
+    it("validates required date field", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Clear date field
+      await userEvent.clear(screen.getByLabelText(/date/i));
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Date is required");
+    });
+
+    it("validates required account fields", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form without selecting accounts
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/all entries.*account/i))).toBe(true);
+    });
+
+    it("validates balanced journal entries", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out the form with unbalanced entries
+      await userEvent.type(screen.getByLabelText(/description/i), "Unbalanced Transaction");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      // Add a second entry (simulate split)
+      await userEvent.click(screen.getByTestId("add-split-btn"));
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "50.00");
+
+      // Submit the form
+      await userEvent.click(screen.getByRole("button", { name: /create transaction/i }));
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Total debits must equal total credits");
+    });
+
+    it('validates positive amounts', async () => {
+      render(<Transactions />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form with zero amount
+      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '0');
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
+
+      // Submit form
+      const submitButton = screen.getByRole('button', { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Amount must be positive");
+    });
+
+    it('validates required date field', async () => {
+      render(<Transactions />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Clear date field
+      const dateInput = screen.getByLabelText(/date/i);
+      await userEvent.clear(dateInput);
+
+      // Fill out other required fields
+      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
+
+      // Submit form
+      const submitButton = screen.getByRole('button', { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Date is required");
+    });
+
+    it('validates required account fields', async () => {
+      render(<Transactions />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form without selecting account
+      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+
+      // Submit form
+      const submitButton = screen.getByRole('button', { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/all entries.*account/i))).toBe(true);
+    });
+
+    it('validates balanced journal entries', async () => {
+      render(<Transactions />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out the form with unbalanced entries
+      await userEvent.type(screen.getByLabelText(/description/i), 'Unbalanced Transaction');
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], 'DEBIT');
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      // Add a second entry (simulate split)
+      await userEvent.click(screen.getByTestId('add-split-btn'));
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], 'CREDIT');
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], '2');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], '50.00');
+
+      // Submit the form
+      await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Total debits must equal total credits");
+    });
+  });
+
+  describe("Form Validation", () => {
+    it("enforces required fields", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Try to submit without filling required fields
+      await userEvent.click(screen.getByRole("button", { name: /create transaction/i }));
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/description.*required/i))).toBe(true);
+      expect(alerts.some(a => a.textContent?.match(/entries.*account/i))).toBe(true);
+    });
+
+    it("sets default type to EXPENSE and toggles correctly", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Get the main transaction type select by id
+      const typeSelect = screen.getByLabelText("Type", { selector: 'select#transaction-type' });
+      expect(typeSelect).toHaveValue("EXPENSE");
+
+      // Change to INCOME
+      await userEvent.selectOptions(typeSelect, "INCOME");
+      expect(typeSelect).toHaveValue("INCOME");
+
+      // Verify entry types updated
+      const entryTypes = screen.getAllByLabelText(/entry type/i);
+      expect(entryTypes[0]).toHaveValue("DEBIT");
+      expect(entryTypes[1]).toHaveValue("CREDIT");
+    });
+
+    it("allows adding and removing journal entries", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Initial entries
+      expect(screen.getAllByLabelText(/account/i)).toHaveLength(2);
+
+      // Add entry
+      const addButton = screen.getByTestId("add-split-btn");
+      await userEvent.click(addButton);
+      expect(screen.getAllByLabelText(/account/i)).toHaveLength(3);
+
+      // Remove entry
+      const removeButtons = screen.getAllByRole("button", { name: /remove/i });
+      await userEvent.click(removeButtons[0]);
+      expect(screen.getAllByLabelText(/account/i)).toHaveLength(2);
+    });
+
+    it("resets form after successful submission", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/amount/i), "100");
-      await userEvent.selectOptions(screen.getByLabelText(/type/i), "EXPENSE");
       await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
-      await userEvent.selectOptions(screen.getByLabelText(/account/i), "1");
-      await userEvent.type(screen.getByLabelText(/date/i), "2025-06-05");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
 
       // Submit form
-      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
 
-      // Verify API call and form reset
+      // Verify form reset
       await waitFor(() => {
-        expect(mockApi.post).toHaveBeenCalledWith(
-          "/transactions",
-          {
-            amount: 100,
-            type: "EXPENSE",
-            description: "Test Transaction",
-            accountId: "1",
-            date: "2025-06-05",
-          }
-        );
-        expect(screen.getByLabelText(/amount/i)).toHaveValue(null);
         expect(screen.getByLabelText(/description/i)).toHaveValue("");
+        expect(screen.getAllByLabelText(/amount/i)[0]).toHaveValue(null);
+        expect(screen.getAllByLabelText(/amount/i)[1]).toHaveValue(null);
       });
     });
 
-    it("handles API errors gracefully", async () => {
-      mockApi.post.mockRejectedValueOnce(new Error("Failed to save"));
+    it("validates account selection", async () => {
+      render(<Transactions />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out the form without selecting an account
+      await userEvent.type(screen.getByLabelText(/description/i), 'No Account Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      // Add a second entry
+      await userEvent.click(screen.getByTestId('add-split-btn'));
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], '100.00');
+
+      // Submit the form
+      await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/all entries.*account/i))).toBe(true);
+    });
+
+    it("validates positive amounts", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form with zero amount
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "0");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/amount.*positive/i))).toBe(true);
+    });
+
+    it("validates required date field", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Clear date field
+      const dateInput = screen.getByLabelText(/date/i);
+      await userEvent.clear(dateInput);
+
+      // Fill out other required fields
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/date.*required/i))).toBe(true);
+    });
+
+    it("validates required account fields", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form without selecting account
+      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/entries.*account/i))).toBe(true);
+    });
+
+    it("validates balanced journal entries", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for form to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out the form with unbalanced entries
+      await userEvent.type(screen.getByLabelText(/description/i), "Unbalanced Transaction");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      // Add a second entry (simulate split)
+      await userEvent.click(screen.getByTestId("add-split-btn"));
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "50.00");
+
+      // Submit the form
+      await userEvent.click(screen.getByRole("button", { name: /create transaction/i }));
+
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some(a => a.textContent?.match(/debits.*equal.*credits/i))).toBe(true);
+    });
+  });
+
+  describe("CRUD Operations", () => {
+    test("creates a new transaction", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Fill out form
+      await userEvent.type(screen.getByLabelText(/description/i), "New Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
+
+      // Verify success message
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/transaction created successfully/i);
+    });
+
+    test("edits an existing transaction", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for transactions to load
+      await waitFor(() => {
+        expect(screen.getByTestId("transaction-row-1")).toBeInTheDocument();
+      });
+
+      // Click edit button
+      const editButton = screen.getByTestId("edit-transaction-1");
+      await userEvent.click(editButton);
+
+      // Verify form populated
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toHaveValue("Grocery Shopping");
+      });
+
+      // Update description
+      await userEvent.clear(screen.getByLabelText(/description/i));
+      await userEvent.type(screen.getByLabelText(/description/i), "Updated Transaction");
+
+      // Submit form
+      const submitButton = screen.getByRole("button", { name: /update transaction/i });
+      await userEvent.click(submitButton);
+
+      // Verify success message
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/transaction updated successfully/i);
+    });
+
+    test("deletes a transaction", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for transactions to load
+      await waitFor(() => {
+        expect(screen.getByTestId("transaction-row-1")).toBeInTheDocument();
+      });
+
+      // Click delete button
+      const deleteButton = screen.getByTestId("delete-transaction-1");
+      await userEvent.click(deleteButton);
+
+      // Verify success message
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/transaction deleted successfully/i);
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("handles missing accounts", async () => {
+      // Mock failed accounts fetch
+      (AccountService.fetchAccounts as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       render(
         <MemoryRouter>
@@ -133,52 +784,138 @@ describe("Transactions", () => {
         </MemoryRouter>
       );
 
-      // Wait for accounts to load
+      // Wait for error message
       await waitFor(() => {
-        expect(mockApi.get).toHaveBeenCalledWith("/accounts");
+        expect(screen.getByRole('alert')).toHaveTextContent('Failed to fetch transactions. Please try again later.');
+      });
+    });
+
+    test("handles API errors", async () => {
+      // Mock failed transaction creation
+      (TransactionService.createTransaction as jest.Mock).mockRejectedValue(new Error("Boom"));
+
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/amount/i), "100");
-      await userEvent.selectOptions(screen.getByLabelText(/type/i), "EXPENSE");
       await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
-      await userEvent.selectOptions(screen.getByLabelText(/account/i), "1");
-      await userEvent.type(screen.getByLabelText(/date/i), "2025-06-05");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
 
       // Submit form
-      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      const submitButton = screen.getByRole("button", { name: /create transaction/i });
+      await userEvent.click(submitButton);
 
       // Verify error message
-      await waitFor(() => {
-        expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
-      });
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent(/failed to save transaction/i);
     });
   });
 
-  describe("Transaction List", () => {
-    it("displays transactions in a table", async () => {
+  describe("Smart Suggestions", () => {
+    test("displays suggested account based on description", async () => {
       render(
         <MemoryRouter>
           <Transactions />
         </MemoryRouter>
       );
 
-      // Wait for transactions to load
+      // Wait for loading to complete
       await waitFor(() => {
-        expect(mockApi.get).toHaveBeenCalledWith("/transactions");
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
       });
 
-      // Verify table headers
-      expect(screen.getByRole('columnheader', { name: /date/i })).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: /description/i })).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: /amount/i })).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: /account/i })).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: /actions/i })).toBeInTheDocument();
+      // Type description
+      await userEvent.type(screen.getByLabelText(/description/i), "Grocery Store");
 
-      // Verify transaction data
-      expect(screen.getByText("Test Transaction")).toBeInTheDocument();
-      expect(screen.getByText("$100.00")).toBeInTheDocument();
-      expect(screen.getByText("Checking")).toBeInTheDocument();
+      // Wait for suggestion
+      await waitFor(() => {
+        const accountSelect = screen.getAllByLabelText(/account/i)[0];
+        expect(accountSelect).toHaveValue("3"); // Groceries account
+      });
+    });
+
+    test("does not override manually selected account", async () => {
+      render(
+        <MemoryRouter>
+          <Transactions />
+        </MemoryRouter>
+      );
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+      });
+
+      // Select account manually
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+
+      // Type description
+      await userEvent.type(screen.getByLabelText(/description/i), "Grocery Store");
+
+      // Verify account selection remains unchanged
+      await waitFor(() => {
+        const accountSelect = screen.getAllByLabelText(/account/i)[0];
+        expect(accountSelect).toHaveValue("1");
+      });
+    });
+  });
+
+  describe("Split Transaction Editing", () => {
+    test("edits a split transaction with multiple splits", async () => {
+      render(<Transactions />);
+
+      // Wait for the transaction to load
+      const splitRow = await screen.findByTestId("transaction-row-2");
+      expect(splitRow).toBeInTheDocument();
+      
+      // Find and click the edit button
+      const editButton = screen.getByTestId("edit-transaction-2");
+      await userEvent.click(editButton);
+
+      // ... rest of the test ...
+    });
+
+    test("adds a new split line and updates it", async () => {
+      render(<Transactions />);
+      await waitFor(() => screen.getByTestId("transaction-row-2"));
+
+      await userEvent.click(screen.getByTestId("edit-transaction-2"));
+      // ... rest of the test ...
+    });
+
+    test("removes a split line", async () => {
+      render(<Transactions />);
+      await waitFor(() => screen.getByTestId("transaction-row-2"));
+
+      await userEvent.click(screen.getByTestId("edit-transaction-2"));
+      // ... rest of the test ...
+    });
+
+    test("prevents saving if any split has an empty amount", async () => {
+      render(<Transactions />);
+      await waitFor(() => screen.getByTestId("transaction-row-2"));
+
+      await userEvent.click(screen.getByTestId("edit-transaction-2"));
+      // ... rest of the test ...
+    });
+
+    test("saves successfully when all splits are valid", async () => {
+      render(<Transactions />);
+      await waitFor(() => screen.getByTestId("transaction-row-2"));
+
+      await userEvent.click(screen.getByTestId("edit-transaction-2"));
+      // ... rest of the test ...
     });
   });
 }); 
