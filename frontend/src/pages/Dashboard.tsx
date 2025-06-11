@@ -1,93 +1,94 @@
-import React, { useEffect, useState } from "react";
-import api from "../utils/axios";
+// Updated Dashboard.tsx with reimagined layout and fixes
+import { useEffect, useState } from "react";
+import { fetchAccounts } from "../services/AccountService";
+import { fetchTransactions } from "../services/TransactionService";
+import { formatCurrency } from "../utils/formatters";
+import { formatDate } from "../utils/financial";
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
-  type: string;
   balance: number;
+  category: string;
+  type: string;
+}
+
+interface TransactionEntry {
+  amount: string | number;
+  accountId: string;
 }
 
 interface Transaction {
   id: number;
   description: string;
-  amount: number;
-  type: string;
-  account: {
-    id: number;
-    name: string;
-  };
+  startDate?: string;
+  entries: TransactionEntry[];
 }
+
+const CASH_ACCOUNT_CATEGORIES = ["Checking", "Savings", "Petty Cash", "Undeposited Funds"];
 
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [accountRes, transactionRes] = await Promise.all([
-          api.get<Account[]>("/accounts"),
-          api.get<Transaction[]>("/transactions"),
-        ]);
-        setAccounts(accountRes.data);
-        setTransactions(transactionRes.data.slice(0, 5));
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchAccounts().then(setAccounts);
+    fetchTransactions().then(setTransactions);
   }, []);
 
-  const totalBalance = accounts.reduce(
-    (acc, account) => acc + account.balance,
-    0
+  const cashAccounts = accounts.filter(account => 
+    CASH_ACCOUNT_CATEGORIES.includes(account.category)
   );
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const availableCash = cashAccounts.reduce((sum, acct) => {
+    const validBalance = typeof acct.balance === "number" && !isNaN(acct.balance) ? acct.balance : 0;
+    return sum + validBalance;
+  }, 0);
+
+  const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+    <div className="p-6 space-y-6">
+      {/* Summary Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white shadow rounded-2xl p-4">
+          <h2 className="text-sm font-semibold text-gray-500">Available Cash</h2>
+          <p className="text-2xl font-bold text-gray-800">{formatCurrency(availableCash)}</p>
+        </div>
 
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Accounts Overview</h2>
-        <div className="bg-gray-100 p-4 rounded-lg shadow-md">
-          {accounts.map((account) => (
-            <div key={account.id} className="mb-2">
-              <p className="font-bold">
-                {account.name} - {account.type}
-              </p>
-              <p>Balance: ${typeof account.balance === "number" ? account.balance.toFixed(2) : "—"}</p>
-            </div>
-          ))}
-          <div className="font-bold mt-4">
-            Total Balance: ${typeof totalBalance === "number" ? totalBalance.toFixed(2) : "—"}
-          </div>
+        <div className="bg-white shadow rounded-2xl p-4">
+          <h2 className="text-sm font-semibold text-gray-500">Quick Actions</h2>
+          <button className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
+            + New Transaction
+          </button>
+        </div>
+
+        <div className="bg-white shadow rounded-2xl p-4">
+          <h2 className="text-sm font-semibold text-gray-500">Accounts</h2>
+          <ul className="text-sm text-gray-700 space-y-1 max-h-32 overflow-y-auto">
+            {accounts.map(account => (
+              <li key={account.id}>
+                {account.name}: {formatCurrency(account.balance)}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Recent Transactions</h2>
-        <div className="bg-gray-100 p-4 rounded-lg shadow-md">
-          {transactions.map((transaction) => (
-            <div key={transaction.id} className="mb-2">
-              <p>
-                {transaction.description} - $
-                {typeof transaction.amount === "number" ? transaction.amount.toFixed(2) : "—"}
-              </p>
-              <p>
-                Type: {transaction.type} | Account: {transaction.account.name}
-              </p>
-            </div>
+      {/* Recent Transactions */}
+      <div className="bg-white shadow rounded-2xl p-4">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">Recent Transactions</h2>
+        <ul className="divide-y divide-gray-200">
+          {recentTransactions.map(tx => (
+            <li key={tx.id} className="py-2">
+              <p className="text-sm font-medium text-gray-800">{tx.description}</p>
+              <p className="text-xs text-gray-500">{tx.startDate ? formatDate(tx.startDate) : 'No date'}</p>
+            </li>
           ))}
-        </div>
+          {recentTransactions.length === 0 && (
+            <p className="text-gray-500 text-sm">No recent transactions available.</p>
+          )}
+        </ul>
       </div>
     </div>
   );
