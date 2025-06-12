@@ -1,10 +1,8 @@
-import express, { ErrorRequestHandler } from "express";
+import { errorHandler } from "./utils/errors";
+import app from "./app";  // Import the configured app
 import dotenv from "dotenv";
-import cors from "cors";
 import path from "path";
 import { AppDataSource } from "./config/data-source";
-import routes from "./routes/routes";
-import { errorHandler } from "./utils/errors";
 
 // Force-load the .env file
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -23,41 +21,22 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+const PORT = process.env.PORT || 5000;
+
 // Initialize Database Connection
 AppDataSource.initialize()
   .then(() => {
     console.log("✅ Database connection established successfully.");
+    
+    // Start the server only after database connection is established
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
   })
   .catch((error) => {
     console.error("❌ Database connection failed:", error);
     process.exit(1);
   });
 
-// Initialize Express
-const app = express();
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(express.json());
-
-// Routes
-app.use("/api", routes);
-
 // Global error handler (must be last)
-const errorHandlerMiddleware: ErrorRequestHandler = (err, req, res, next) => {
-  errorHandler(err, req, res, next);
-};
-app.use(errorHandlerMiddleware);
-
-// Listen on the defined port
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+app.use(errorHandler);

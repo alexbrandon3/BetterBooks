@@ -24,13 +24,13 @@ import recurringRoutes from "./recurring.routes";
 
 const router = Router();
 
-// Auth Routes
+// Auth routes (no authentication required)
 router.post("/auth/login", validate(schemas.login), wrapAsync(loginUser));
 router.post("/auth/register", validate(schemas.register), wrapAsync(registerUser));
 router.get("/auth/me", authenticate, wrapAsync(getCurrentUser));
 
 // Account Routes
-router.use("/accounts", accountRoutes);
+router.use('/accounts', accountRoutes);
 
 // Transaction Routes
 router.post("/transactions", authenticate, validate(schemas.createTransaction), wrapAsync(createTransaction));
@@ -40,8 +40,8 @@ router.put("/transactions/:id", authenticate, validateParams(schemas.idParam), v
 router.delete("/transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(deleteTransaction));
 router.post("/transactions/suggest-account", authenticate, validate(schemas.suggestAccount), wrapAsync(suggestAccount));
 
-// Recurring Transaction Routes
-router.use("/recurring-transactions", recurringRoutes);
+// Recurring Routes
+router.use('/recurring', recurringRoutes);
 
 // Split Transaction Routes
 router.post("/split-transactions", authenticate, validate(schemas.createSplitTransaction), wrapAsync(createSplitTransaction));
