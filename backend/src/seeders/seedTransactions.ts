@@ -1,5 +1,6 @@
 import { AppDataSource } from "../config/data-source";
-import { Transaction, TransactionType } from "../entities/Transaction";
+import { Transaction } from "../entities/Transaction";
+import { TransactionType } from "../types/transaction.types";
 import { User } from "../entities/User";
 import { Account } from "../entities/Account";
 

@@ -8,18 +8,13 @@ import {
   OneToMany,
 } from "typeorm";
 import { User } from "./User";
-import { Account } from "./Account";
-import { SplitTransaction } from "./SplitTransaction";
+import { JournalEntry } from "./JournalEntry";
+import { TransactionType } from "../types/transaction.types";
 
-export enum TransactionType {
-  INCOME = "INCOME",
-  EXPENSE = "EXPENSE",
-}
-
-export enum CashFlowCategory {
-  OPERATING = "OPERATING",
-  INVESTING = "INVESTING",
-  FINANCING = "FINANCING",
+export enum RecurrencePattern {
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY"
 }
 
 @Entity()
@@ -27,32 +22,43 @@ export class Transaction {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column("decimal", { precision: 10, scale: 2 })
-  amount!: number;
-
   @Column()
   description!: string;
 
-  @Column({ type: "enum", enum: TransactionType })
+  @Column()
+  startDate!: Date;
+
+  @Column({
+    type: "enum",
+    enum: TransactionType,
+    default: TransactionType.EXPENSE
+  })
   type!: TransactionType;
+
+  @Column({ default: false })
+  isRecurring!: boolean;
+
+  @Column({ type: "enum", enum: RecurrencePattern, nullable: true })
+  recurrencePattern?: RecurrencePattern;
+
+  @Column({ type: "timestamp", nullable: true })
+  endDate?: Date;
 
   @ManyToOne(() => User, (user) => user.transactions, { eager: true })
   user!: User;
 
-  @ManyToOne(() => Account, (account) => account.transactions, { eager: true })
-  account!: Account;
-
-  @Column({ type: "enum", enum: CashFlowCategory, nullable: true })
-  cashFlowCategory?: CashFlowCategory;
-
-  @OneToMany(() => SplitTransaction, (split) => split.transaction, {
+  @OneToMany(() => JournalEntry, (entry) => entry.transaction, {
     cascade: true,
   })
-  splits!: SplitTransaction[];
+  entries!: JournalEntry[];
 
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  get date(): Date {
+    return this.startDate;
+  }
 }

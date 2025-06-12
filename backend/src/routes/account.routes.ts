@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.middleware";
 import { wrapAsync } from "../utils/asyncHandler";
+import { AuthenticatedRequest } from "../types/express";
 import {
   createAccount,
   getAccounts,
@@ -13,12 +14,12 @@ import {
 
 const router = express.Router();
 
-router.post("/", authenticate, wrapAsync(createAccount));
-router.get("/", authenticate, wrapAsync(getAccounts));
-router.get("/:id", authenticate, wrapAsync(getAccountById));
-router.put("/:id", authenticate, wrapAsync(updateAccount));
-router.delete("/:id", authenticate, wrapAsync(deleteAccount));
-router.post("/suggest-metadata", authenticate, wrapAsync(suggestAccountMetadata));
-router.post("/suggest-account", authenticate, wrapAsync(suggestAccountAutoCategory));
+router.post("/", authenticate, wrapAsync<AuthenticatedRequest>(createAccount));
+router.get("/", authenticate, wrapAsync<AuthenticatedRequest>(getAccounts));
+router.get("/:id", authenticate, wrapAsync<AuthenticatedRequest>(getAccountById));
+router.put("/:id", authenticate, wrapAsync<AuthenticatedRequest>(updateAccount));
+router.delete("/:id", authenticate, wrapAsync<AuthenticatedRequest>(deleteAccount));
+router.post("/suggest-metadata", authenticate, wrapAsync<AuthenticatedRequest>(suggestAccountMetadata));
+router.post("/suggest-account", authenticate, wrapAsync<AuthenticatedRequest>(suggestAccountAutoCategory));
 
 export default router; 

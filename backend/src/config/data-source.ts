@@ -6,8 +6,8 @@ import { DataSource } from "typeorm";
 import { User } from "../entities/User";
 import { Account } from "../entities/Account";
 import { Transaction } from "../entities/Transaction";
+import { JournalEntry } from "../entities/JournalEntry";
 import { RecurringTransaction } from "../entities/RecurringTransaction";
-import { SplitTransaction } from "../entities/SplitTransaction";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -22,9 +22,9 @@ export const AppDataSource = new DataSource({
     User,
     Account,
     Transaction,
-    RecurringTransaction,
-    SplitTransaction
+    JournalEntry,
+    RecurringTransaction
   ],
-  migrations: ["src/migrations/*.ts"],
+  migrations: [__dirname + "/../migrations/*.ts"],
   subscribers: [],
 });

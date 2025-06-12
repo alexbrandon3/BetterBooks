@@ -1,11 +1,10 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { ValidationError } from '../utils/errors';
 
 // Generic body validation
 export const validate = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.body);
       next();
@@ -25,7 +24,7 @@ export const validate = (schema: z.ZodSchema) => {
 
 // Validate query parameters
 export const validateQuery = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.query);
       next();
@@ -45,7 +44,7 @@ export const validateQuery = (schema: z.ZodSchema) => {
 
 // Validate route parameters
 export const validateParams = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.params);
       next();
@@ -90,16 +89,6 @@ export const schemas = {
     description: z.string().min(1, 'Description is required'),
     type: z.enum(['INCOME', 'EXPENSE']),
     accountId: z.number(),
-  }),
-
-  createRecurringTransaction: z.object({
-    amount: z.number(),
-    description: z.string().min(1),
-    type: z.enum(['INCOME', 'EXPENSE']),
-    accountId: z.number(),
-    interval: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']),
-    startDate: z.string().datetime(),
-    endDate: z.string().datetime().optional(),
   }),
 
   createSplitTransaction: z.object({

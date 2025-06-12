@@ -2,8 +2,7 @@ import { DataSource } from "typeorm";
 import { User } from "./src/entities/User";
 import { Account } from "./src/entities/Account";
 import { Transaction } from "./src/entities/Transaction";
-import { RecurringTransaction } from "./src/entities/RecurringTransaction";
-import { SplitTransaction } from "./src/entities/SplitTransaction";
+import { JournalEntry } from "./src/entities/JournalEntry";
 
 export default new DataSource({
   type: "postgres",
@@ -18,8 +17,7 @@ export default new DataSource({
     User,
     Account,
     Transaction,
-    RecurringTransaction,
-    SplitTransaction
+    JournalEntry
   ],
   migrations: ["src/migrations/*.ts"],
   subscribers: [],

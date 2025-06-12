@@ -6,6 +6,7 @@ import { User } from "../entities/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
+import { AuthenticatedRequest } from "../types/express";
 
 const userRepo = AppDataSource.getRepository(User);
 
@@ -27,10 +28,10 @@ export const registerUser = async (req: Request, res: Response) => {
 
     await userRepo.save(user);
 
-    res.status(201).json({ message: "User registered successfully", user });
+    return res.status(201).json({ message: "User registered successfully", user });
   } catch (err) {
     console.error("Error in registerUser:", err);
-    res.status(500).send("Internal Server Error");
+    return res.status(500).send("Internal Server Error");
   }
 };
 
@@ -56,7 +57,7 @@ export const loginUser = async (req: Request, res: Response) => {
     });
 
     // Respond with the token and user info
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       token: token,
       user: {
@@ -66,6 +67,19 @@ export const loginUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error in loginUser:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const getCurrentUser = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = await userRepo.findOneBy({ id: req.user.id });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({ id: user.id, email: user.email });
+  } catch (error) {
+    console.error("Error in getCurrentUser:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

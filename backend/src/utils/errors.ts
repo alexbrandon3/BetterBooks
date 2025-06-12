@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ErrorRequestHandler } from 'express';
 
 // Custom error classes
 export class AppError extends Error {
@@ -37,36 +38,33 @@ export class NotFoundError extends AppError {
 }
 
 // Global error handler middleware
-export const errorHandler = (
+export const errorHandler: ErrorRequestHandler = (
   err: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
-) => {
-  console.error('Error:', {
-    name: err.name,
-    message: err.message,
-    stack: err.stack,
-  });
+  _next: NextFunction
+): void => {
+  console.error(err);
 
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      status: 'error',
-      message: err.message,
-    });
+  if (err instanceof AuthenticationError) {
+    res.status(401).json({ message: err.message });
+    return;
   }
 
-  // Handle TypeORM errors
-  if (err.name === 'QueryFailedError') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Database operation failed',
-    });
+  if (err instanceof AuthorizationError) {
+    res.status(403).json({ message: err.message });
+    return;
   }
 
-  // Default error
-  return res.status(500).json({
-    status: 'error',
-    message: 'Internal server error',
-  });
+  if (err instanceof NotFoundError) {
+    res.status(404).json({ message: err.message });
+    return;
+  }
+
+  if (err instanceof ValidationError) {
+    res.status(400).json({ message: err.message });
+    return;
+  }
+
+  res.status(500).json({ message: "Internal server error" });
 }; 

@@ -3,7 +3,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { Transaction } from "./Transaction";
 import { Account } from "./Account";
-import { RecurringTransaction } from "./RecurringTransaction";
+import { JournalEntry } from "./JournalEntry";
 
 @Entity()
 export class User {
@@ -22,6 +22,6 @@ export class User {
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   transactions!: Transaction[];
 
-  @OneToMany(() => RecurringTransaction, (recurring) => recurring.user)
-  recurringTransactions!: RecurringTransaction[];
+  @OneToMany(() => JournalEntry, (entry) => entry.user)
+  journalEntries!: JournalEntry[];
 }

@@ -1,12 +1,13 @@
 import { AppDataSource } from "../config/data-source";
-import { Account } from "../entities/Account";
-import { TransactionType } from "../entities/Transaction";
+import { Account, AccountType, FinancialCategory } from "../entities/Account";
+import { User } from "../entities/User";
 
 const seedDatabase = async () => {
   await AppDataSource.initialize();
   console.log("🌱 Database Initialized for Seeding");
 
-  const user = await AppDataSource.getRepository("User").findOne({
+  const userRepo = AppDataSource.getRepository(User);
+  const user = await userRepo.findOne({
     where: { id: 1 },
   });
 
@@ -15,7 +16,8 @@ const seedDatabase = async () => {
     process.exit();
   }
 
-  const existingAccounts = await AppDataSource.getRepository(Account).find();
+  const accountRepo = AppDataSource.getRepository(Account);
+  const existingAccounts = await accountRepo.find();
   if (existingAccounts.length > 0) {
     console.log("⚠️ Database already seeded. Skipping seeding process.");
     process.exit();
@@ -24,54 +26,72 @@ const seedDatabase = async () => {
   const accounts = [
     {
       name: "Cash",
-      type: "ASSET",
+      type: AccountType.ASSET,
       category: "Asset",
       subcategory: "Current Asset",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "CASH_AND_CASH_EQUIVALENTS",
       balance: 5000,
     },
     {
       name: "Accounts Receivable",
-      type: "ASSET",
+      type: AccountType.ASSET,
       category: "Asset",
       subcategory: "Current Asset",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "ACCOUNTS_RECEIVABLE",
       balance: 3000,
     },
     {
       name: "Equipment",
-      type: "ASSET",
+      type: AccountType.ASSET,
       category: "Asset",
       subcategory: "Long-Term Asset",
+      financialCategory: FinancialCategory.LONG_TERM_ASSET,
+      financialSubcategory: "EQUIPMENT",
       balance: 8000,
     },
     {
       name: "Accounts Payable",
-      type: "LIABILITY",
+      type: AccountType.LIABILITY,
       category: "Liability",
       subcategory: "Current Liability",
+      financialCategory: FinancialCategory.CURRENT_LIABILITY,
+      financialSubcategory: "ACCOUNTS_PAYABLE",
       balance: -2000,
     },
     {
       name: "Loan Payable",
-      type: "LIABILITY",
+      type: AccountType.LIABILITY,
       category: "Liability",
       subcategory: "Long-Term Liability",
+      financialCategory: FinancialCategory.LONG_TERM_LIABILITY,
+      financialSubcategory: "LOANS",
       balance: -5000,
     },
     {
       name: "Owner's Equity",
-      type: "EQUITY",
+      type: AccountType.EQUITY,
       category: "Equity",
       subcategory: "Owner's Equity",
+      financialCategory: FinancialCategory.EQUITY,
+      financialSubcategory: "OWNERS_EQUITY",
       balance: 9000,
     },
   ];
 
   for (const acc of accounts) {
-    const account = AppDataSource.getRepository(Account).create({
-      ...acc,
+    const account = accountRepo.create({
+      name: acc.name,
+      type: acc.type,
+      category: acc.category,
+      subcategory: acc.subcategory,
+      financialCategory: acc.financialCategory,
+      financialSubcategory: acc.financialSubcategory,
+      balance: acc.balance,
       user,
     });
-    await AppDataSource.getRepository(Account).save(account);
+    await accountRepo.save(account);
   }
 
   console.log("✅ GAAP-Compliant Accounts Seeded");

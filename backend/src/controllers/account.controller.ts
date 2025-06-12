@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/data-source";
 import { Account, FinancialCategory, AccountType } from "../entities/Account";
 import { getUser } from "../utils/getUser";
-import { AuthenticationError, AuthorizationError, NotFoundError } from "../utils/errors";
-import { AuthedRequest } from "../middleware/auth.middleware";
+import { AuthenticationError, NotFoundError } from "../utils/errors";
+import { AuthenticatedRequest } from "../types/express";
 import { getSuggestedMetadata } from "../utils/accountCategorizer";
 
 const accountRepo = AppDataSource.getRepository(Account);
@@ -11,7 +11,7 @@ const accountRepo = AppDataSource.getRepository(Account);
 const isValidEnumValue = <T extends { [key: string]: string }>(enumObj: T, value: any): value is T[keyof T] =>
   Object.values(enumObj).includes(value);
 
-export const createAccount = async (req: Request, res: Response, next: NextFunction) => {
+export const createAccount = async (req: Request, res: Response) => {
   try {
     const user = await getUser(req);
     if (!user) throw new AuthenticationError();
@@ -83,7 +83,7 @@ export const createAccount = async (req: Request, res: Response, next: NextFunct
     });
 
     await accountRepo.save(account);
-    res.status(201).json(account);
+    return res.status(201).json(account);
   } catch (error) {
     console.error("Error creating account:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -149,10 +149,10 @@ export const updateAccount = async (req: Request, res: Response, next: NextFunct
 
     Object.assign(account, req.body);
     await accountRepo.save(account);
-
-    res.status(200).json(account);
+    return res.status(200).json(account);
   } catch (error) {
     next(error);
+    return;
   }
 };
 
@@ -174,7 +174,7 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-export const suggestAccountMetadata = async (req: AuthedRequest, res: Response, next: NextFunction) => {
+export const suggestAccountMetadata = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const user = await getUser(req);
     if (!user) throw new AuthenticationError();
@@ -201,18 +201,25 @@ export const suggestAccountMetadata = async (req: AuthedRequest, res: Response, 
 };
 
 // 💡 New smarter auto-categorization logic
-export const suggestAccount = async (req: Request, res: Response, next: NextFunction) => {
+export const suggestAccount = async (req: Request, res: Response) => {
   try {
+    console.log("📥 suggestAccount body:", req.body);
+    
     const { name } = req.body;
     if (!name) {
+      console.error("🔥 suggestAccount error: Missing name in request body");
       return res.status(400).json({ message: "Account name is required." });
     }
 
+    console.log("🔍 Getting suggestion for name:", name);
     const suggestion = getSuggestedMetadata(name);
+    
     if (suggestion) {
+      console.log("✅ Found suggestion:", suggestion);
       return res.json(suggestion);
     }
 
+    console.log("ℹ️ No specific suggestion found, using default");
     return res.json({
       type: "ASSET",
       category: "Uncategorized",
@@ -221,21 +228,30 @@ export const suggestAccount = async (req: Request, res: Response, next: NextFunc
       financialSubcategory: "Uncategorized",
     });
   } catch (error) {
-    next(error);
+    console.error("🔥 suggestAccount error:", error);
+    return res.status(500).json({ 
+      message: "Suggestion failed", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 };
 
 export const suggestAccountAutoCategory = async (
-  req: AuthedRequest,
-  res: Response,
-  next: NextFunction
+  req: AuthenticatedRequest,
+  res: Response
 ) => {
   try {
+    console.log("�� suggestAccountAutoCategory body:", req.body);
+    
     const user = await getUser(req);
-    if (!user) throw new AuthenticationError();
+    if (!user) {
+      console.error("🔥 suggestAccountAutoCategory error: No authenticated user found");
+      return res.status(401).json({ message: "Authentication required" });
+    }
 
     const { name } = req.body;
     if (!name) {
+      console.error("🔥 suggestAccountAutoCategory error: Missing name in request body");
       return res.status(400).json({ message: "Account name is required." });
     }
 
@@ -244,11 +260,12 @@ export const suggestAccountAutoCategory = async (
     // 1. Check against keyword map FIRST
     const suggestion = getSuggestedMetadata(name);
     if (suggestion) {
-      console.log("[AutoCategory] Keyword match found");
+      console.log("[AutoCategory] Keyword match found:", suggestion);
       return res.status(200).json(suggestion);
     }
 
     // 2. If no keyword match, look through user's existing accounts
+    console.log("[AutoCategory] No keyword match, checking user accounts");
     const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
     const match = accounts.find((acc) =>
       acc.name.toLowerCase().includes(name.toLowerCase()) ||
@@ -278,7 +295,10 @@ export const suggestAccountAutoCategory = async (
     });
   } catch (error) {
     console.error("[AutoCategory] Error:", error);
-    next(error);
+    return res.status(500).json({ 
+      message: "Suggestion failed", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 };
 

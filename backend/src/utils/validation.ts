@@ -4,7 +4,7 @@ import { ValidationError } from './errors';
 
 // Generic body validation
 export const validate = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.body);
       next();
@@ -24,7 +24,7 @@ export const validate = (schema: z.ZodSchema) => {
 
 // Validate query parameters
 export const validateQuery = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.query);
       next();
@@ -44,7 +44,7 @@ export const validateQuery = (schema: z.ZodSchema) => {
 
 // Validate route parameters
 export const validateParams = (schema: z.ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync(req.params);
       next();
@@ -61,6 +61,13 @@ export const validateParams = (schema: z.ZodSchema) => {
     }
   };
 };
+
+const idValidation = z
+  .string()
+  .refine(val => val.trim() !== '', { message: 'ID is required' })
+  .refine(val => !isNaN(Number(val)), { message: 'ID must be a number' })
+  .transform(val => Number(val))
+  .refine(val => Number.isInteger(val) && val > 0, { message: 'ID must be a positive integer' });
 
 // All Zod schemas
 export const schemas = {
@@ -85,23 +92,31 @@ export const schemas = {
   }),
 
   createTransaction: z.object({
-    amount: z.number(),
     description: z.string().min(1, 'Description is required'),
-    type: z.enum(['INCOME', 'EXPENSE']),
-    accountId: z.number(),
-  }),
-
-  createRecurringTransaction: z.object({
-    amount: z.number(),
-    description: z.string().min(1, 'Description is required'),
-    type: z.enum(['INCOME', 'EXPENSE']),
-    accountId: z.number(),
-    interval: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']),
     startDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
-      message: 'Invalid start date format. Please use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)'
+      message: 'Invalid date format'
     }),
+    type: z.enum(['INCOME', 'EXPENSE']),
+    entries: z.array(
+      z.object({
+        accountId: z.coerce.number()
+          .int()
+          .positive()
+          .refine(val => !isNaN(val), {
+            message: 'Account ID must be a valid number',
+          }),
+        amount: z.coerce.number()
+          .positive()
+          .refine(val => !isNaN(val), {
+            message: 'Amount must be a valid number',
+          }),
+        type: z.enum(['DEBIT', 'CREDIT'])
+      })
+    ).min(2, 'At least two entries are required for double-entry accounting'),
+    isRecurring: z.boolean().optional(),
+    recurrencePattern: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),
     endDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
-      message: 'Invalid end date format. Please use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)'
+      message: 'Invalid end date format'
     }).optional(),
   }),
 
@@ -110,8 +125,17 @@ export const schemas = {
     type: z.enum(['INCOME', 'EXPENSE']),
     entries: z.array(
       z.object({
-        amount: z.number(),
-        accountId: z.number(),
+        amount: z.coerce.number()
+          .positive()
+          .refine(val => !isNaN(val), {
+            message: 'Amount must be a valid number',
+          }),
+        accountId: z.coerce.number()
+          .int()
+          .positive()
+          .refine(val => !isNaN(val), {
+            message: 'Account ID must be a valid number',
+          }),
       })
     ).min(1, 'At least one entry is required'),
   }),
@@ -126,6 +150,21 @@ export const schemas = {
   }),
 
   idParam: z.object({
-    id: z.string().regex(/^\d+$/, 'ID must be numeric'),
+    id: z.coerce.number()
+      .int()
+      .positive()
+      .refine(val => !isNaN(val), {
+        message: 'ID must be a valid number',
+      }),
+  }),
+
+  recurringTransactions: z.object({
+    userId: z
+      .coerce
+      .number()
+      .int()
+      .positive()
+      .refine(val => !isNaN(val), { message: "User ID must be a valid number" })
+      .optional(),
   }),
 }; 

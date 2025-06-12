@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/data-source";
-import { Account, FinancialCategory } from "../entities/Account";
+import { Account, FinancialCategory, AccountType } from "../entities/Account";
 import { User } from "../entities/User";
 
 export const seedDefaultAccounts = async () => {
@@ -18,7 +18,7 @@ export const seedDefaultAccounts = async () => {
   const defaults = [
     {
       name: "Business Checking",
-      type: "ASSET",
+      type: AccountType.ASSET,
       category: "Bank",
       subcategory: "Checking",
       financialCategory: FinancialCategory.CURRENT_ASSET,
@@ -27,7 +27,7 @@ export const seedDefaultAccounts = async () => {
     },
     {
       name: "Office Supplies",
-      type: "EXPENSE",
+      type: AccountType.EXPENSE,
       category: "Administrative",
       subcategory: "Office",
       financialCategory: FinancialCategory.OPERATING_EXPENSE,
@@ -36,7 +36,7 @@ export const seedDefaultAccounts = async () => {
     },
     {
       name: "Product Sales",
-      type: "REVENUE",
+      type: AccountType.REVENUE,
       category: "Sales",
       subcategory: "Retail",
       financialCategory: FinancialCategory.OPERATING_REVENUE,

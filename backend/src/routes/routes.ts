@@ -35,11 +35,13 @@ router.use("/accounts", accountRoutes);
 // Transaction Routes
 router.post("/transactions", authenticate, validate(schemas.createTransaction), wrapAsync(createTransaction));
 router.get("/transactions", authenticate, wrapAsync(getTransactions));
-router.use("/transactions/recurring", recurringRoutes);
 router.get("/transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(getTransactions));
 router.put("/transactions/:id", authenticate, validateParams(schemas.idParam), validate(schemas.createTransaction), wrapAsync(updateTransaction));
 router.delete("/transactions/:id", authenticate, validateParams(schemas.idParam), wrapAsync(deleteTransaction));
 router.post("/transactions/suggest-account", authenticate, validate(schemas.suggestAccount), wrapAsync(suggestAccount));
+
+// Recurring Transaction Routes
+router.use("/recurring-transactions", recurringRoutes);
 
 // Split Transaction Routes
 router.post("/split-transactions", authenticate, validate(schemas.createSplitTransaction), wrapAsync(createSplitTransaction));

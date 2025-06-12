@@ -23,7 +23,7 @@ export class SplitTransaction {
   @ManyToOne(() => User, (user) => user.transactions)
   user!: User;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.splits)
+  @ManyToOne(() => Transaction, (transaction) => transaction.entries)
   transaction!: Transaction;
 
   @OneToMany(() => SplitTransaction, (split) => split.transaction)

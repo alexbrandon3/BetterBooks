@@ -4,13 +4,10 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../config/data-source";
 import { User } from "../entities/User";
-
-export interface AuthedRequest extends Request {
-  user?: User;
-}
+import { AuthenticatedRequest } from "../types/express";
 
 export const authenticate = async (
-  req: AuthedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -32,7 +29,7 @@ export const authenticate = async (
       return;
     }
 
-    req.user = user;
+    (req as AuthenticatedRequest).user = user;
     next();
   } catch (error) {
     console.error("Auth error:", error);

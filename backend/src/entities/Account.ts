@@ -9,7 +9,7 @@ import {
 } from "typeorm";
 import { User } from "./User";
 import { Transaction } from "./Transaction";
-import { RecurringTransaction } from "./RecurringTransaction";
+import { JournalEntry } from "./JournalEntry";
 
 export enum AccountType {
   ASSET = "ASSET",
@@ -21,7 +21,7 @@ export enum AccountType {
 
 export enum FinancialCategory {
   CURRENT_ASSET = "CURRENT_ASSET",
-  FIXED_ASSET = "FIXED_ASSET",
+  LONG_TERM_ASSET = "LONG_TERM_ASSET",
   CURRENT_LIABILITY = "CURRENT_LIABILITY",
   LONG_TERM_LIABILITY = "LONG_TERM_LIABILITY",
   EQUITY = "EQUITY",
@@ -54,14 +54,11 @@ export class Account {
   })
   user!: User;
 
-  @OneToMany(() => Transaction, (transaction) => transaction.account)
+  @OneToMany(() => Transaction, (transaction) => transaction.user)
   transactions!: Transaction[];
 
-  @OneToMany(
-    () => RecurringTransaction,
-    (recurringTransaction) => recurringTransaction.account
-  )
-  recurringTransactions!: RecurringTransaction[];
+  @OneToMany(() => JournalEntry, (entry) => entry.account)
+  journalEntries!: JournalEntry[];
 
   @Column({ default: "Uncategorized" })
   category!: string;
