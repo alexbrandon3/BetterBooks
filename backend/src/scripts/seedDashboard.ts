@@ -50,7 +50,7 @@ async function seedDashboard() {
       },
       {
         name: 'Sales Revenue',
-        type: AccountType.REVENUE,
+        type: AccountType.INCOME,
         balance: 0,
         user,
         category: 'Operating Revenue',
@@ -121,12 +121,17 @@ async function seedDashboard() {
     ];
 
     for (const txData of transactions) {
+      // Calculate total amount from entries
+      const totalAmount = txData.entries.reduce((sum, entry) => sum + entry.amount, 0);
+      
       // Create transaction
       const transaction = transactionRepo.create({
         description: txData.description,
-        startDate: new Date(),
+        amount: totalAmount,
         type: txData.type,
-        user
+        category: 'Uncategorized',
+        date: new Date(),
+        user: user
       });
       await transactionRepo.save(transaction);
 
@@ -145,7 +150,7 @@ async function seedDashboard() {
         // Update account balance
         const account = entry.account;
         const adjustment = entry.type === 'DEBIT' ? entry.amount : -entry.amount;
-        account.balance += adjustment;
+        account.balance = parseFloat((Number(account.balance) + adjustment).toFixed(2));
         await accountRepo.save(account);
 
         console.log(`💰 Updated ${account.name} balance:`, {

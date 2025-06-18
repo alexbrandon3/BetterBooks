@@ -8,7 +8,7 @@ const seedDatabase = async () => {
 
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOne({
-    where: { id: 1 },
+    where: { id: "1" },
   });
 
   if (!user) {

@@ -168,7 +168,16 @@ const main = async () => {
   const transactionRepo = AppDataSource.getRepository(Transaction);
 
   for (const transaction of transactions) {
-    await transactionRepo.save(transaction);
+    const transactionData = {
+      description: transaction.description,
+      amount: transaction.amount,
+      type: transaction.type as 'INCOME' | 'EXPENSE',
+      category: 'Uncategorized',
+      date: new Date(),
+      user: transaction.user,
+      account: transaction.account
+    };
+    await transactionRepo.save(transactionData);
   }
 
   console.log("Transactions seeded...");

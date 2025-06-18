@@ -1,32 +1,33 @@
-const axios = require("axios");
+import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: '/api',
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
-// Add a request interceptor to attach the token if it exists
+// Request interceptor
 instance.interceptors.request.use(
-  (config: any) => {
-    const token = localStorage.getItem("token");
-    if (token) {
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error: any) => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 
-// Add a response interceptor to handle global errors
+// Response interceptor
 instance.interceptors.response.use(
-  (response: any) => response,
-  (error: any) => {
-    if (error.response && error.response.status === 401) {
-      console.error("Unauthorized - Redirect to login or refresh token");
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

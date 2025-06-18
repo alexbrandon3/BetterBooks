@@ -5,6 +5,7 @@ import {
   deleteRecurringTransaction,
 } from "../services/RecurringTransactionService";
 import axios from "../utils/axios";
+import { FaTrash } from "react-icons/fa";
 
 interface RecurringTransaction {
   id: number;
@@ -145,15 +146,17 @@ const RecurringTransactions = () => {
           {recurringTransactions.map((txn: any) => (
             <tr key={txn.id}>
               <td className="border px-4 py-2">{txn.description}</td>
-              <td className="border px-4 py-2">${txn.amount.toFixed(2)}</td>
+              <td className="border px-4 py-2">${Math.abs(txn.amount).toFixed(2)}</td>
               <td className="border px-4 py-2">{txn.recurrencePattern}</td>
               <td className="border px-4 py-2">{txn.account.id}</td>
               <td className="border px-4 py-2">
                 <button
                   onClick={() => handleDelete(txn.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                  className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                  title="Delete recurring transaction"
+                  aria-label="Delete recurring transaction"
                 >
-                  Delete
+                  {FaTrash({ size: 16 })}
                 </button>
               </td>
             </tr>

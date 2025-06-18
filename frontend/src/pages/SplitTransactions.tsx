@@ -4,6 +4,7 @@ import {
   createSplitTransaction,
   deleteSplitTransaction,
 } from "../services/SplitTransactionService";
+import { FaTrash } from "react-icons/fa";
 
 interface SplitTransaction {
   id: number;
@@ -102,14 +103,16 @@ const SplitTransactions = () => {
           {splitTransactions.map((split: any) => (
             <tr key={split.id}>
               <td className="border px-4 py-2">{split.description}</td>
-              <td className="border px-4 py-2">${split.amount.toFixed(2)}</td>
+              <td className="border px-4 py-2">${Math.abs(split.amount).toFixed(2)}</td>
               <td className="border px-4 py-2">{split.transaction.id}</td>
               <td className="border px-4 py-2">
                 <button
                   onClick={() => handleDelete(split.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                  className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                  title="Delete split transaction"
+                  aria-label="Delete split transaction"
                 >
-                  Delete
+                  {FaTrash({ size: 16 })}
                 </button>
               </td>
             </tr>

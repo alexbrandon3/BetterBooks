@@ -1,71 +1,13 @@
 import { Request, Response } from 'express';
-
-// Mock financial data - in production, this would come from the database
-const MOCK_FINANCIAL_DATA = {
-  averageMonthlyIncome: 3500,
-  totalCashBalance: 800,
-  hasRecurringEquipmentExpense: true,
-  lastEquipmentPurchase: 1800
-};
-
-interface SuggestedGoal {
-  id: string;
-  title: string;
-  targetAmount: number;
-  reason: string;
-  action: 'goals';
-}
-
-const generateSuggestions = (financialData: typeof MOCK_FINANCIAL_DATA): SuggestedGoal[] => {
-  const suggestions: SuggestedGoal[] = [];
-
-  // High income suggestion
-  if (financialData.averageMonthlyIncome > 3000) {
-    suggestions.push({
-      id: 'monthly-income',
-      title: 'Save 1 Month of Income',
-      targetAmount: financialData.averageMonthlyIncome,
-      reason: `Save one month's income (${financialData.averageMonthlyIncome.toLocaleString()}) as a financial buffer`,
-      action: 'goals'
-    });
-  }
-
-  // Emergency fund suggestion
-  if (financialData.totalCashBalance < 1000) {
-    suggestions.push({
-      id: 'emergency-fund',
-      title: 'Emergency Fund',
-      targetAmount: 1000,
-      reason: 'Build a basic emergency fund to cover unexpected expenses',
-      action: 'goals'
-    });
-  }
-
-  // Equipment purchase suggestion
-  if (financialData.hasRecurringEquipmentExpense) {
-    const targetAmount = Math.max(2000, financialData.lastEquipmentPurchase * 1.2);
-    suggestions.push({
-      id: 'equipment-fund',
-      title: 'Equipment Replacement Fund',
-      targetAmount,
-      reason: `Save for your next equipment purchase (based on your last purchase of ${financialData.lastEquipmentPurchase.toLocaleString()})`,
-      action: 'goals'
-    });
-  }
-
-  // If no suggestions were generated, add a default one
-  if (suggestions.length === 0) {
-    suggestions.push({
-      id: 'start-saving',
-      title: 'Start Saving',
-      targetAmount: 500,
-      reason: 'Begin building your savings with a small, achievable goal',
-      action: 'goals'
-    });
-  }
-
-  return suggestions;
-};
+import { generateSuggestions } from '../services/suggestionEngine/generateSuggestions';
+import { AccountService } from '../services/AccountService';
+import { TransactionService } from '../services/TransactionService';
+import { logAnalytics } from '../utils/analytics';
+import { User } from '../entities/User';
+import { AuthenticatedRequest } from '../types/express';
+import { BaseController } from './base.controller';
+import { SuggestionService } from '../services/suggestion.service';
+import { AppDataSource } from '../config/data-source';
 
 export const getSmartGoalSuggestions = async (req: Request, res: Response): Promise<void> => {
   console.log('🎯 Suggestions endpoint hit:', {
@@ -81,8 +23,37 @@ export const getSmartGoalSuggestions = async (req: Request, res: Response): Prom
   res.setHeader('Content-Type', 'application/json');
 
   try {
-    const suggestions = generateSuggestions(MOCK_FINANCIAL_DATA);
+    const userId = req.user?.userId;
+    if (!userId || !req.user) {
+      throw new Error('User not authenticated');
+    }
+
+    console.log('🔍 Getting suggestions for user:', userId);
+
+    // Get the actual user entity
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get user's financial data
+    const accounts = await AccountService.getAccounts(userId.toString());
+    const transactions = await TransactionService.fetchTransactions(userId.toString());
+
+    console.log('📊 Found accounts:', accounts.length);
+    console.log('📊 Found transactions:', transactions.length);
+
+    // Generate suggestions
+    const suggestions = await generateSuggestions(user, accounts, transactions);
     console.log('📊 Generated suggestions:', suggestions);
+
+    // Log suggestion view
+    await logAnalytics('suggestion_viewed', {
+      user_id: userId,
+      suggestion_count: suggestions.length
+    });
 
     res.status(200).json(suggestions);
   } catch (error) {
@@ -91,5 +62,106 @@ export const getSmartGoalSuggestions = async (req: Request, res: Response): Prom
       error: 'Failed to get goal suggestions',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
+  }
+};
+
+export class SuggestionController extends BaseController {
+  private suggestionService: SuggestionService;
+
+  constructor() {
+    super();
+    this.suggestionService = new SuggestionService();
+  }
+
+  async getSuggestions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const suggestions = await this.suggestionService.getSuggestions(req.user.userId);
+      this.sendResponse(res, 200, suggestions);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async createSuggestion(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const suggestion = await this.suggestionService.createSuggestion({
+        ...req.body,
+        userId: req.user.userId
+      });
+      this.sendResponse(res, 201, suggestion);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async updateSuggestion(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const suggestion = await this.suggestionService.updateSuggestion(
+        req.params.id,
+        req.user.userId,
+        req.body
+      );
+      this.sendResponse(res, 200, suggestion);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async deleteSuggestion(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      await this.suggestionService.deleteSuggestion(req.params.id, req.user.userId);
+      this.sendResponse(res, 204, null);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { description } = req.body;
+      
+      if (!description || typeof description !== 'string') {
+        this.sendError(res, 400, 'Description is required and must be a string');
+        return;
+      }
+
+      const userId = req.user.userId;
+      const suggestion = await this.suggestionService.suggestAccountForDescription(description, userId);
+      
+      this.sendResponse(res, 200, suggestion);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+}
+
+export const getSuggestions = async (req: Request, res: Response) => {
+  try {
+    // Log analytics
+    logAnalytics('view_suggestions', {
+      userId: req.user?.userId,
+      timestamp: new Date()
+    });
+
+    // TODO: Implement suggestion generation logic
+    const suggestions = [
+      {
+        id: 1,
+        type: 'budget',
+        message: 'Consider setting up a budget for your recurring expenses',
+        priority: 'high'
+      },
+      {
+        id: 2,
+        type: 'category',
+        message: 'You have several uncategorized transactions',
+        priority: 'medium'
+      }
+    ];
+
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Error getting suggestions:', error);
+    res.status(500).json({ message: 'Error getting suggestions' });
   }
 }; 

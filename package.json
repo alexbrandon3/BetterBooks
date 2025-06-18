@@ -8,10 +8,14 @@
     "client": "cd frontend && npm start"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "concurrently": "^8.2.2"
   },
   "dependencies": {
+    "@types/lodash.isequal": "^4.5.8",
+    "bcrypt": "^6.0.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1"
+    "jspdf": "^3.0.1",
+    "lodash.isequal": "^4.5.0"
   }
 }

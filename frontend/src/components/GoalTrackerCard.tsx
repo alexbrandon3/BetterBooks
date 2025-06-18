@@ -8,6 +8,7 @@ import { Account } from '../types/account';
 import { useFeedback } from '../hooks/useFeedback';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { logAnalytics } from '../utils/analytics';
+import { SuggestedGoal } from '../types/suggestion';
 
 interface GoalTrackerCardProps {
   accounts: Account[];
@@ -15,19 +16,8 @@ interface GoalTrackerCardProps {
   onGoalsChange: (goals: FinancialGoal[]) => void;
 }
 
-interface SuggestedGoal {
-  id: string;
-  title: string;
-  targetAmount: number;
-  type: GoalType;
-  reason: string;
-}
-
-
-
 const isDuplicateSuggestedGoal = (suggestion: SuggestedGoal, existingGoals: FinancialGoal[]): boolean => {
   return existingGoals.some(goal => 
-    goal.type === 'INCREASE_ASSETS' && 
     Math.abs(goal.targetAmount - suggestion.targetAmount) < 0.01
   );
 };
@@ -60,8 +50,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
         if (!token) {
           throw new Error('No authentication token found');
         }
-
-        const response = await fetch('http://localhost:5000/api/suggestions', {
+        const response = await fetch('/api/suggestions/goals', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -71,18 +60,14 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
           credentials: 'include',
           mode: 'cors'
         });
-
         if (!response.ok) {
           if (response.status === 401) {
             throw new Error('Authentication required');
           }
           throw new Error('Failed to fetch suggestions');
         }
-
         const data = await response.json();
-        // Filter for goal-related suggestions
-        const goalSuggestions = data.filter((suggestion: any) => suggestion.action === 'goals');
-        setSuggestedGoals(goalSuggestions);
+        setSuggestedGoals(data);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
         setSuggestionsError(error instanceof Error ? error.message : 'Unable to load suggestions');
@@ -90,7 +75,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
         setIsLoadingSuggestions(false);
       }
     };
-
     fetchSuggestions();
   }, []);
 
@@ -141,7 +125,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
 
     const newGoal: FinancialGoal = {
       id: crypto.randomUUID(),
-      type: suggestedGoal.type,
+      type: 'INCREASE_ASSETS',
       targetAmount: suggestedGoal.targetAmount,
       targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
@@ -151,7 +135,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     const newGoals = [...goals, newGoal];
     onGoalsChange(newGoals);
     logAnalytics('suggested_goal_added', { 
-      type: suggestedGoal.type, 
       target: suggestedGoal.targetAmount 
     });
     showFeedback(`Added "${suggestedGoal.title}" goal`, 'success');

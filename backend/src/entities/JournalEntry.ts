@@ -8,11 +8,7 @@ import {
 import { User } from "./User";
 import { Account } from "./Account";
 import { Transaction } from "./Transaction";
-
-export enum EntryType {
-  DEBIT = "DEBIT",
-  CREDIT = "CREDIT",
-}
+import { EntryType } from "../types/transaction.types";
 
 @Entity()
 export class JournalEntry {
@@ -39,4 +35,6 @@ export class JournalEntry {
 
   @CreateDateColumn()
   createdAt!: Date;
-} 
+}
+
+export { EntryType }; 

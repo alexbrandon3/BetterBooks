@@ -6,6 +6,8 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn
 } from "typeorm";
 import { User } from "./User";
 import { Transaction } from "./Transaction";
@@ -15,13 +17,13 @@ export enum AccountType {
   ASSET = "ASSET",
   LIABILITY = "LIABILITY",
   EQUITY = "EQUITY",
-  REVENUE = "REVENUE",
+  INCOME = "INCOME",
   EXPENSE = "EXPENSE"
 }
 
 export enum FinancialCategory {
   CURRENT_ASSET = "CURRENT_ASSET",
-  LONG_TERM_ASSET = "LONG_TERM_ASSET",
+  FIXED_ASSET = "FIXED_ASSET",
   CURRENT_LIABILITY = "CURRENT_LIABILITY",
   LONG_TERM_LIABILITY = "LONG_TERM_LIABILITY",
   EQUITY = "EQUITY",
@@ -42,16 +44,33 @@ export class Account {
   @Column({
     type: "enum",
     enum: AccountType,
+    default: AccountType.ASSET
   })
   type!: AccountType;
 
-  @Column("numeric", { precision: 12, scale: 2 })
+  @Column({
+    type: "enum",
+    enum: FinancialCategory,
+    default: FinancialCategory.CURRENT_ASSET
+  })
+  financialCategory!: FinancialCategory;
+
+  @Column({ default: "Uncategorized" })
+  category!: string;
+
+  @Column({ default: "" })
+  subcategory!: string;
+
+  @Column({ default: "Uncategorized" })
+  financialSubcategory!: string;
+
+  @Column("decimal", { precision: 10, scale: 2, default: 0 })
   balance!: number;
 
-  @ManyToOne(() => User, (user) => user.accounts, {
-    eager: true,
-    onDelete: "CASCADE",
-  })
+  @Column({ default: true })
+  isLiquid!: boolean;
+
+  @ManyToOne(() => User, user => user.accounts)
   user!: User;
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)
@@ -60,18 +79,9 @@ export class Account {
   @OneToMany(() => JournalEntry, (entry) => entry.account)
   journalEntries!: JournalEntry[];
 
-  @Column({ default: "Uncategorized" })
-  category!: string;
+  @CreateDateColumn()
+  createdAt!: Date;
 
-  @Column({ default: "" })
-  subcategory!: string;
-
-  @Column({
-    type: "enum",
-    enum: FinancialCategory,
-  })
-  financialCategory!: FinancialCategory;
-
-  @Column({ default: "Uncategorized" })
-  financialSubcategory!: string;
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

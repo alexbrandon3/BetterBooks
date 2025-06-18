@@ -3,15 +3,16 @@
 import { Request, Response } from "express";
 import { getUser } from "../utils/getUser";
 import { TransactionService } from "../services/transaction.service";
-import { CreateTransactionDTO, UpdateTransactionDTO } from "../types/transaction.types";
+import { CreateTransactionDTO, UpdateTransactionDTO, TransactionType, EntryType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
-import { AppDataSource } from "../config/data-source";
-import { RecurringTransaction } from "../entities/RecurringTransaction";
+import { AuthenticatedRequest } from "../types/express";
+import { BaseController } from "./base.controller";
 
-export class TransactionController {
-  public transactionService: TransactionService;
+export class TransactionController extends BaseController {
+  private transactionService: TransactionService;
 
   constructor() {
+    super();
     this.transactionService = new TransactionService();
   }
 
@@ -68,17 +69,41 @@ export class TransactionController {
         return;
       }
 
-      // Extract and validate startDate
-      const { startDate } = req.body;
-      if (!startDate || typeof startDate !== 'string') {
-        logError('Invalid startDate', 'TransactionController');
-        res.status(400).json({ error: "Start date must be a valid ISO string" });
+      // Extract and validate date
+      const { date } = req.body;
+      if (!date || typeof date !== 'string') {
+        logError('Invalid date', 'TransactionController');
+        res.status(400).json({ error: "Date must be a valid ISO string" });
         return;
       }
-      const parsedDate = new Date(startDate);
+      const parsedDate = new Date(date);
       if (isNaN(parsedDate.getTime())) {
         logError('Invalid date format', 'TransactionController');
-        res.status(400).json({ error: "Start date must be a valid date" });
+        res.status(400).json({ error: "Date must be a valid date" });
+        return;
+      }
+
+      // Extract and validate type
+      const { type } = req.body;
+      if (!type || !Object.values(TransactionType).includes(type)) {
+        logError('Invalid type', 'TransactionController');
+        res.status(400).json({ error: `Type must be one of: ${Object.values(TransactionType).join(', ')}` });
+        return;
+      }
+
+      // Extract and validate category
+      const { category } = req.body;
+      if (!category || typeof category !== 'string' || !category.trim()) {
+        logError('Invalid category', 'TransactionController');
+        res.status(400).json({ error: "Category must be a non-empty string" });
+        return;
+      }
+
+      // Extract and validate amount
+      const { amount } = req.body;
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        logError('Invalid amount', 'TransactionController');
+        res.status(400).json({ error: "Amount must be a valid number" });
         return;
       }
 
@@ -103,10 +128,10 @@ export class TransactionController {
           return;
         }
 
-        if (!entry.type || !['DEBIT', 'CREDIT'].includes(entry.type)) {
+        if (!entry.type || !Object.values(EntryType).includes(entry.type)) {
           logError(`Invalid type in entry ${i + 1}`, 'TransactionController');
           res.status(400).json({ 
-            error: `Entry ${i + 1}: Type must be either 'DEBIT' or 'CREDIT'`,
+            error: `Entry ${i + 1}: Type must be one of: ${Object.values(EntryType).join(', ')}`,
             details: { entryIndex: i, field: 'type', value: entry.type }
           });
           return;
@@ -125,10 +150,13 @@ export class TransactionController {
       // Create sanitized transaction data
       const transactionData: CreateTransactionDTO = {
         description: description.trim(),
-        startDate: parsedDate,
+        date: parsedDate,
+        type: type as TransactionType,
+        category: category.trim(),
+        amount: Number(amount),
         entries: entries.map(entry => ({
           amount: Number(entry.amount),
-          type: entry.type,
+          type: entry.type as EntryType,
           accountId: Number(entry.accountId)
         })),
         userId: user.id
@@ -162,8 +190,8 @@ export class TransactionController {
         return;
       }
 
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = req.params.id;
+      if (!id) {
         res.status(400).json({ error: "Invalid transaction ID" });
         return;
       }
@@ -204,8 +232,8 @@ export class TransactionController {
         return;
       }
 
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = req.params.id;
+      if (!id) {
         res.status(400).json({ error: "Invalid transaction ID" });
         return;
       }
@@ -228,126 +256,29 @@ export class TransactionController {
     }
   };
 
-  suggestAccount = async (req: Request, res: Response): Promise<void> => {
+  async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const user = await getUser(req);
-      if (!user) {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-      }
-
       const { description } = req.query;
-      if (!description || typeof description !== "string") {
-        res.status(400).json({ error: "Description query parameter is required" });
+      if (!description || typeof description !== 'string') {
+        this.sendError(res, 400, "Description is required");
         return;
       }
 
-      const suggestion = await this.transactionService.suggestAccount(description, user.id);
-      res.json(suggestion);
+      const account = await this.transactionService.suggestAccount(description, req.user.userId);
+      this.sendResponse(res, 200, account);
     } catch (error) {
-      console.error("Error in suggestAccount controller:", error);
-      res.status(500).json({ 
-        error: "Failed to suggest account",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
-  };
+  }
 
-  getRecurringTransactions = async (req: Request, res: Response) => {
-    console.group('🔄 Recurring Transactions Request');
-    console.log('Request details:', {
-      userId: req.user?.id,
-      query: req.query
-    });
-
+  async getRecurringTransactions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.id) {
-        console.error('❌ Unauthorized: No user ID provided');
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const userId = parseInt(req.user.id.toString());
-      if (isNaN(userId)) {
-        console.error('❌ Invalid user ID:', req.user.id);
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const recurringRepo = AppDataSource.getRepository(RecurringTransaction);
-      const recurringTransactions = await recurringRepo.find({
-        where: { user: { id: userId } },
-        relations: ["account", "user"],
-      });
-
-      console.log('✅ Recurring transactions fetched:', recurringTransactions.length);
-      console.groupEnd();
-      return res.json(recurringTransactions);
+      const transactions = await this.transactionService.getRecurringTransactions(req.user.userId);
+      this.sendResponse(res, 200, transactions);
     } catch (error) {
-      console.group('❌ Recurring Transactions Error');
-      console.error('Message:', error.message);
-      console.error('Stack:', error.stack);
-      if (error.response?.data) {
-        console.error('Response Data:', error.response.data);
-      }
-      console.error('Error Name:', error.name);
-      console.error('User ID:', req.user?.id);
-      console.groupEnd();
-      return res.status(500).json({ message: 'Failed to load recurring transactions', error: error.message });
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
-  };
-
-  getRecurringTransactionById = async (req: Request, res: Response) => {
-    console.group('🔄 Recurring Transaction by ID Request');
-    console.log('Request details:', {
-      userId: req.user?.id,
-      id: req.params.id
-    });
-
-    try {
-      if (!req.user?.id) {
-        console.error('❌ Unauthorized: No user ID provided');
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const userId = parseInt(req.user.id.toString());
-      if (isNaN(userId)) {
-        console.error('❌ Invalid user ID:', req.user.id);
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        console.error('❌ Invalid recurring transaction ID:', req.params.id);
-        return res.status(400).json({ message: "Invalid recurring transaction ID" });
-      }
-
-      const recurringRepo = AppDataSource.getRepository(RecurringTransaction);
-      const recurringTransaction = await recurringRepo.findOne({
-        where: { id, user: { id: userId } },
-        relations: ["account", "user"],
-      });
-
-      if (!recurringTransaction) {
-        console.error('❌ Recurring transaction not found:', id);
-        return res.status(404).json({ message: "Recurring transaction not found" });
-      }
-
-      console.log('✅ Recurring transaction fetched:', recurringTransaction);
-      console.groupEnd();
-      return res.json(recurringTransaction);
-    } catch (error) {
-      console.group('❌ Recurring Transaction by ID Error');
-      console.error('Message:', error.message);
-      console.error('Stack:', error.stack);
-      if (error.response?.data) {
-        console.error('Response Data:', error.response.data);
-      }
-      console.error('Error Name:', error.name);
-      console.error('User ID:', req.user?.id);
-      console.error('Recurring Transaction ID:', req.params.id);
-      console.groupEnd();
-      return res.status(500).json({ message: 'Failed to load recurring transaction', error: error.message });
-    }
-  };
+  }
 }
 
 // Create and export an instance of the controller
@@ -360,5 +291,4 @@ export const {
   deleteTransaction,
   suggestAccount,
   getRecurringTransactions,
-  getRecurringTransactionById,
 } = transactionController;

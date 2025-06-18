@@ -3,17 +3,19 @@ import { NavLink } from "react-router-dom";
 
 const Navigation = () => {
   return (
-    <nav className="min-h-screen w-64 bg-gray-800 text-white flex flex-col">
-      <div className="p-4 text-2xl font-bold border-b border-gray-700">
+    <nav className="min-h-screen w-64 bg-gray-800 text-white flex flex-col shadow-lg">
+      <div className="p-6 text-2xl font-bold border-b border-gray-700 bg-gray-900">
         BetterBooks
       </div>
-      <div className="flex-grow">
+      <div className="flex-grow p-4 space-y-2">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            isActive
-              ? "block px-4 py-2 bg-gray-700"
-              : "block px-4 py-2 hover:bg-gray-700"
+            `block px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`
           }
         >
           Dashboard
@@ -21,9 +23,11 @@ const Navigation = () => {
         <NavLink
           to="/transactions"
           className={({ isActive }) =>
-            isActive
-              ? "block px-4 py-2 bg-gray-700"
-              : "block px-4 py-2 hover:bg-gray-700"
+            `block px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`
           }
         >
           Transactions
@@ -31,9 +35,11 @@ const Navigation = () => {
         <NavLink
           to="/accounts"
           className={({ isActive }) =>
-            isActive
-              ? "block px-4 py-2 bg-gray-700"
-              : "block px-4 py-2 hover:bg-gray-700"
+            `block px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`
           }
         >
           Accounts
@@ -41,9 +47,11 @@ const Navigation = () => {
         <NavLink
           to="/reports"
           className={({ isActive }) =>
-            isActive
-              ? "block px-4 py-2 bg-gray-700"
-              : "block px-4 py-2 hover:bg-gray-700"
+            `block px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`
           }
         >
           Reports
@@ -51,9 +59,11 @@ const Navigation = () => {
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            isActive
-              ? "block px-4 py-2 bg-gray-700"
-              : "block px-4 py-2 hover:bg-gray-700"
+            `block px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`
           }
         >
           Settings

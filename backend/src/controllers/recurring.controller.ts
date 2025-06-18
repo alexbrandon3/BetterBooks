@@ -8,7 +8,7 @@ export const getRecurringTransactions = async (req: AuthenticatedRequest, res: R
     // Only fetch recurring transactions for the authenticated user, including required relations
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
     const transactions = await recurringTransactionRepo.find({
-      where: { user: { id: req.user.id } },
+      where: { user: { id: req.user.userId } },
       relations: ['account'],
       order: { nextRun: 'ASC' }
     });
@@ -18,7 +18,7 @@ export const getRecurringTransactions = async (req: AuthenticatedRequest, res: R
     console.error('Error object:', error);
     console.error('Error message:', error instanceof Error ? error.message : error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('User ID:', req.user?.id);
+    console.error('User ID:', req.user?.userId);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 }; 

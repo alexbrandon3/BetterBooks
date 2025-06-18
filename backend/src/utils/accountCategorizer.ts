@@ -37,14 +37,14 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         type: AccountType.LIABILITY,
         category: "Loans",
         subcategory: "Business Loan",
-        financialCategory: FinancialCategory.LONG_TERM_LIABILITY,
+        financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: "BANK_LOANS",
       },
     },
     {
       keywords: ["sales", "income", "revenue"],
       result: {
-        type: AccountType.REVENUE,
+        type: AccountType.INCOME,
         category: "Sales",
         subcategory: "Product Sales",
         financialCategory: FinancialCategory.OPERATING_REVENUE,

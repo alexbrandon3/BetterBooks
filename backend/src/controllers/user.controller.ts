@@ -73,7 +73,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
 export const getCurrentUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await userRepo.findOneBy({ id: req.user.id });
+    const user = await userRepo.findOneBy({ id: req.user.userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

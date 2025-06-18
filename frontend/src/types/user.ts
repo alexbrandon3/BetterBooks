@@ -1,0 +1,5 @@
+export enum RiskTolerance {
+  CONSERVATIVE = 'CONSERVATIVE',
+  MODERATE = 'MODERATE',
+  AGGRESSIVE = 'AGGRESSIVE',
+} 

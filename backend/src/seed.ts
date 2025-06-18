@@ -1,82 +1,135 @@
-import { AppDataSource } from "./config/data-source";
-import { User } from "./entities/User";
-import { Account, AccountType, FinancialCategory } from "./entities/Account";
-import { Transaction } from "./entities/Transaction";
-import { JournalEntry, EntryType } from "./entities/JournalEntry";
-import * as bcrypt from "bcrypt";
+import { AppDataSource } from './data-source';
+import { User, RiskTolerance } from './entities/User';
+import { Account, FinancialCategory } from './entities/Account';
+import { Transaction } from './entities/Transaction';
+import { FinancialGoal, GoalType } from './entities/FinancialGoal';
+import { TransactionType } from './types/transaction.types';
+import { hashPassword } from './utils/auth';
 
-async function main() {
+async function clearDatabase() {
   try {
-    // Initialize the database connection
-    await AppDataSource.initialize();
-    console.log("Database connection initialized");
-
-    // Create test user
-    const hashedPassword = await bcrypt.hash("password", 10);
-    const user = new User();
-    user.email = "test@example.com";
-    user.password = hashedPassword;
-    await AppDataSource.manager.save(user);
-    console.log("Test user created");
-
-    // Create accounts
-    const cashAccount = new Account();
-    cashAccount.name = "Cash";
-    cashAccount.type = AccountType.ASSET;
-    cashAccount.financialCategory = FinancialCategory.CURRENT_ASSET;
-    cashAccount.balance = 0;
-    cashAccount.user = user;
-    await AppDataSource.manager.save(cashAccount);
-    console.log("Cash account created");
-
-    const salesAccount = new Account();
-    salesAccount.name = "Sales Revenue";
-    salesAccount.type = AccountType.REVENUE;
-    salesAccount.financialCategory = FinancialCategory.OPERATING_EXPENSE;
-    salesAccount.balance = 0;
-    salesAccount.user = user;
-    await AppDataSource.manager.save(salesAccount);
-    console.log("Sales Revenue account created");
-
-    // Create a sample transaction
-    const transaction = new Transaction();
-    transaction.description = "Sample Sale";
-    transaction.startDate = new Date();
-    transaction.user = user;
-    await AppDataSource.manager.save(transaction);
-    console.log("Transaction created");
-
-    // Create journal entries
-    const cashEntry = new JournalEntry();
-    cashEntry.amount = 953.85;
-    cashEntry.type = EntryType.DEBIT;
-    cashEntry.account = cashAccount;
-    cashEntry.user = user;
-    cashEntry.transaction = transaction;
-    await AppDataSource.manager.save(cashEntry);
-    console.log("Cash journal entry created");
-
-    const salesEntry = new JournalEntry();
-    salesEntry.amount = 953.85;
-    salesEntry.type = EntryType.CREDIT;
-    salesEntry.account = salesAccount;
-    salesEntry.user = user;
-    salesEntry.transaction = transaction;
-    await AppDataSource.manager.save(salesEntry);
-    console.log("Sales journal entry created");
-
-    // Update account balances
-    cashAccount.balance += 953.85;
-    salesAccount.balance -= 953.85;
-    await AppDataSource.manager.save([cashAccount, salesAccount]);
-    console.log("Account balances updated");
-
-    console.log("Seeding completed successfully!");
-    process.exit(0);
+    await AppDataSource.dropDatabase();
+    console.log('🗑️ Database cleared');
   } catch (error) {
-    console.error("Error during seeding:", error);
-    process.exit(1);
+    console.error('Error clearing database:', error);
+    throw error;
   }
 }
 
-main(); 
+async function seed() {
+  try {
+    // Initialize database connection
+    await AppDataSource.initialize();
+    console.log('📦 Database connection initialized');
+
+    // Clear existing data
+    await clearDatabase();
+    await AppDataSource.synchronize();
+    console.log('🔄 Database schema synchronized');
+
+    // Create test user
+    const user = new User();
+    user.email = 'example@example.com';
+    user.password = await hashPassword('password123');
+    user.riskTolerance = RiskTolerance.MODERATE;
+    await AppDataSource.manager.save(user);
+    console.log('👤 Test user created');
+
+    // Create sample accounts
+    const accounts = [
+      {
+        name: 'Cash Account',
+        type: 'ASSET',
+        balance: 2500,
+        isLiquid: true,
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        user
+      },
+      {
+        name: 'Equipment Fund',
+        type: 'ASSET',
+        balance: 5000,
+        isLiquid: true,
+        financialCategory: FinancialCategory.FIXED_ASSET,
+        user
+      },
+      {
+        name: 'Marketing Budget',
+        type: 'ASSET',
+        balance: 2000,
+        isLiquid: true,
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        user
+      }
+    ];
+
+    for (const accountData of accounts) {
+      const account = new Account();
+      Object.assign(account, accountData);
+      await AppDataSource.manager.save(account);
+    }
+    console.log('💰 Sample accounts created');
+
+    // Create sample transactions
+    const transactions = [
+      {
+        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+        amount: 5000,
+        type: TransactionType.INCOME,
+        category: 'SALARY',
+        description: 'Monthly salary',
+        user
+      },
+      {
+        date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+        amount: -2000,
+        type: TransactionType.EXPENSE,
+        category: 'EQUIPMENT',
+        description: 'New camera equipment',
+        user
+      },
+      {
+        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+        amount: -500,
+        type: TransactionType.EXPENSE,
+        category: 'MARKETING',
+        description: 'Social media ads',
+        user
+      }
+    ];
+
+    for (const transactionData of transactions) {
+      const transaction = new Transaction();
+      Object.assign(transaction, transactionData);
+      await AppDataSource.manager.save(transaction);
+    }
+    console.log('💸 Sample transactions created');
+
+    // Create sample goals
+    const goals = [
+      {
+        type: GoalType.INCREASE_ASSETS,
+        targetAmount: 15000,
+        targetDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days from now
+        progress: 0.4,
+        user
+      }
+    ];
+
+    for (const goalData of goals) {
+      const goal = new FinancialGoal();
+      Object.assign(goal, goalData);
+      await AppDataSource.manager.save(goal);
+    }
+    console.log('🎯 Sample goals created');
+
+    console.log('✅ Seed completed successfully');
+  } catch (error) {
+    console.error('❌ Error during seeding:', error);
+    throw error;
+  } finally {
+    await AppDataSource.destroy();
+  }
+}
+
+seed(); 

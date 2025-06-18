@@ -5,6 +5,7 @@ import { JournalEntry, EntryType } from '../entities/JournalEntry';
 import { User } from '../entities/User';
 import { Transaction } from '../entities/Transaction';
 import { TransactionType } from '../types/transaction.types';
+import { RiskTolerance } from '../entities/User';
 
 interface AccountBalance {
   id: number;
@@ -35,23 +36,27 @@ describe('ReportService', () => {
       id: 1,
       email: 'test@example.com',
       password: 'hashed_password',
+      riskTolerance: RiskTolerance.MODERATE,
       accounts: [],
       transactions: [],
-      journalEntries: []
+      journalEntries: [],
+      goals: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // Create mock transaction
     mockTransaction = {
-      id: 1,
+      id: '1',
       description: 'Test Transaction',
-      startDate: new Date(),
+      date: new Date(),
       type: TransactionType.EXPENSE,
-      isRecurring: false,
+      amount: 0,
+      category: 'Test',
       user: mockUser,
       entries: [],
       createdAt: new Date(),
-      updatedAt: new Date(),
-      get date() { return this.startDate; }
+      updatedAt: new Date()
     };
 
     // Create mock accounts
@@ -60,66 +65,81 @@ describe('ReportService', () => {
         id: 1,
         name: 'Checking',
         type: AccountType.ASSET,
-        balance: 0,
-        category: 'Bank',
-        subcategory: 'Checking',
+        balance: 1000,
+        isLiquid: true,
+        category: 'Cash',
+        subcategory: 'Petty Cash',
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: 'CASH_AND_CASH_EQUIVALENTS',
         user: mockUser,
         transactions: [],
-        journalEntries: []
+        journalEntries: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: 2,
         name: 'Equipment',
         type: AccountType.ASSET,
-        balance: 0,
-        category: 'Fixed Assets',
-        subcategory: 'Equipment',
-        financialCategory: FinancialCategory.LONG_TERM_ASSET,
+        balance: 5000,
+        isLiquid: false,
+        category: 'Equipment',
+        subcategory: '',
+        financialCategory: FinancialCategory.FIXED_ASSET,
         financialSubcategory: 'FIXED_ASSETS',
         user: mockUser,
         transactions: [],
-        journalEntries: []
+        journalEntries: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: 3,
         name: 'Accounts Payable',
         type: AccountType.LIABILITY,
         balance: 0,
+        isLiquid: true,
         category: 'Current Liabilities',
         subcategory: 'Trade Payables',
         financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: 'ACCOUNTS_PAYABLE',
         user: mockUser,
         transactions: [],
-        journalEntries: []
+        journalEntries: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: 4,
         name: 'Long-term Loan',
         type: AccountType.LIABILITY,
         balance: 0,
+        isLiquid: false,
         category: 'Long-term Liabilities',
         subcategory: 'Loans',
         financialCategory: FinancialCategory.LONG_TERM_LIABILITY,
         financialSubcategory: 'BANK_LOANS',
         user: mockUser,
         transactions: [],
-        journalEntries: []
+        journalEntries: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: 5,
         name: 'Owner\'s Capital',
         type: AccountType.EQUITY,
         balance: 0,
+        isLiquid: false,
         category: 'Equity',
         subcategory: 'Capital',
         financialCategory: FinancialCategory.EQUITY,
         financialSubcategory: 'OWNERS_EQUITY',
         user: mockUser,
         transactions: [],
-        journalEntries: []
+        journalEntries: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }
     ];
 

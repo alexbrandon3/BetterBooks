@@ -1,94 +1,206 @@
-// Updated Dashboard.tsx with reimagined layout and fixes
-import { useEffect, useState } from "react";
-import { fetchAccounts } from "../services/AccountService";
-import { fetchTransactions } from "../services/TransactionService";
-import { formatCurrency } from "../utils/formatters";
-import { formatDate } from "../utils/financial";
-
-interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  category: string;
-  type: string;
-}
-
-interface TransactionEntry {
-  amount: string | number;
-  accountId: string;
-}
-
-interface Transaction {
-  id: number;
-  description: string;
-  startDate?: string;
-  entries: TransactionEntry[];
-}
-
-const CASH_ACCOUNT_CATEGORIES = ["Checking", "Savings", "Petty Cash", "Undeposited Funds"];
+// Updated Dashboard.tsx with production-quality UI/UX improvements
+import React, { useState, useEffect } from 'react';
+import { fetchAccounts } from '../services/AccountService';
+import { fetchTransactions } from '../services/TransactionService';
+import { Account } from '../types/account';
+import { Transaction } from '../types/transaction';
+import { formatCurrency } from '../utils/formatUtils';
+import { useAuth } from '../contexts/AuthContext';
+import { SmartGoalSuggestions } from '../components/SmartGoalSuggestions';
 
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchAccounts().then(setAccounts);
-    fetchTransactions().then(setTransactions);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Loading dashboard data...');
+        const [accountsData, transactionsData] = await Promise.all([
+          fetchAccounts(),
+          fetchTransactions()
+        ]);
+        console.log('Accounts data:', accountsData);
+        console.log('Transactions data:', transactionsData);
+        setAccounts(accountsData);
+        setTransactions(transactionsData);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
-  const cashAccounts = accounts.filter(account => 
-    CASH_ACCOUNT_CATEGORIES.includes(account.category)
-  );
+  const cashAccounts = (accounts || []).filter(account => {
+    console.log('Checking account:', {
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      category: account.category,
+      balance: account.balance
+    });
+    // Include CURRENT_ASSET accounts as cash accounts (most liquid)
+    return account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET';
+  });
 
-  const availableCash = cashAccounts.reduce((sum, acct) => {
-    const validBalance = typeof acct.balance === "number" && !isNaN(acct.balance) ? acct.balance : 0;
-    return sum + validBalance;
+  const totalCash = cashAccounts.reduce((sum, account) => {
+    const balance = typeof account.balance === 'number' ? account.balance : parseFloat(account.balance) || 0;
+    return sum + balance;
   }, 0);
+  
+  console.log('Cash accounts found:', cashAccounts.length);
+  console.log('Total cash:', totalCash);
 
-  const recentTransactions = transactions.slice(0, 5);
+  const recentTransactions = (transactions || [])
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* Summary Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white shadow rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-gray-500">Available Cash</h2>
-          <p className="text-2xl font-bold text-gray-800">{formatCurrency(availableCash)}</p>
-        </div>
+  // Helper function to format transaction amounts
+  const formatTransactionAmount = (transaction: Transaction) => {
+    const amount = Math.abs(transaction.amount);
+    return formatCurrency(amount);
+  };
 
-        <div className="bg-white shadow rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-gray-500">Quick Actions</h2>
-          <button className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
-            + New Transaction
-          </button>
-        </div>
-
-        <div className="bg-white shadow rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-gray-500">Accounts</h2>
-          <ul className="text-sm text-gray-700 space-y-1 max-h-32 overflow-y-auto">
-            {accounts.map(account => (
-              <li key={account.id}>
-                {account.name}: {formatCurrency(account.balance)}
-              </li>
-            ))}
-          </ul>
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="space-y-8">
+      {/* Smart Goal Suggestions Skeleton */}
+      <div className="animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-md p-6">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
+              <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Recent Transactions */}
-      <div className="bg-white shadow rounded-2xl p-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">Recent Transactions</h2>
-        <ul className="divide-y divide-gray-200">
-          {recentTransactions.map(tx => (
-            <li key={tx.id} className="py-2">
-              <p className="text-sm font-medium text-gray-800">{tx.description}</p>
-              <p className="text-xs text-gray-500">{tx.startDate ? formatDate(tx.startDate) : 'No date'}</p>
-            </li>
+      {/* Financial Summary Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-2xl shadow-md p-6 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-1/2 mb-3"></div>
+            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Transactions Skeleton */}
+      <div className="bg-white rounded-2xl shadow-md p-6 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-3 bg-gray-200 rounded w-24"></div>
+              </div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+            </div>
           ))}
-          {recentTransactions.length === 0 && (
-            <p className="text-gray-500 text-sm">No recent transactions available.</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+          <p className="text-red-600 font-medium">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
+      
+      {/* Smart Goal Suggestions Section */}
+      <div className="mb-12">
+        <SmartGoalSuggestions
+          onGoalSelected={() => {}}
+          userRiskTolerance={user?.riskTolerance}
+        />
+      </div>
+      
+      {/* Financial Summary Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Total Cash</h2>
+          <p className={`text-3xl font-bold ${totalCash >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatCurrency(totalCash)}
+          </p>
+        </div>
+        
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Cash & Cash Equivalents</h2>
+          <div className="space-y-3">
+            {cashAccounts.length > 0 ? (
+              cashAccounts.map(account => (
+                <div key={account.id} className="flex justify-between items-center">
+                  <span className="text-base text-gray-700">{account.name}</span>
+                  <span className={`text-base font-medium ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(account.balance)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-base text-gray-500 italic">No cash accounts available yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Transactions Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <h2 className="text-lg font-semibold mb-6 text-gray-900">Recent Transactions</h2>
+        <div className="space-y-4">
+          {recentTransactions.length > 0 ? (
+            recentTransactions.map(transaction => (
+              <div key={transaction.id} className="flex justify-between items-center border-b border-gray-100 pb-4 last:border-b-0">
+                <div>
+                  <p className="text-base font-medium text-gray-900">{transaction.description}</p>
+                  <p className="text-sm text-gray-500 mt-1">{new Date(transaction.date).toLocaleDateString()}</p>
+                </div>
+                <span className={`text-base font-medium ${transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatTransactionAmount(transaction)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-base text-gray-500 italic text-center py-8">No recent transactions to show.</p>
           )}
-        </ul>
+        </div>
       </div>
     </div>
   );

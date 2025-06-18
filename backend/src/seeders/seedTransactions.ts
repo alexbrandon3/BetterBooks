@@ -12,7 +12,7 @@ const seedTransactions = async () => {
   const accountRepo = AppDataSource.getRepository(Account);
   const transactionRepo = AppDataSource.getRepository(Transaction);
 
-  const user = await userRepo.findOne({ where: { id: 1 } });
+  const user = await userRepo.findOne({ where: { id: "1" } });
   if (!user) {
     console.error("User not found.");
     return;
@@ -26,30 +26,42 @@ const seedTransactions = async () => {
       description: "Client Payment",
       amount: 2500,
       type: TransactionType.INCOME,
-      account: accountMap["Cash"]
+      account: accountMap["Cash"],
+      category: "Income"
     },
     {
       description: "Consulting Fee",
       amount: 1500,
       type: TransactionType.INCOME,
-      account: accountMap["Accounts Receivable"]
+      account: accountMap["Accounts Receivable"],
+      category: "Income"
     },
     {
       description: "Office Rent",
       amount: 1200,
       type: TransactionType.EXPENSE,
-      account: accountMap["Cash"]
+      account: accountMap["Cash"],
+      category: "Rent"
     },
     {
       description: "Utilities",
       amount: 300,
       type: TransactionType.EXPENSE,
-      account: accountMap["Cash"]
+      account: accountMap["Cash"],
+      category: "Utilities"
     }
   ];
 
   for (const data of transactions) {
-    const transaction = transactionRepo.create({ ...data, user });
+    const transaction = transactionRepo.create({
+      description: data.description,
+      amount: data.amount,
+      type: data.type === TransactionType.INCOME ? 'INCOME' : 'EXPENSE',
+      category: data.category || 'Uncategorized',
+      date: new Date(),
+      user: user,
+      account: data.account
+    });
     await transactionRepo.save(transaction);
   }
 

@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../config/data-source";
 import { User } from "../entities/User";
-import { AuthenticatedRequest } from "../types/express";
+import { AuthenticatedRequest, JwtPayload } from "../types/express";
 
 export const authenticate = async (
   req: Request,
@@ -19,17 +19,17 @@ export const authenticate = async (
     }
 
     const token = authHeader.split(" ")[1];
-    const secret = process.env.JWT_SECRET as string;
+    const secret = process.env.JWT_SECRET || "your-secret-key";
 
-    const decoded = jwt.verify(token, secret) as { userId: number };
-    const user = await AppDataSource.getRepository(User).findOneBy({ id: decoded.userId });
+    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const user = await AppDataSource.getRepository(User).findOneBy({ id: Number(decoded.userId) });
 
     if (!user) {
       res.status(401).json({ message: "Unauthorized: User not found" });
       return;
     }
 
-    (req as AuthenticatedRequest).user = user;
+    (req as AuthenticatedRequest).user = decoded;
     next();
   } catch (error) {
     console.error("Auth error:", error);

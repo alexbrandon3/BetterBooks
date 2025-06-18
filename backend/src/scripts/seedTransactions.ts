@@ -1,10 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { User } from "../entities/User";
-import { Account } from "../entities/Account";
+import { Account, AccountType, FinancialCategory } from "../entities/Account";
 import { Transaction } from "../entities/Transaction";
-import { JournalEntry } from "../entities/JournalEntry";
-import { EntryType } from "../types/journal.types";
-import { AccountType, FinancialCategory } from "../entities/Account";
 import { TransactionType } from "../types/transaction.types";
 import bcrypt from 'bcryptjs';
 
@@ -15,12 +12,12 @@ async function seedTransactions() {
 
     // Create test user
     const userRepo = AppDataSource.getRepository(User);
-    let user = await userRepo.findOne({ where: { email: 'demo@demo.com' } });
+    let user = await userRepo.findOne({ where: { email: 'example@example.com' } });
     
     if (!user) {
-      const hashedPassword = await bcrypt.hash('demo123', 10);
+      const hashedPassword = await bcrypt.hash('password123', 10);
       user = userRepo.create({
-        email: 'demo@demo.com',
+        email: 'example@example.com',
         password: hashedPassword,
       });
       await userRepo.save(user);
@@ -29,113 +26,70 @@ async function seedTransactions() {
 
     // Create accounts
     const accountRepo = AppDataSource.getRepository(Account);
-    const accounts = await accountRepo.save([
+    const accounts = [
       {
-        name: 'Cash',
+        name: "Cash",
         type: AccountType.ASSET,
-        balance: 0,
+        balance: 10000,
+        isLiquid: true,
         user,
-        category: 'Current Assets',
-        subcategory: 'Cash',
         financialCategory: FinancialCategory.CURRENT_ASSET,
-        financialSubcategory: 'CASH'
+        financialSubcategory: "CASH_AND_CASH_EQUIVALENTS"
       },
       {
-        name: 'Revenue',
-        type: AccountType.REVENUE,
-        balance: 0,
+        name: "Accounts Receivable",
+        type: AccountType.ASSET,
+        balance: 5000,
+        isLiquid: true,
         user,
-        category: 'Operating Revenue',
-        subcategory: 'Sales',
-        financialCategory: FinancialCategory.OPERATING_REVENUE,
-        financialSubcategory: 'SALES'
-      },
-      {
-        name: 'Utilities',
-        type: AccountType.EXPENSE,
-        balance: 0,
-        user,
-        category: 'Operating Expenses',
-        subcategory: 'Utilities',
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: 'UTILITIES'
-      }
-    ]);
-    console.log('✅ Created accounts:', accounts.map(a => a.name));
-
-    // Create transactions
-    const transactionRepo = AppDataSource.getRepository(Transaction);
-    const journalEntryRepo = AppDataSource.getRepository(JournalEntry);
-
-    const transactions = [
-      {
-        description: 'Sales Revenue',
-        type: TransactionType.INCOME,
-        entries: [
-          { account: accounts[0], type: EntryType.DEBIT, amount: 1000 }, // Cash
-          { account: accounts[1], type: EntryType.CREDIT, amount: 1000 } // Revenue
-        ]
-      },
-      {
-        description: 'Utility Bill',
-        type: TransactionType.EXPENSE,
-        entries: [
-          { account: accounts[2], type: EntryType.DEBIT, amount: 200 }, // Utilities
-          { account: accounts[0], type: EntryType.CREDIT, amount: 200 } // Cash
-        ]
-      },
-      {
-        description: 'Additional Sales',
-        type: TransactionType.INCOME,
-        entries: [
-          { account: accounts[0], type: EntryType.DEBIT, amount: 500 }, // Cash
-          { account: accounts[1], type: EntryType.CREDIT, amount: 500 } // Revenue
-        ]
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "ACCOUNTS_RECEIVABLE"
       }
     ];
 
-    for (const txData of transactions) {
-      // Create transaction
-      const transaction = transactionRepo.create({
-        description: txData.description,
-        startDate: new Date(),
-        type: txData.type,
-        user
-      });
-      await transactionRepo.save(transaction);
+    for (const accountData of accounts) {
+      const account = accountRepo.create(accountData);
+      await accountRepo.save(account);
+    }
+    console.log('✅ Created accounts');
 
-      // Create journal entries
-      const entries = txData.entries.map(entry => 
-        journalEntryRepo.create({
-          amount: entry.amount,
-          type: entry.type,
-          account: entry.account,
-          transaction,
-          user
-        })
-      );
-      await journalEntryRepo.save(entries);
+    // Create transactions
+    const transactionRepo = AppDataSource.getRepository(Transaction);
+    const cashAccount = await accountRepo.findOne({ where: { name: "Cash" } });
+    const arAccount = await accountRepo.findOne({ where: { name: "Accounts Receivable" } });
 
-      console.log(`✅ Created transaction "${txData.description}" with ${entries.length} entries`);
+    if (!cashAccount || !arAccount) {
+      throw new Error("Required accounts not found");
     }
 
-    // Verify transactions
-    const savedTransactions = await transactionRepo.find({
-      where: { user: { id: user.id } },
-      relations: ['entries', 'entries.account']
-    });
+    const transactions = [
+      {
+        description: "Client Payment",
+        amount: 2500,
+        type: TransactionType.INCOME,
+        category: "Income",
+        date: new Date(),
+        user,
+        account: cashAccount
+      },
+      {
+        description: "Consulting Fee",
+        amount: 1500,
+        type: TransactionType.INCOME,
+        category: "Income",
+        date: new Date(),
+        user,
+        account: arAccount
+      }
+    ];
 
-    console.log('\n📊 Verification Results:');
-    console.log('------------------------');
-    savedTransactions.forEach(tx => {
-      console.log(`\nTransaction: ${tx.description}`);
-      console.log('Entries:');
-      tx.entries.forEach(entry => {
-        console.log(`  - ${entry.type}: ${entry.amount} (${entry.account.name})`);
-      });
-    });
+    for (const transactionData of transactions) {
+      const transaction = transactionRepo.create(transactionData);
+      await transactionRepo.save(transaction);
+      console.log(`✅ Created transaction "${transactionData.description}"`);
+    }
 
-    console.log('\n✅ Seed completed successfully!');
+    console.log('✅ Seed completed successfully!');
     await AppDataSource.destroy();
   } catch (error) {
     console.error('❌ Seed failed:', error);

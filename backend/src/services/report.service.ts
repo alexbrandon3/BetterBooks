@@ -1,8 +1,10 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
-import { JournalEntry, EntryType } from "../entities/JournalEntry";
+import { JournalEntry } from "../entities/JournalEntry";
+import { Account } from "../entities/Account";
 import { Between } from "typeorm";
 import { FinancialCategory } from "../entities/Account";
+import { EntryType } from "../types/transaction.types";
 
 interface AccountBalance {
   id: number;
@@ -52,7 +54,7 @@ export class ReportService {
 
     entries.forEach((entry: JournalEntry) => {
       if (entry.account.financialCategory === FinancialCategory.CURRENT_ASSET || 
-          entry.account.financialCategory === FinancialCategory.LONG_TERM_ASSET) {
+          entry.account.financialCategory === FinancialCategory.FIXED_ASSET) {
         totalAssets += entry.amount;
       } else if (entry.account.financialCategory === FinancialCategory.CURRENT_LIABILITY || 
                  entry.account.financialCategory === FinancialCategory.LONG_TERM_LIABILITY) {
@@ -72,7 +74,7 @@ export class ReportService {
       where: {
         transaction: {
           user: { id: userId },
-          startDate: Between(startDate, endDate),
+          date: Between(startDate, endDate),
         },
       },
       relations: ["account", "transaction"],
@@ -97,14 +99,20 @@ export class ReportService {
   }
 
   async getBalanceSheet(userId: number): Promise<BalanceSheetResponse> {
+    console.log('🔍 Getting balance sheet for user:', userId);
+    
     const journalEntries = await this.journalEntryRepo.find({
-      where: { user: { id: userId } },
-      relations: ['account']
+      where: { transaction: { user: { id: userId } } },
+      relations: ['account', 'transaction']
     });
 
-    const accounts = await AppDataSource.getRepository('Account').find({
+    console.log('📊 Found journal entries:', journalEntries.length);
+
+    const accounts = await AppDataSource.getRepository(Account).find({
       where: { user: { id: userId } }
     });
+
+    console.log('🏦 Found accounts:', accounts.length);
 
     // Calculate balances for each account
     const accountBalances = new Map<number, number>();
@@ -114,9 +122,36 @@ export class ReportService {
 
     journalEntries.forEach((entry: JournalEntry) => {
       const currentBalance = accountBalances.get(entry.account.id) || 0;
-      const amount = entry.type === EntryType.DEBIT ? entry.amount : -entry.amount;
-      accountBalances.set(entry.account.id, currentBalance + amount);
+      
+      // Determine the normal balance direction for this account type
+      let normalBalanceMultiplier = 1;
+      switch (entry.account.financialCategory) {
+        case FinancialCategory.CURRENT_ASSET:
+        case FinancialCategory.FIXED_ASSET:
+          // Assets normally have debit balances (positive)
+          normalBalanceMultiplier = 1;
+          break;
+        case FinancialCategory.CURRENT_LIABILITY:
+        case FinancialCategory.LONG_TERM_LIABILITY:
+        case FinancialCategory.EQUITY:
+          // Liabilities and Equity normally have credit balances (positive)
+          normalBalanceMultiplier = -1;
+          break;
+        default:
+          // For other categories, use default behavior
+          normalBalanceMultiplier = 1;
+      }
+      
+      // Calculate the balance change
+      const balanceChange = entry.type === EntryType.DEBIT ? entry.amount : -entry.amount;
+      const adjustedChange = balanceChange * normalBalanceMultiplier;
+      
+      console.log(`📝 Entry: Account ${entry.account.name} (${entry.account.financialCategory}) - Type: ${entry.type}, Amount: ${entry.amount}, Balance Change: ${adjustedChange}`);
+      
+      accountBalances.set(entry.account.id, currentBalance + adjustedChange);
     });
+
+    console.log('💰 Account balances:', Object.fromEntries(accountBalances));
 
     // Group accounts by category and subcategory
     const groupedAccounts = new Map<string, Map<string, AccountBalance[]>>();
@@ -127,7 +162,7 @@ export class ReportService {
       let category: string;
       switch (account.financialCategory) {
         case FinancialCategory.CURRENT_ASSET:
-        case FinancialCategory.LONG_TERM_ASSET:
+        case FinancialCategory.FIXED_ASSET:
           category = 'asset';
           break;
         case FinancialCategory.CURRENT_LIABILITY:
@@ -188,39 +223,76 @@ export class ReportService {
     response.liabilities = createSubcategoryGroups('liability');
     response.equity = createSubcategoryGroups('equity');
 
+    console.log('📈 Balance sheet response:', response);
     return response;
   }
 
   async generateIncomeStatement(userId: number, startDate: string, endDate: string) {
+    console.log('🔍 Generating income statement for user:', userId, 'from', startDate, 'to', endDate);
+    
+    // Ensure we have valid dates
+    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), 0, 1); // Start of year
+    const end = endDate ? new Date(endDate) : new Date(); // Today
+    
+    console.log('📅 Using date range:', { start: start.toISOString(), end: end.toISOString() });
+    
     const entries = await this.journalEntryRepo.find({
       where: {
         transaction: {
           user: { id: userId },
-          startDate: Between(new Date(startDate), new Date(endDate)),
+          date: Between(start, end),
         },
       },
       relations: ["account", "transaction"],
     });
 
+    console.log('📊 Found entries for income statement:', entries.length);
+
     let totalIncome = 0;
     let totalExpenses = 0;
 
     entries.forEach((entry: JournalEntry) => {
-      if (entry.type === EntryType.CREDIT) {
-        totalIncome += entry.amount;
-      } else if (entry.type === EntryType.DEBIT) {
-        totalExpenses += entry.amount;
+      // Convert amount to number to ensure proper arithmetic
+      const amount = parseFloat(entry.amount.toString());
+      console.log(`📝 Processing entry: Account ${entry.account.name} (${entry.account.financialCategory}) - Type: ${entry.type}, Amount: ${amount}`);
+      
+      // For income statement, we need to look at the account type to determine if it's income or expense
+      // Revenue accounts normally have credit balances
+      // Expense accounts normally have debit balances
+      
+      if (entry.account.financialCategory === FinancialCategory.OPERATING_REVENUE || 
+          entry.account.financialCategory === FinancialCategory.NON_OPERATING_REVENUE) {
+        // Revenue accounts: credits increase income, debits decrease income
+        if (entry.type === EntryType.CREDIT) {
+          totalIncome += amount;
+          console.log(`💰 Added to income: ${amount}, Total: ${totalIncome}`);
+        } else {
+          totalIncome -= amount;
+          console.log(`💰 Subtracted from income: ${amount}, Total: ${totalIncome}`);
+        }
+      } else if (entry.account.financialCategory === FinancialCategory.OPERATING_EXPENSE || 
+                 entry.account.financialCategory === FinancialCategory.NON_OPERATING_EXPENSE) {
+        // Expense accounts: debits increase expenses, credits decrease expenses
+        if (entry.type === EntryType.DEBIT) {
+          totalExpenses += amount;
+          console.log(`💸 Added to expenses: ${amount}, Total: ${totalExpenses}`);
+        } else {
+          totalExpenses -= amount;
+          console.log(`💸 Subtracted from expenses: ${amount}, Total: ${totalExpenses}`);
+        }
+      } else {
+        console.log(`⏭️ Skipping entry for account category: ${entry.account.financialCategory}`);
       }
+      // Note: We ignore asset, liability, and equity accounts for income statement
     });
 
-    return {
-      totalIncome,
-      totalExpenses,
-      netIncome: totalIncome - totalExpenses,
-      period: {
-        startDate,
-        endDate
-      }
+    const result = {
+      totalIncome: Number(totalIncome),
+      totalExpenses: Number(totalExpenses),
+      netIncome: Number(totalIncome - totalExpenses),
     };
+
+    console.log('💰 Income statement result:', result);
+    return result;
   }
 }

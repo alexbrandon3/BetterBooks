@@ -62,13 +62,6 @@ export const validateParams = (schema: z.ZodSchema) => {
   };
 };
 
-const idValidation = z
-  .string()
-  .refine(val => val.trim() !== '', { message: 'ID is required' })
-  .refine(val => !isNaN(Number(val)), { message: 'ID must be a number' })
-  .transform(val => Number(val))
-  .refine(val => Number.isInteger(val) && val > 0, { message: 'ID must be a positive integer' });
-
 // All Zod schemas
 export const schemas = {
   login: z.object({

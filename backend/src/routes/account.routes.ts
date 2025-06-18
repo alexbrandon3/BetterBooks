@@ -1,25 +1,17 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.middleware";
-import { wrapAsync } from "../utils/asyncHandler";
-import { AuthenticatedRequest } from "../types/express";
-import {
-  createAccount,
-  getAccounts,
-  getAccountById,
-  updateAccount,
-  deleteAccount,
-  suggestAccountMetadata,
-  suggestAccountAutoCategory,
-} from "../controllers/account.controller";
+import { authenticate } from "../middleware/auth";
+import { AccountController } from "../controllers/account.controller";
 
 const router = express.Router();
+const accountController = new AccountController();
 
-router.post("/", authenticate, wrapAsync<AuthenticatedRequest>(createAccount));
-router.get("/", authenticate, wrapAsync<AuthenticatedRequest>(getAccounts));
-router.get("/:id", authenticate, wrapAsync<AuthenticatedRequest>(getAccountById));
-router.put("/:id", authenticate, wrapAsync<AuthenticatedRequest>(updateAccount));
-router.delete("/:id", authenticate, wrapAsync<AuthenticatedRequest>(deleteAccount));
-router.post("/suggest-metadata", authenticate, wrapAsync<AuthenticatedRequest>(suggestAccountMetadata));
-router.post("/suggest-account", authenticate, wrapAsync<AuthenticatedRequest>(suggestAccountAutoCategory));
+// Protected routes
+router.use(authenticate);
+
+// Account routes
+router.get("/", accountController.getAccounts.bind(accountController));
+router.post("/", accountController.createAccount.bind(accountController));
+router.put("/:id", accountController.updateAccount.bind(accountController));
+router.delete("/:id", accountController.deleteAccount.bind(accountController));
 
 export default router; 

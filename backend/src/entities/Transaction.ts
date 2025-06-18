@@ -19,33 +19,29 @@ export enum RecurrencePattern {
 
 @Entity()
 export class Transaction {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column()
-  description!: string;
-
-  @Column()
-  startDate!: Date;
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
 
   @Column({
     type: "enum",
-    enum: TransactionType,
-    default: TransactionType.EXPENSE
+    enum: TransactionType
   })
-  type!: TransactionType;
+  type: TransactionType;
 
-  @Column({ default: false })
-  isRecurring!: boolean;
+  @Column()
+  category: string;
 
-  @Column({ type: "enum", enum: RecurrencePattern, nullable: true })
-  recurrencePattern?: RecurrencePattern;
+  @Column()
+  description: string;
 
-  @Column({ type: "timestamp", nullable: true })
-  endDate?: Date;
+  @Column()
+  date: Date;
 
-  @ManyToOne(() => User, (user) => user.transactions, { eager: true })
-  user!: User;
+  @ManyToOne(() => User, user => user.transactions)
+  user: User;
 
   @OneToMany(() => JournalEntry, (entry) => entry.transaction, {
     cascade: true,
@@ -53,12 +49,8 @@ export class Transaction {
   entries!: JournalEntry[];
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
-
-  get date(): Date {
-    return this.startDate;
-  }
 }

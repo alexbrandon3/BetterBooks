@@ -1,15 +1,19 @@
 import { Request } from 'express';
-import { User } from '../entities/User';
+
+export interface JwtPayload {
+  userId: number;
+  email: string;
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: JwtPayload;
     }
   }
 }
 
 export interface AuthenticatedRequest extends Request {
-  user: User;
+  user: JwtPayload;
   validatedQuery?: any;
 } 

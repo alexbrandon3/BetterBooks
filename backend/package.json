@@ -15,7 +15,8 @@
     "migration:revert": "npm run typeorm migration:revert -- -d C:/Users/alexl/projects/BetterBooks/backend/typeorm.config.ts",
     "seed:transactions": "ts-node src/scripts/seedTransactions.ts",
     "reset:demo": "ts-node src/scripts/resetDemoUser.ts",
-    "seed:dashboard": "ts-node src/scripts/seedDashboard.ts"
+    "seed:dashboard": "ts-node src/scripts/seedDashboard.ts",
+    "reset:db": "ts-node src/scripts/resetDatabase.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

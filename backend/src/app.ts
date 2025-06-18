@@ -4,9 +4,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './utils/errors';
 import authRoutes from './routes/routes';
+import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
 import goalRoutes from './routes/routes';
 import suggestionRoutes from './routes/suggestionRoutes';
+import reportRoutes from './routes/report.routes';
+import path from 'path';
 
 const app = express();
 
@@ -15,7 +18,7 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: ['http://localhost:3000', 'http://localhost:5173'], // Allow both React dev server and Vite
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -30,13 +33,26 @@ if (process.env.NODE_ENV !== "test") {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// CORS middleware
+app.use(cors());
+
+// API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+app.use('/api/reports', reportRoutes);
 
-// Error handling
+// Error handling middleware
 app.use(errorHandler);
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../../frontend/build')));
+
+// Catchall handler for client-side routing
+app.get('*', (_, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/build/index.html'));
+});
 
 export default app; 

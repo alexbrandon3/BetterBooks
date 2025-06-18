@@ -7,14 +7,15 @@ import { MemoryRouter } from "react-router-dom";
 import * as TransactionService from "../services/TransactionService";
 import * as AccountService from "../services/AccountService";
 import MockAdapter from 'axios-mock-adapter';
-import instance from "../utils/axios";
+import axios from 'axios';
 import { AccountType, FinancialCategory } from "../types/account";
+// import { Transaction } from '../types/transaction.types';
 
 // Debug log
-console.log('Axios instance:', instance);
+console.log('Axios instance:', axios);
 
 // Create mock adapter for the axios instance
-const mock = new MockAdapter(instance);
+const mock = new MockAdapter(axios);
 
 // Mock data
 const mockAccounts = [
@@ -25,26 +26,156 @@ const mockAccounts = [
 
 const mockTransactions = [
   {
-    id: 1,
+    id: "1",
     description: "Grocery Shopping",
     startDate: "2024-03-14",
-    type: "EXPENSE" as "EXPENSE",
+    date: "2024-03-14",
+    type: "EXPENSE" as const,
+    category: "Groceries",
+    amount: 100,
     entries: [
-      { accountId: "3", amount: 100, type: "CREDIT" as "CREDIT" },
-      { accountId: "1", amount: 100, type: "DEBIT" as "DEBIT" }
+      {
+        accountId: "3",
+        amount: 100,
+        type: "CREDIT" as const,
+        id: "e1",
+        description: "Mock entry",
+        account: {
+          id: "3",
+          name: "Mock Account",
+          type: AccountType.ASSET,
+          category: "Mock Category",
+          subcategory: "Mock Subcategory",
+          financialCategory: FinancialCategory.CURRENT_ASSET,
+          financialSubcategory: "Mock Subcategory",
+          balance: 0,
+          isLiquid: true,
+          user: {
+            id: 1,
+            email: "mock@example.com",
+            password: "mockpassword",
+            firstName: "Mock",
+            lastName: "User",
+            createdAt: "2024-03-14T00:00:00.000Z",
+            updatedAt: "2024-03-14T00:00:00.000Z"
+          },
+          createdAt: "2024-03-14T00:00:00.000Z",
+          updatedAt: "2024-03-14T00:00:00.000Z"
+        },
+        createdAt: "2024-03-14T00:00:00.000Z",
+        updatedAt: "2024-03-14T00:00:00.000Z"
+      },
+      {
+        accountId: "1",
+        amount: 100,
+        type: "DEBIT" as const,
+        id: "e2",
+        description: "Mock entry",
+        account: {
+          id: "1",
+          name: "Mock Account",
+          type: AccountType.ASSET,
+          category: "Mock Category",
+          subcategory: "Mock Subcategory",
+          financialCategory: FinancialCategory.CURRENT_ASSET,
+          financialSubcategory: "Mock Subcategory",
+          balance: 0,
+          isLiquid: true,
+          user: {
+            id: 1,
+            email: "mock@example.com",
+            password: "mockpassword",
+            firstName: "Mock",
+            lastName: "User",
+            createdAt: "2024-03-14T00:00:00.000Z",
+            updatedAt: "2024-03-14T00:00:00.000Z"
+          },
+          createdAt: "2024-03-14T00:00:00.000Z",
+          updatedAt: "2024-03-14T00:00:00.000Z"
+        },
+        createdAt: "2024-03-14T00:00:00.000Z",
+        updatedAt: "2024-03-14T00:00:00.000Z"
+      }
     ],
-    userId: 1
+    userId: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
-    id: 2,
+    id: "2",
     description: "Split Transaction",
     startDate: "",
-    type: "EXPENSE" as "EXPENSE",
+    date: "2024-03-15",
+    type: "EXPENSE" as const,
+    category: "Split",
+    amount: 100,
     entries: [
-      { accountId: "1", amount: 50, type: "DEBIT" as "DEBIT" },
-      { accountId: "2", amount: 50, type: "CREDIT" as "CREDIT" }
+      {
+        accountId: "1",
+        amount: 50,
+        type: "DEBIT" as const,
+        id: "e3",
+        description: "Mock entry",
+        account: {
+          id: "1",
+          name: "Mock Account",
+          type: AccountType.ASSET,
+          category: "Mock Category",
+          subcategory: "Mock Subcategory",
+          financialCategory: FinancialCategory.CURRENT_ASSET,
+          financialSubcategory: "Mock Subcategory",
+          balance: 0,
+          isLiquid: true,
+          user: {
+            id: 1,
+            email: "mock@example.com",
+            password: "mockpassword",
+            firstName: "Mock",
+            lastName: "User",
+            createdAt: "2024-03-15T00:00:00.000Z",
+            updatedAt: "2024-03-15T00:00:00.000Z"
+          },
+          createdAt: "2024-03-15T00:00:00.000Z",
+          updatedAt: "2024-03-15T00:00:00.000Z"
+        },
+        createdAt: "2024-03-15T00:00:00.000Z",
+        updatedAt: "2024-03-15T00:00:00.000Z"
+      },
+      {
+        accountId: "2",
+        amount: 50,
+        type: "CREDIT" as const,
+        id: "e4",
+        description: "Mock entry",
+        account: {
+          id: "2",
+          name: "Mock Account",
+          type: AccountType.ASSET,
+          category: "Mock Category",
+          subcategory: "Mock Subcategory",
+          financialCategory: FinancialCategory.CURRENT_ASSET,
+          financialSubcategory: "Mock Subcategory",
+          balance: 0,
+          isLiquid: true,
+          user: {
+            id: 1,
+            email: "mock@example.com",
+            password: "mockpassword",
+            firstName: "Mock",
+            lastName: "User",
+            createdAt: "2024-03-15T00:00:00.000Z",
+            updatedAt: "2024-03-15T00:00:00.000Z"
+          },
+          createdAt: "2024-03-15T00:00:00.000Z",
+          updatedAt: "2024-03-15T00:00:00.000Z"
+        },
+        createdAt: "2024-03-15T00:00:00.000Z",
+        updatedAt: "2024-03-15T00:00:00.000Z"
+      }
     ],
-    userId: 1
+    userId: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -71,8 +202,16 @@ describe("Transactions Component", () => {
     jest.spyOn(TransactionService, "deleteTransaction").mockResolvedValue();
 
     // Mock account suggestion
-    mock.onPost("/transactions/suggest-account").reply(200, { suggestedAccountId: "3", suggestedAccountName: "Groceries" });
-    jest.spyOn(TransactionService, "getSuggestedAccount").mockResolvedValue({ suggestedAccountId: "3", suggestedAccountName: "Groceries" });
+    mock.onPost("/transactions/suggest-account").reply(200, { 
+      suggestedAccountId: 3,
+      suggestedAccountName: "Test Account",
+      reason: "Test reason"
+    });
+    jest.spyOn(TransactionService, "getSuggestedAccount").mockResolvedValue({ 
+      suggestedAccountId: 3,
+      suggestedAccountName: "Test Account",
+      reason: "Test reason"
+    });
   });
 
   afterEach(() => {

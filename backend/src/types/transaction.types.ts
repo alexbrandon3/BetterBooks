@@ -1,16 +1,22 @@
 export enum TransactionType {
   INCOME = "INCOME",
-  EXPENSE = "EXPENSE",
-  TRANSFER = "TRANSFER",
-  ADJUSTMENT = "ADJUSTMENT"
+  EXPENSE = "EXPENSE"
+}
+
+export enum EntryType {
+  DEBIT = "DEBIT",
+  CREDIT = "CREDIT"
 }
 
 export interface CreateTransactionDTO {
   description: string;
-  startDate: Date;
+  date: Date;
+  type: TransactionType;
+  category: string;
+  amount: number;
   entries: {
     amount: number;
-    type: string;
+    type: EntryType;
     accountId: number;
   }[];
   userId: number;

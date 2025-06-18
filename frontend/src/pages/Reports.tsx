@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchIncomeStatement, fetchBalanceSheet, fetchCashFlowStatement, BalanceSheet, IncomeStatement, CashFlow } from '../services/ReportService';
+import { fetchBalanceSheet, fetchIncomeStatement, type BalanceSheet, type IncomeStatement } from '../services/ReportService';
 import { exportToCSV } from '../utils/exportUtils';
 import { exportToPDF } from '../utils/pdfExportUtils';
 import { useAuth } from '../contexts/AuthContext';
-import { formatCurrency } from '../utils/formatUtils';
+import { formatCurrency } from '../utils/formatters';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { DateRange } from '../types/common';
 
 // Constants for pagination
 const ITEMS_PER_PAGE = 10;
@@ -24,19 +26,23 @@ const exportOptions: ExportOption[] = [
 ];
 
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement' | 'cash-flow'>('balance-sheet');
-  const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
-  const [incomeStatement, setIncomeStatement] = useState<IncomeStatement | null>(null);
-  const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
+  console.log('🔍 Reports component rendering');
+  const { user } = useAuth();
+  console.log('👤 Current user:', user);
+  const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement'>('balance-sheet');
+  const [dateRange, setDateRange] = useState<DateRange>({
+    start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
+  });
+  console.log('📅 Date range:', dateRange);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
+  const [incomeStatement, setIncomeStatement] = useState<IncomeStatement | null>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -85,34 +91,35 @@ const Reports: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('🔄 Reports useEffect triggered');
     const fetchReports = async () => {
       try {
+        console.log('📥 Starting to fetch reports...');
         setLoading(true);
         setError(null);
-
-        switch (reportType) {
-          case 'income-statement':
-            const incomeData = await fetchIncomeStatement(dateRange.start, dateRange.end);
-            setIncomeStatement(incomeData);
-            break;
-          case 'balance-sheet':
-            const balanceData = await fetchBalanceSheet();
-            setBalanceSheet(balanceData);
-            break;
-          case 'cash-flow':
-            const cashData = await fetchCashFlowStatement(dateRange.start, dateRange.end);
-            setCashFlow(cashData);
-            break;
-        }
+        
+        console.log('📊 Fetching balance sheet...');
+        const balanceSheetData = await fetchBalanceSheet(dateRange.start, dateRange.end);
+        console.log('📊 Balance sheet data received:', JSON.stringify(balanceSheetData, null, 2));
+        
+        console.log('💰 Fetching income statement...');
+        const incomeStatementData = await fetchIncomeStatement(dateRange.start, dateRange.end);
+        console.log('💰 Income statement data received:', JSON.stringify(incomeStatementData, null, 2));
+        
+        setBalanceSheet(balanceSheetData);
+        setIncomeStatement(incomeStatementData);
+        console.log('✅ Reports data set successfully');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error('❌ Error loading reports:', err);
+        setError('Failed to load reports');
       } finally {
         setLoading(false);
+        console.log('🏁 Loading finished');
       }
     };
 
     fetchReports();
-  }, [reportType, dateRange.start, dateRange.end]);
+  }, [dateRange.start, dateRange.end]);
 
   const handleExport = async (format: ExportFormat) => {
     if (exporting) return;
@@ -138,15 +145,6 @@ const Reports: React.FC = () => {
             }
           }
           break;
-        case 'cash-flow':
-          if (cashFlow) {
-            if (format === 'csv') {
-              exportToCSV(cashFlow, 'cash-flow');
-            } else {
-              exportToPDF('cash-flow', cashFlow, dateRange);
-            }
-          }
-          break;
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -159,8 +157,7 @@ const Reports: React.FC = () => {
 
   const renderExportButton = () => {
     const hasData = (reportType === 'balance-sheet' && balanceSheet) ||
-                   (reportType === 'income-statement' && incomeStatement) ||
-                   (reportType === 'cash-flow' && cashFlow);
+                   (reportType === 'income-statement' && incomeStatement);
 
     return (
       <div className="relative" ref={exportMenuRef} data-testid="export-button-container">
@@ -225,177 +222,135 @@ const Reports: React.FC = () => {
     );
   };
 
-  const renderPagination = (totalItems: number) => {
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex justify-center items-center gap-2 mt-4" role="navigation" aria-label="Pagination">
-        <button
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 rounded border disabled:opacity-50"
-          aria-label="Previous page"
-        >
-          Previous
-        </button>
-        <span className="text-sm" aria-live="polite">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded border disabled:opacity-50"
-          aria-label="Next page"
-        >
-          Next
-        </button>
-      </div>
-    );
+  // Helper function to properly capitalize subcategory names
+  const formatSubcategoryName = (name: string): string => {
+    if (!name) return '';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
   const renderBalanceSheet = () => {
     if (!balanceSheet) return null;
+
+    // Handle the actual backend response structure
+    // Backend returns: { assets: SubcategoryGroup[], liabilities: SubcategoryGroup[], equity: SubcategoryGroup[] }
+    // Where SubcategoryGroup = { subcategoryName: string, accounts: AccountBalance[], subtotal: number, displayOrder: number }
 
     return (
       <div className="space-y-6" role="region" aria-label="Balance Sheet report">
         <div>
           <h2 className="text-xl font-semibold mb-4">Assets</h2>
           <div className="space-y-4">
-            <div>
-              <h3 className="font-medium mb-2">Current Assets</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200" aria-label="Current Assets">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {Object.entries(balanceSheet.assets.current.subcategories).map(([name, amount]) => (
-                      <tr key={name}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(amount)}</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Current Assets</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(balanceSheet.assets.current.total)}</td>
-                    </tr>
-                  </tbody>
-                </table>
+            {balanceSheet.assets.length > 0 ? (
+              balanceSheet.assets.map((group, index) => (
+                <div key={index}>
+                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Assets'}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Assets'}`}>
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {group.accounts.map((account) => (
+                          <tr key={account.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Assets'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No assets found for the selected period.</p>
               </div>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-2">Long-term Assets</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200" aria-label="Long-term Assets">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {Object.entries(balanceSheet.assets.longTerm.subcategories).map(([name, amount]) => (
-                      <tr key={name}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(amount)}</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Long-term Assets</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(balanceSheet.assets.longTerm.total)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold mb-4">Liabilities</h2>
           <div className="space-y-4">
-            <div>
-              <h3 className="font-medium mb-2">Current Liabilities</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200" aria-label="Current Liabilities">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {Object.entries(balanceSheet.liabilities.current.subcategories).map(([name, amount]) => (
-                      <tr key={name}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(amount)}</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Current Liabilities</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(balanceSheet.liabilities.current.total)}</td>
-                    </tr>
-                  </tbody>
-                </table>
+            {balanceSheet.liabilities.length > 0 ? (
+              balanceSheet.liabilities.map((group, index) => (
+                <div key={index}>
+                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Liabilities'}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Liabilities'}`}>
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {group.accounts.map((account) => (
+                          <tr key={account.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Liabilities'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No liabilities found for the selected period.</p>
               </div>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-2">Long-term Liabilities</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200" aria-label="Long-term Liabilities">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {Object.entries(balanceSheet.liabilities.longTerm.subcategories).map(([name, amount]) => (
-                      <tr key={name}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(amount)}</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Long-term Liabilities</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(balanceSheet.liabilities.longTerm.total)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
         <div>
           <h2 className="text-xl font-semibold mb-4">Equity</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200" aria-label="Equity">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Object.entries(balanceSheet.equity.subcategories).map(([name, amount]) => (
-                  <tr key={name}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(amount)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Equity</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(balanceSheet.equity.total)}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {balanceSheet.equity.length > 0 ? (
+              balanceSheet.equity.map((group, index) => (
+                <div key={index}>
+                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Equity'}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Equity'}`}>
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {group.accounts.map((account) => (
+                          <tr key={account.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Equity'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No equity accounts found for the selected period.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -417,16 +372,16 @@ const Reports: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Revenue</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(incomeStatement.revenue)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Total Income</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(incomeStatement.totalIncome)}</td>
               </tr>
               <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Expenses</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(incomeStatement.expenses)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Total Expenses</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(incomeStatement.totalExpenses)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Net Income</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(incomeStatement.netIncome)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(incomeStatement.netIncome)}</td>
               </tr>
             </tbody>
           </table>
@@ -435,41 +390,18 @@ const Reports: React.FC = () => {
     );
   };
 
-  const renderCashFlowStatement = () => {
-    if (!cashFlow) return null;
-
-    return (
-      <div className="space-y-6" role="region" aria-label="Cash Flow Statement report">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200" aria-label="Cash Flow Statement">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Operating Activities</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(cashFlow.operatingActivities)}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Investing Activities</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(cashFlow.investingActivities)}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Financing Activities</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(cashFlow.financingActivities)}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Net Cash Flow</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatCurrency(cashFlow.netCashFlow)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
+  // Update the formatCurrency calls to handle unknown types
+  const formatAmount = (amount: unknown): string => {
+    if (typeof amount === 'number') {
+      return formatCurrency(amount);
+    }
+    if (typeof amount === 'string') {
+      const parsed = parseFloat(amount);
+      if (!isNaN(parsed)) {
+        return formatCurrency(parsed);
+      }
+    }
+    return formatCurrency(0);
   };
 
   return (
@@ -480,51 +412,60 @@ const Reports: React.FC = () => {
           <div role="tablist" aria-label="Report type selection">
             <select
               value={reportType}
-              onChange={(e) => setReportType(e.target.value as 'balance-sheet' | 'income-statement' | 'cash-flow')}
+              onChange={(e) => setReportType(e.target.value as 'balance-sheet' | 'income-statement')}
               className="border rounded px-3 py-2"
               aria-label="Select report type"
             >
-              <option value="balance-sheet" role="tab">Balance Sheet</option>
-              <option value="income-statement" role="tab">Income Statement</option>
-              <option value="cash-flow" role="tab">Cash Flow Statement</option>
+              <option value="balance-sheet">Balance Sheet</option>
+              <option value="income-statement">Income Statement</option>
             </select>
           </div>
-
-          <div className="flex items-center gap-4">
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              className="border rounded px-3 py-2"
-              aria-label="Start date"
-            />
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              className="border rounded px-3 py-2"
-              aria-label="End date"
-            />
-          </div>
-
           {renderExportButton()}
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8" role="status" aria-live="polite">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+      <div className="mb-6">
+        <div className="flex items-center gap-4">
+          <label htmlFor="start-date" className="text-sm font-medium">
+            Start Date:
+          </label>
+          <input
+            id="start-date"
+            type="date"
+            value={dateRange.start}
+            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+            className="border rounded px-3 py-2"
+          />
+          <label htmlFor="end-date" className="text-sm font-medium">
+            End Date:
+          </label>
+          <input
+            id="end-date"
+            type="date"
+            value={dateRange.end}
+            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+            className="border rounded px-3 py-2"
+          />
         </div>
-      ) : error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
+      </div>
+
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <span className="ml-2">Loading reports...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-lg p-6">
+      )}
+
+      {!loading && !error && (
+        <div className="bg-white rounded-lg shadow">
           {reportType === 'balance-sheet' && renderBalanceSheet()}
           {reportType === 'income-statement' && renderIncomeStatement()}
-          {reportType === 'cash-flow' && renderCashFlowStatement()}
         </div>
       )}
     </div>
