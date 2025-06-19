@@ -6,6 +6,8 @@ export interface TransactionForm {
   type: 'INCOME' | 'EXPENSE';
   description: string;
   date: string;
+  category: string;
+  amount: number;
   entries: JournalEntryFields[];
   isRecurring?: boolean;
   startDate?: string;
@@ -20,6 +22,25 @@ export interface JournalEntryFields {
   description?: string;
 }
 
+// Backend API compatible interface
+export interface BackendTransactionForm {
+  type: 'INCOME' | 'EXPENSE';
+  description: string;
+  date: string;
+  category: string;
+  amount: number;
+  entries: {
+    accountId: number;
+    amount: number;
+    type: 'DEBIT' | 'CREDIT';
+    description: string;
+  }[];
+  isRecurring?: boolean;
+  startDate?: string;
+  recurrencePattern?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  terminationDate?: string;
+}
+
 export const fetchTransactions = async (): Promise<Transaction[]> => {
   try {
     const response = await axios.get("/transactions");
@@ -30,17 +51,22 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
   }
 };
 
-export const createTransaction = async (transaction: TransactionForm): Promise<Transaction> => {
+export const createTransaction = async (transaction: BackendTransactionForm): Promise<Transaction> => {
   try {
+    console.log('📤 Sending transaction data:', JSON.stringify(transaction, null, 2));
     const response = await axios.post("/transactions", transaction);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating transaction:", error);
+    if (error.response) {
+      console.error("Backend error response:", error.response.data);
+      console.error("Status:", error.response.status);
+    }
     throw error;
   }
 };
 
-export const updateTransaction = async (id: string, transaction: TransactionForm): Promise<Transaction> => {
+export const updateTransaction = async (id: string, transaction: BackendTransactionForm): Promise<Transaction> => {
   try {
     const response = await axios.put(`/transactions/${id}`, transaction);
     return response.data;

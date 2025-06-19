@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from 'react-hot-toast';
 
 interface Account {
   id: string;
@@ -54,8 +55,9 @@ const TransactionsRecurringEdit: React.FC = () => {
           date: transaction.startDate, // Map startDate to date for form
         });
       } catch (err) {
-        setError("Failed to load data. Please try again later.");
         console.error("Error loading data:", err);
+        setError("Failed to load data. Please try again later.");
+        toast.error('Failed to load transaction data. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -75,10 +77,12 @@ const TransactionsRecurringEdit: React.FC = () => {
       };
 
       await axios.put(`/recurring-transactions/${id}`, recurringTransaction);
+      toast.success('Recurring transaction updated successfully!');
       navigate("/transactions");
     } catch (err) {
-      setError("Failed to update recurring transaction. Please try again.");
       console.error("Error updating transaction:", err);
+      setError("Failed to update recurring transaction. Please try again.");
+      toast.error('Failed to update recurring transaction. Please try again.');
     }
   };
 

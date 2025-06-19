@@ -1,4 +1,4 @@
-import { AppDataSource } from "../data-source";
+import { AppDataSource } from "../config/data-source";
 import { Suggestion } from "../entities/Suggestion";
 import { Account } from "../entities/Account";
 import { logError } from '../utils/logger';
@@ -165,16 +165,48 @@ export class SuggestionService {
         return null;
       }
 
-      // Find matching user account
-      const matchingAccount = userAccounts.find(account => 
-        matchedCategory!.accountTypes.includes(account.type) &&
-        (matchedCategory!.categories.some(cat => 
-          account.category?.toLowerCase().includes(cat.toLowerCase()) ||
-          account.name.toLowerCase().includes(cat.toLowerCase())
-        ))
-      );
+      // Find matching user account with better prioritization
+      let bestMatch = null;
+      let bestScore = 0;
 
-      if (!matchingAccount) {
+      for (const account of userAccounts) {
+        if (!matchedCategory!.accountTypes.includes(account.type)) {
+          continue;
+        }
+
+        let score = 0;
+        
+        // Check for exact keyword matches in account name (highest priority)
+        const exactKeywordMatch = matchedCategory!.keywords.some(keyword => 
+          account.name.toLowerCase().includes(keyword.toLowerCase())
+        );
+        if (exactKeywordMatch) score += 50; // Higher priority for exact keyword matches
+        
+        // Check name match (higher priority)
+        const nameMatch = matchedCategory!.categories.some(cat => 
+          account.name.toLowerCase().includes(cat.toLowerCase())
+        );
+        if (nameMatch) score += 20;
+        
+        // Check category match
+        const categoryMatch = matchedCategory!.categories.some(cat => 
+          account.category?.toLowerCase().includes(cat.toLowerCase())
+        );
+        if (categoryMatch) score += 10;
+        
+        // Check subcategory match
+        const subcategoryMatch = matchedCategory!.categories.some(cat => 
+          account.subcategory?.toLowerCase().includes(cat.toLowerCase())
+        );
+        if (subcategoryMatch) score += 5;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = account;
+        }
+      }
+
+      if (!bestMatch) {
         return null;
       }
 
@@ -182,8 +214,8 @@ export class SuggestionService {
       const detailedReason = `Matched keyword: '${matchedKeyword}' → Category: ${matchedCategory.categories[0]}`;
 
       return {
-        suggestedAccountId: matchingAccount.id,
-        suggestedAccountName: matchingAccount.name,
+        suggestedAccountId: bestMatch.id,
+        suggestedAccountName: bestMatch.name,
         reason: detailedReason
       };
 

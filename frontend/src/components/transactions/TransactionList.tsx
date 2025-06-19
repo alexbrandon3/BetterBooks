@@ -59,12 +59,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               </button>
               <button
                 onClick={() => onDelete(transaction.id)}
-                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors flex items-center gap-1"
                 data-testid={`delete-transaction-${transaction.id}`}
                 aria-label="Delete transaction"
                 title="Delete transaction"
               >
                 {FaTrash({ size: 16 })}
+                <span>Delete</span>
               </button>
             </div>
           </div>

@@ -6,6 +6,8 @@ import { fetchIncomeStatement, fetchBalanceSheet, fetchCashFlowStatement } from 
 import { exportToCSV } from '../utils/exportUtils';
 import { exportToPDF } from '../utils/pdfExportUtils';
 import { AuthProvider } from '../contexts/AuthContext';
+import { act } from 'react-dom/test-utils';
+import '@testing-library/jest-dom';
 
 // Mock the report service functions
 jest.mock('../services/ReportService', () => ({
@@ -115,7 +117,9 @@ describe('Reports Component', () => {
 
   describe('Report Tabs', () => {
     it('switches between report types and updates the view', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       // Initially shows Balance Sheet
       await waitFor(() => {
@@ -134,7 +138,9 @@ describe('Reports Component', () => {
     });
 
     it('refetches data when date range changes', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       // Wait for initial load to complete
       await waitFor(() => {
@@ -159,14 +165,18 @@ describe('Reports Component', () => {
   describe('CSV Export', () => {
     it('disables CSV export button when no data is available', async () => {
       (fetchBalanceSheet as jest.Mock).mockResolvedValue(null);
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       const exportButton = screen.getByTestId('export-button');
       expect(exportButton).toBeDisabled();
     });
 
     it('triggers CSV download when clicked', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Assets')).toBeInTheDocument();
@@ -184,7 +194,9 @@ describe('Reports Component', () => {
     });
 
     it('validates CSV file structure', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Assets')).toBeInTheDocument();
@@ -206,14 +218,18 @@ describe('Reports Component', () => {
   describe('PDF Export', () => {
     it('disables PDF export button when no data is available', async () => {
       (fetchBalanceSheet as jest.Mock).mockResolvedValue(null);
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       const exportButton = screen.getByTestId('export-button');
       expect(exportButton).toBeDisabled();
     });
 
     it('triggers PDF download when clicked', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Assets')).toBeInTheDocument();
@@ -235,7 +251,9 @@ describe('Reports Component', () => {
     });
 
     it('validates PDF generation', async () => {
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Assets')).toBeInTheDocument();
@@ -261,10 +279,13 @@ describe('Reports Component', () => {
   describe('Error States', () => {
     it('shows error message when API fails', async () => {
       (fetchBalanceSheet as jest.Mock).mockRejectedValue(new Error('API Error'));
-      renderWithAuth(<Reports />);
+      
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to load reports')).toBeInTheDocument();
+        expect(screen.getByText('Failed to load reports. Please try again.')).toBeInTheDocument();
       });
     });
 
@@ -273,7 +294,9 @@ describe('Reports Component', () => {
         throw new Error('Export failed');
       });
 
-      renderWithAuth(<Reports />);
+      await act(async () => {
+        renderWithAuth(<Reports />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Assets')).toBeInTheDocument();

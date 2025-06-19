@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { formatEnumLabel } from "../utils/formatEnumLabel";
 import { Account, AccountForm, AccountType, FinancialCategory } from "../types/account";
 import * as AccountService from "../services/AccountService";
+import { toast } from 'react-hot-toast';
 
 const initialFormState: AccountForm = {
   name: "",
@@ -21,9 +22,6 @@ const formatCurrency = (amount: number) => {
     maximumFractionDigits: 2
   }).format(amount);
 };
-
-const isNegativeType = (type: AccountType) =>
-  type === AccountType.EXPENSE || type === AccountType.LIABILITY;
 
 const displayBalance = (account: Account) => {
   return formatCurrency(Math.abs(account.balance));
@@ -57,8 +55,9 @@ const Accounts = () => {
       const data = await AccountService.fetchAccounts();
       setAccounts(data);
     } catch (err) {
-      setError("Failed to fetch accounts. Please try again later.");
       console.error("Error fetching accounts", err);
+      setError("Failed to fetch accounts. Please try again later.");
+      toast.error('Failed to load accounts. Please refresh the page.');
     } finally {
       setIsLoading(false);
     }
@@ -115,24 +114,30 @@ const Accounts = () => {
       if (editingAccountId) {
         await AccountService.updateAccount(editingAccountId, payload);
         setSuccessMessage("Account updated successfully!");
+        toast.success("Account updated successfully!");
       } else {
         await AccountService.createAccount(payload);
         setSuccessMessage("Account created successfully!");
+        toast.success("Account created successfully!");
       }
 
       setForm(initialFormState);
       setEditingAccountId(null);
       fetchAccounts();
     } catch (err: any) {
+      console.error("Error saving account:", err);
       if (err.response) {
         const errorMessage = err.response.data?.message || err.response.data?.error || "Server error occurred";
         setError(`Failed to ${editingAccountId ? 'update' : 'create'} account: ${errorMessage}`);
+        toast.error(`Failed to ${editingAccountId ? 'update' : 'create'} account. Please try again.`);
         console.error("Server error:", err.response.data);
       } else if (err.request) {
         setError("No response from server. Please check your connection.");
+        toast.error("Connection error. Please check your internet connection.");
         console.error("Network error:", err.request);
       } else {
         setError("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
         console.error("Error:", err.message);
       }
     } finally {
@@ -166,17 +171,22 @@ const Accounts = () => {
     try {
       await AccountService.deleteAccount(id);
       setSuccessMessage("Account deleted successfully!");
+      toast.success("Account deleted successfully!");
       fetchAccounts();
     } catch (err: any) {
+      console.error("Error deleting account:", err);
       if (err.response) {
         const errorMessage = err.response.data?.message || err.response.data?.error || "Server error occurred";
         setError(`Failed to delete account: ${errorMessage}`);
+        toast.error("Failed to delete account. Please try again.");
         console.error("Server error:", err.response.data);
       } else if (err.request) {
         setError("No response from server. Please check your connection.");
+        toast.error("Connection error. Please check your internet connection.");
         console.error("Network error:", err.request);
       } else {
         setError("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
         console.error("Error:", err.message);
       }
     } finally {
@@ -228,6 +238,7 @@ const Accounts = () => {
       }
     } catch (err) {
       console.error("Error getting account suggestions:", err);
+      // Silent failure for minor fetches like smart suggestions
     }
   };
 

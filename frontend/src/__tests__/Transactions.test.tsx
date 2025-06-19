@@ -6,16 +6,8 @@ import Transactions from "../pages/Transactions";
 import { MemoryRouter } from "react-router-dom";
 import * as TransactionService from "../services/TransactionService";
 import * as AccountService from "../services/AccountService";
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'axios';
 import { AccountType, FinancialCategory } from "../types/account";
 // import { Transaction } from '../types/transaction.types';
-
-// Debug log
-console.log('Axios instance:', axios);
-
-// Create mock adapter for the axios instance
-const mock = new MockAdapter(axios);
 
 // Mock data
 const mockAccounts = [
@@ -181,32 +173,86 @@ const mockTransactions = [
 
 describe("Transactions Component", () => {
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    
     // Mock accounts endpoint
-    mock.onGet("/accounts").reply(200, mockAccounts);
     jest.spyOn(AccountService, "fetchAccounts").mockResolvedValue(mockAccounts);
 
     // Mock transactions endpoint
-    mock.onGet("/transactions").reply(200, mockTransactions);
-    jest.spyOn(TransactionService, "fetchTransactions").mockResolvedValue(mockTransactions);
+    jest.spyOn(TransactionService, "fetchTransactions").mockResolvedValue([
+      {
+        id: "1",
+        date: "2024-01-01",
+        description: "Grocery Shopping",
+        type: "EXPENSE",
+        category: "Test",
+        amount: 100,
+        entries: [
+          { 
+            id: "1", 
+            amount: 100, 
+            type: "DEBIT", 
+            description: "",
+            account: { id: "1", name: "Checking", type: AccountType.ASSET, category: "Bank", subcategory: "Checking", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01"
+          },
+          { 
+            id: "2", 
+            amount: 100, 
+            type: "CREDIT", 
+            description: "",
+            account: { id: "2", name: "Savings", type: AccountType.ASSET, category: "Bank", subcategory: "Savings", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01"
+          }
+        ],
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01"
+      },
+      {
+        id: "2",
+        date: "2024-01-02",
+        description: "Split Transaction",
+        type: "EXPENSE" as const,
+        category: "Split",
+        amount: 100,
+        entries: [
+          { 
+            id: "3", 
+            amount: 50, 
+            type: "DEBIT" as const, 
+            description: "",
+            account: { id: "1", name: "Checking", type: AccountType.ASSET, category: "Bank", subcategory: "Checking", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+            createdAt: "2024-01-02",
+            updatedAt: "2024-01-02"
+          },
+          { 
+            id: "4", 
+            amount: 50, 
+            type: "CREDIT" as const, 
+            description: "",
+            account: { id: "2", name: "Savings", type: AccountType.ASSET, category: "Bank", subcategory: "Savings", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+            createdAt: "2024-01-02",
+            updatedAt: "2024-01-02"
+          }
+        ],
+        createdAt: "2024-01-02",
+        updatedAt: "2024-01-02"
+      }
+    ]);
 
     // Mock transaction creation
-    mock.onPost("/transactions").reply(200, mockTransactions[0]);
     jest.spyOn(TransactionService, "createTransaction").mockResolvedValue(mockTransactions[0]);
 
     // Mock transaction update
-    mock.onPut(/\/transactions\/\d+/).reply(200, mockTransactions[0]);
     jest.spyOn(TransactionService, "updateTransaction").mockResolvedValue(mockTransactions[0]);
 
     // Mock transaction deletion
-    mock.onDelete(/\/transactions\/\d+/).reply(200, { message: "Transaction deleted" });
     jest.spyOn(TransactionService, "deleteTransaction").mockResolvedValue();
 
     // Mock account suggestion
-    mock.onPost("/transactions/suggest-account").reply(200, { 
-      suggestedAccountId: 3,
-      suggestedAccountName: "Test Account",
-      reason: "Test reason"
-    });
     jest.spyOn(TransactionService, "getSuggestedAccount").mockResolvedValue({ 
       suggestedAccountId: 3,
       suggestedAccountName: "Test Account",
@@ -215,7 +261,6 @@ describe("Transactions Component", () => {
   });
 
   afterEach(() => {
-    mock.reset();
     jest.restoreAllMocks();
   });
 
@@ -251,7 +296,7 @@ describe("Transactions Component", () => {
       expect(screen.getByText(/loading transactions/i)).toBeInTheDocument();
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
       // Now interact with the form as needed...
     });
@@ -259,7 +304,6 @@ describe("Transactions Component", () => {
 
   describe("Error Handling", () => {
     it("displays error message when fetch fails", async () => {
-      mock.onGet("/transactions").reply(500);
       jest.spyOn(TransactionService, "fetchTransactions").mockRejectedValue(new Error("Boom"));
       render(
         <MemoryRouter>
@@ -273,7 +317,6 @@ describe("Transactions Component", () => {
     });
 
     it("handles create transaction failure", async () => {
-      mock.onPost("/transactions").reply(500);
       jest.spyOn(TransactionService, "createTransaction").mockRejectedValue(new Error("Boom"));
       render(
         <MemoryRouter>
@@ -282,10 +325,10 @@ describe("Transactions Component", () => {
       );
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
       // Fill out form and submit, then check for error
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
@@ -297,16 +340,47 @@ describe("Transactions Component", () => {
     });
 
     it("handles delete transaction failure", async () => {
-      mock.onDelete("/transactions/1").reply(500);
       jest.spyOn(TransactionService, "deleteTransaction").mockRejectedValue(new Error("Boom"));
+      jest.spyOn(TransactionService, "fetchTransactions").mockResolvedValue([
+        {
+          id: "1",
+          date: "2024-01-01",
+          description: "Grocery Shopping",
+          type: "EXPENSE",
+          category: "Test",
+          amount: 100,
+          entries: [
+            { 
+              id: "1", 
+              amount: 100, 
+              type: "DEBIT", 
+              description: "",
+              account: { id: "1", name: "Checking", type: AccountType.ASSET, category: "Bank", subcategory: "Checking", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+              createdAt: "2024-01-01",
+              updatedAt: "2024-01-01"
+            },
+            { 
+              id: "2", 
+              amount: 100, 
+              type: "CREDIT", 
+              description: "",
+              account: { id: "2", name: "Savings", type: AccountType.ASSET, category: "Bank", subcategory: "Savings", financialCategory: FinancialCategory.CURRENT_ASSET, financialSubcategory: "Cash", balance: 0 },
+              createdAt: "2024-01-01",
+              updatedAt: "2024-01-01"
+            }
+          ],
+          createdAt: "2024-01-01",
+          updatedAt: "2024-01-01"
+        }
+      ]);
       render(
         <MemoryRouter>
           <Transactions />
         </MemoryRouter>
       );
-      // Wait for form to load
+      // Wait for transactions to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByTestId("transaction-row-1")).toBeInTheDocument();
       });
       // Use getAllByRole to disambiguate delete buttons
       const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
@@ -328,23 +402,29 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      // Set date field
+      const today = new Date().toISOString().split('T')[0];
+      await userEvent.clear(screen.getByLabelText(/date/i));
+      fireEvent.change(screen.getByLabelText(/date/i), { target: { value: today } });
 
       // Submit form
       const submitButton = screen.getByRole("button", { name: /create transaction/i });
       await userEvent.click(submitButton);
 
-      // Verify success message
-      const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent(/transaction created successfully/i);
+      // Wait for the success message
+      await waitFor(() => {
+        const alert = screen.getByRole('alert');
+        expect(alert).toHaveTextContent(/transaction created successfully/i);
+      });
     });
 
     it("shows success message after updating transaction", async () => {
@@ -365,12 +445,12 @@ describe("Transactions Component", () => {
 
       // Verify form populated
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toHaveValue("Grocery Shopping");
+        expect(screen.getByLabelText(/transaction description/i)).toHaveValue("Grocery Shopping");
       });
 
       // Update description
-      await userEvent.clear(screen.getByLabelText(/description/i));
-      await userEvent.type(screen.getByLabelText(/description/i), "Updated Transaction");
+      await userEvent.clear(screen.getByLabelText(/transaction description/i));
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Updated Transaction");
 
       // Submit form
       const submitButton = screen.getByRole("button", { name: /update transaction/i });
@@ -392,7 +472,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Try to enter zero amount
@@ -415,7 +495,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Try to enter negative amount
@@ -438,7 +518,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Clear date field
@@ -461,11 +541,11 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form without selecting accounts
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
 
@@ -486,16 +566,14 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out the form with unbalanced entries
-      await userEvent.type(screen.getByLabelText(/description/i), "Unbalanced Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Unbalanced Transaction");
       await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
-      // Add a second entry (simulate split)
-      await userEvent.click(screen.getByTestId("add-split-btn"));
       await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "50.00");
@@ -510,12 +588,12 @@ describe("Transactions Component", () => {
     it('validates positive amounts', async () => {
       render(<Transactions />);
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form with zero amount
-      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '0');
+      await userEvent.type(screen.getByLabelText(/transaction description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "0");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
 
       // Submit form
@@ -529,7 +607,7 @@ describe("Transactions Component", () => {
     it('validates required date field', async () => {
       render(<Transactions />);
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Clear date field
@@ -537,8 +615,8 @@ describe("Transactions Component", () => {
       await userEvent.clear(dateInput);
 
       // Fill out other required fields
-      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      await userEvent.type(screen.getByLabelText(/transaction description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
 
       // Submit form
@@ -552,12 +630,12 @@ describe("Transactions Component", () => {
     it('validates required account fields', async () => {
       render(<Transactions />);
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form without selecting account
-      await userEvent.type(screen.getByLabelText(/description/i), 'Test Transaction');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      await userEvent.type(screen.getByLabelText(/transaction description/i), 'Test Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
 
       // Submit form
       const submitButton = screen.getByRole('button', { name: /create transaction/i });
@@ -570,19 +648,17 @@ describe("Transactions Component", () => {
     it('validates balanced journal entries', async () => {
       render(<Transactions />);
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out the form with unbalanced entries
-      await userEvent.type(screen.getByLabelText(/description/i), 'Unbalanced Transaction');
-      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], 'DEBIT');
-      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], '1');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
-      // Add a second entry (simulate split)
-      await userEvent.click(screen.getByTestId('add-split-btn'));
-      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], 'CREDIT');
-      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], '2');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], '50.00');
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Unbalanced Transaction");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
+      await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "50.00");
 
       // Submit the form
       await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
@@ -602,7 +678,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Try to submit without filling required fields
@@ -622,7 +698,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Get the main transaction type select by id
@@ -648,7 +724,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Initial entries
@@ -674,11 +750,11 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
@@ -690,7 +766,7 @@ describe("Transactions Component", () => {
 
       // Verify form reset
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toHaveValue("");
+        expect(screen.getByLabelText(/transaction description/i)).toHaveValue("");
         expect(screen.getAllByLabelText(/amount/i)[0]).toHaveValue(null);
         expect(screen.getAllByLabelText(/amount/i)[1]).toHaveValue(null);
       });
@@ -699,18 +775,19 @@ describe("Transactions Component", () => {
     it("validates account selection", async () => {
       render(<Transactions />);
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out the form without selecting an account
-      await userEvent.type(screen.getByLabelText(/description/i), 'No Account Transaction');
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], '100.00');
+      await userEvent.type(screen.getByLabelText(/transaction description/i), 'No Account Transaction');
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       // Add a second entry
       await userEvent.click(screen.getByTestId('add-split-btn'));
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], '100.00');
 
       // Submit the form
-      await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+      const submitButton = screen.getByRole('button', { name: /create transaction/i });
+      await userEvent.click(submitButton);
 
       const alerts = screen.getAllByRole("alert");
       expect(alerts.some(a => a.textContent?.match(/all entries.*account/i))).toBe(true);
@@ -725,11 +802,11 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form with zero amount
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "0");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
 
@@ -750,7 +827,7 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Clear date field
@@ -758,8 +835,8 @@ describe("Transactions Component", () => {
       await userEvent.clear(dateInput);
 
       // Fill out other required fields
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
 
       // Submit form
@@ -779,12 +856,12 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form without selecting account
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
-      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
+      await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
 
       // Submit form
       const submitButton = screen.getByRole("button", { name: /create transaction/i });
@@ -803,16 +880,14 @@ describe("Transactions Component", () => {
 
       // Wait for form to load
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out the form with unbalanced entries
-      await userEvent.type(screen.getByLabelText(/description/i), "Unbalanced Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Unbalanced Transaction");
       await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[0], "DEBIT");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100.00");
-      // Add a second entry (simulate split)
-      await userEvent.click(screen.getByTestId("add-split-btn"));
       await userEvent.selectOptions(screen.getAllByLabelText(/entry type/i)[1], "CREDIT");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[1], "2");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "50.00");
@@ -835,11 +910,11 @@ describe("Transactions Component", () => {
 
       // Wait for loading to complete
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/description/i), "New Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "New Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
@@ -851,9 +926,11 @@ describe("Transactions Component", () => {
       const submitButton = screen.getByRole("button", { name: /create transaction/i });
       await userEvent.click(submitButton);
 
-      // Verify success message
-      const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent(/transaction created successfully/i);
+      // Wait for the success message
+      await waitFor(() => {
+        const alert = screen.getByRole('alert');
+        expect(alert).toHaveTextContent(/transaction created successfully/i);
+      });
     });
 
     test("edits an existing transaction", async () => {
@@ -874,12 +951,12 @@ describe("Transactions Component", () => {
 
       // Verify form populated
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toHaveValue("Grocery Shopping");
+        expect(screen.getByLabelText(/transaction description/i)).toHaveValue("Grocery Shopping");
       });
 
       // Update description
-      await userEvent.clear(screen.getByLabelText(/description/i));
-      await userEvent.type(screen.getByLabelText(/description/i), "Updated Transaction");
+      await userEvent.clear(screen.getByLabelText(/transaction description/i));
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Updated Transaction");
 
       // Submit form
       const submitButton = screen.getByRole("button", { name: /update transaction/i });
@@ -941,11 +1018,11 @@ describe("Transactions Component", () => {
 
       // Wait for loading to complete
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Fill out form
-      await userEvent.type(screen.getByLabelText(/description/i), "Test Transaction");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Test Transaction");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[0], "100");
       await userEvent.type(screen.getAllByLabelText(/amount/i)[1], "100");
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
@@ -971,11 +1048,11 @@ describe("Transactions Component", () => {
 
       // Wait for loading to complete
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Type description
-      await userEvent.type(screen.getByLabelText(/description/i), "Grocery Store");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Grocery Store");
 
       // Wait for suggestion
       await waitFor(() => {
@@ -993,14 +1070,14 @@ describe("Transactions Component", () => {
 
       // Wait for loading to complete
       await waitFor(() => {
-        expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/transaction description/i)).toBeInTheDocument();
       });
 
       // Select account manually
       await userEvent.selectOptions(screen.getAllByLabelText(/account/i)[0], "1");
 
       // Type description
-      await userEvent.type(screen.getByLabelText(/description/i), "Grocery Store");
+      await userEvent.type(screen.getByLabelText(/transaction description/i), "Grocery Store");
 
       // Verify account selection remains unchanged
       await waitFor(() => {

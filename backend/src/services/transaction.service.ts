@@ -214,13 +214,20 @@ export class TransactionService {
   async deleteTransaction(id: string, userId: number): Promise<void> {
     try {
       const transaction = await this.transactionRepo.findOne({
-        where: { id, user: { id: userId } }
+        where: { id, user: { id: userId } },
+        relations: ['entries']
       });
 
       if (!transaction) {
         throw new Error(`Transaction with ID ${id} not found`);
       }
 
+      // First delete all associated journal entries
+      if (transaction.entries && transaction.entries.length > 0) {
+        await this.journalEntryRepo.remove(transaction.entries);
+      }
+
+      // Then delete the transaction
       await this.transactionRepo.remove(transaction);
     } catch (error) {
       console.error("Error in deleteTransaction service:", error);

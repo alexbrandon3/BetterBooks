@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import isEqual from 'lodash.isequal';
 import { formatCurrency } from '../utils/formatters';
@@ -78,7 +78,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     fetchSuggestions();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const newGoal: FinancialGoal = {
       id: uuidv4(),
@@ -105,9 +105,9 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     
     setIsModalOpen(false);
     setFormData({ type: 'INCREASE_ASSETS', targetAmount: '', targetDate: '' });
-  };
+  }, [formData, goals, accounts, onGoalsChange, showFeedback]);
 
-  const deleteGoal = (id: string) => {
+  const deleteGoal = useCallback((id: string) => {
     const filteredGoals = goals.filter((goal: FinancialGoal) => goal.id !== id);
     const updatedGoals = filteredGoals.map((g: FinancialGoal) => ({ ...g }));
     
@@ -116,9 +116,9 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
       onGoalsChange(updatedGoals.map((g: FinancialGoal) => ({ ...g })));
       showFeedback('Goal deleted successfully', 'success');
     }
-  };
+  }, [goals, onGoalsChange, showFeedback]);
 
-  const handleAddSuggestedGoal = (suggestedGoal: SuggestedGoal) => {
+  const handleAddSuggestedGoal = useCallback((suggestedGoal: SuggestedGoal) => {
     if (isDuplicateSuggestedGoal(suggestedGoal, goals)) {
       return;
     }
@@ -138,14 +138,21 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
       target: suggestedGoal.targetAmount 
     });
     showFeedback(`Added "${suggestedGoal.title}" goal`, 'success');
-  };
+  }, [goals, onGoalsChange, showFeedback]);
+
+  const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
+  const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+
+  const handleFormDataChange = useCallback((field: keyof GoalFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   return (
     <div className="bg-white shadow rounded-2xl p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-gray-800">Financial Goals</h2>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenModal}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm"
         >
           + New Goal
@@ -272,7 +279,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
                 </label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as GoalType })}
+                  onChange={(e) => handleFormDataChange('type', e.target.value as GoalType)}
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="INCREASE_ASSETS">Increase Assets</option>
@@ -288,7 +295,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
                 <input
                   type="number"
                   value={formData.targetAmount}
-                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
+                  onChange={(e) => handleFormDataChange('targetAmount', e.target.value)}
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="0.00"
                   required
@@ -302,7 +309,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
                 <input
                   type="date"
                   value={formData.targetDate}
-                  onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                  onChange={(e) => handleFormDataChange('targetDate', e.target.value)}
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
@@ -311,7 +318,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
                   Cancel

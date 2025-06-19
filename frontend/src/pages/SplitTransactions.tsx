@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchSplitTransactions,
   createSplitTransaction,
   deleteSplitTransaction,
 } from "../services/SplitTransactionService";
-import { FaTrash } from "react-icons/fa";
+import { toast } from 'react-hot-toast';
 
 interface SplitTransaction {
   id: number;
@@ -28,6 +28,7 @@ const SplitTransactions = () => {
       setSplitTransactions(data);
     } catch (error) {
       console.error("Failed to fetch split transactions:", error);
+      toast.error('Failed to load split transactions. Please try again.');
     }
   };
 
@@ -35,26 +36,42 @@ const SplitTransactions = () => {
     loadSplitTransactions();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await createSplitTransaction({ amount, description, transactionId });
+      toast.success('Split transaction created successfully!');
       loadSplitTransactions();
     } catch (error) {
       console.error("Failed to create split transaction:", error);
+      toast.error('Failed to create split transaction. Please try again.');
     }
-  };
+  }, [amount, description, transactionId]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     try {
       await deleteSplitTransaction(id);
       setSplitTransactions(
         splitTransactions.filter((txn: SplitTransaction) => txn.id !== id)
       );
+      toast.success('Split transaction deleted successfully!');
     } catch (error) {
       console.error("Failed to delete split transaction:", error);
+      toast.error('Failed to delete split transaction. Please try again.');
     }
-  };
+  }, [splitTransactions]);
+
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmount(Number(e.target.value));
+  }, []);
+
+  const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDescription(e.target.value);
+  }, []);
+
+  const handleTransactionIdChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setTransactionId(e.target.value);
+  }, []);
 
   return (
     <div className="p-4">
@@ -64,21 +81,21 @@ const SplitTransactions = () => {
         <input
           type="number"
           value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
+          onChange={handleAmountChange}
           placeholder="Amount"
           className="w-full mb-2 p-2 border rounded"
         />
         <input
           type="text"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={handleDescriptionChange}
           placeholder="Description"
           className="w-full mb-2 p-2 border rounded"
         />
         <input
           type="text"
           value={transactionId}
-          onChange={(e) => setTransactionId(e.target.value)}
+          onChange={handleTransactionIdChange}
           placeholder="Parent Transaction ID"
           className="w-full mb-2 p-2 border rounded"
         />
@@ -112,7 +129,9 @@ const SplitTransactions = () => {
                   title="Delete split transaction"
                   aria-label="Delete split transaction"
                 >
-                  {FaTrash({ size: 16 })}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
               </td>
             </tr>

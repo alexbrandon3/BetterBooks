@@ -7,7 +7,7 @@ import authRoutes from './routes/routes';
 import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
 import goalRoutes from './routes/routes';
-import suggestionRoutes from './routes/suggestionRoutes';
+import suggestionRoutes from './routes/suggestion.routes';
 import reportRoutes from './routes/report.routes';
 import path from 'path';
 

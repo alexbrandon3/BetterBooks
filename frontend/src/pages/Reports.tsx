@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { fetchBalanceSheet, fetchIncomeStatement, type BalanceSheet, type IncomeStatement } from '../services/ReportService';
 import { exportToCSV } from '../utils/exportUtils';
 import { exportToPDF } from '../utils/pdfExportUtils';
@@ -7,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/formatters';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { DateRange } from '../types/common';
+import { toast } from 'react-hot-toast';
 
 // Constants for pagination
 const ITEMS_PER_PAGE = 10;
@@ -38,7 +38,6 @@ const Reports: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
@@ -57,7 +56,7 @@ const Reports: React.FC = () => {
   }, []);
 
   // Handle keyboard navigation
-  const handleKeyDown = (event: React.KeyboardEvent, format?: ExportFormat) => {
+  const handleKeyDown = useCallback((event: React.KeyboardEvent, format?: ExportFormat) => {
     switch (event.key) {
       case 'Escape':
         setShowExportMenu(false);
@@ -88,7 +87,7 @@ const Reports: React.FC = () => {
         }
         break;
     }
-  };
+  }, []);
 
   useEffect(() => {
     console.log('🔄 Reports useEffect triggered');
@@ -111,7 +110,8 @@ const Reports: React.FC = () => {
         console.log('✅ Reports data set successfully');
       } catch (err) {
         console.error('❌ Error loading reports:', err);
-        setError('Failed to load reports');
+        setError('Failed to load reports. Please try again.');
+        toast.error('Failed to load reports. Please try again.');
       } finally {
         setLoading(false);
         console.log('🏁 Loading finished');
@@ -121,7 +121,7 @@ const Reports: React.FC = () => {
     fetchReports();
   }, [dateRange.start, dateRange.end]);
 
-  const handleExport = async (format: ExportFormat) => {
+  const handleExport = useCallback(async (format: ExportFormat) => {
     if (exporting) return;
     
     setExporting(true);
@@ -146,19 +146,24 @@ const Reports: React.FC = () => {
           }
           break;
       }
+      toast.success(`Report exported successfully as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Export error:', error);
       setError('Failed to export report. Please try again.');
+      toast.error('Failed to export report. Please try again.');
     } finally {
       setExporting(false);
       setShowExportMenu(false);
     }
-  };
+  }, [exporting, reportType, balanceSheet, incomeStatement, dateRange]);
+
+  // Memoize the hasData check to prevent unnecessary re-renders
+  const hasData = useMemo(() => {
+    return (reportType === 'balance-sheet' && balanceSheet) ||
+           (reportType === 'income-statement' && incomeStatement);
+  }, [reportType, balanceSheet, incomeStatement]);
 
   const renderExportButton = () => {
-    const hasData = (reportType === 'balance-sheet' && balanceSheet) ||
-                   (reportType === 'income-statement' && incomeStatement);
-
     return (
       <div className="relative" ref={exportMenuRef} data-testid="export-button-container">
         <button
@@ -223,10 +228,10 @@ const Reports: React.FC = () => {
   };
 
   // Helper function to properly capitalize subcategory names
-  const formatSubcategoryName = (name: string): string => {
+  const formatSubcategoryName = useCallback((name: string): string => {
     if (!name) return '';
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  };
+  }, []);
 
   const renderBalanceSheet = () => {
     if (!balanceSheet) return null;

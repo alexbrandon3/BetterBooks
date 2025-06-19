@@ -6,6 +6,7 @@ import {
 } from "../services/RecurringTransactionService";
 import axios from "../utils/axios";
 import { FaTrash } from "react-icons/fa";
+import { toast } from 'react-hot-toast';
 
 interface RecurringTransaction {
   id: number;
@@ -31,8 +32,13 @@ const RecurringTransactions = () => {
 
   useEffect(() => {
     const loadAccounts = async () => {
-      const response = await axios.get("/accounts");
-      setAccounts(response.data);
+      try {
+        const response = await axios.get("/accounts");
+        setAccounts(response.data);
+      } catch (error) {
+        console.error('Failed to load accounts:', error);
+        toast.error('Failed to load accounts. Please refresh the page.');
+      }
     };
     loadAccounts();
   }, []);
@@ -44,6 +50,7 @@ const RecurringTransactions = () => {
       setRecurringTransactions(data);
     } catch (error) {
       console.error("Failed to fetch recurring transactions:", error);
+      toast.error('Failed to load recurring transactions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,9 +69,11 @@ const RecurringTransactions = () => {
         recurrencePattern,
         accountId,
       });
+      toast.success('Recurring transaction created successfully!');
       loadRecurringTransactions();
     } catch (error) {
       console.error("Failed to create recurring transaction:", error);
+      toast.error('Failed to create recurring transaction. Please try again.');
     }
   };
 
@@ -76,8 +85,10 @@ const RecurringTransactions = () => {
           (txn: RecurringTransaction) => txn.id !== id
         )
       );
+      toast.success('Recurring transaction deleted successfully!');
     } catch (error) {
       console.error("Failed to delete recurring transaction:", error);
+      toast.error('Failed to delete recurring transaction. Please try again.');
     }
   };
 
@@ -135,20 +146,20 @@ const RecurringTransactions = () => {
       <table className="w-full border">
         <thead>
           <tr>
-            <th className="border px-4 py-2">Description</th>
-            <th className="border px-4 py-2">Amount</th>
-            <th className="border px-4 py-2">Pattern</th>
-            <th className="border px-4 py-2">Account ID</th>
-            <th className="border px-4 py-2">Actions</th>
+            <th role="columnheader" className="border px-4 py-2">Date</th>
+            <th role="columnheader" className="border px-4 py-2">Description</th>
+            <th role="columnheader" className="border px-4 py-2">Amount</th>
+            <th role="columnheader" className="border px-4 py-2">Account</th>
+            <th role="columnheader" className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           {recurringTransactions.map((txn: any) => (
             <tr key={txn.id}>
+              <td className="border px-4 py-2">-</td>
               <td className="border px-4 py-2">{txn.description}</td>
               <td className="border px-4 py-2">${Math.abs(txn.amount).toFixed(2)}</td>
-              <td className="border px-4 py-2">{txn.recurrencePattern}</td>
-              <td className="border px-4 py-2">{txn.account.id}</td>
+              <td className="border px-4 py-2">{txn.account.name}</td>
               <td className="border px-4 py-2">
                 <button
                   onClick={() => handleDelete(txn.id)}

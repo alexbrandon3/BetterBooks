@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { MessageType } from '../components/FeedbackMessage';
+
+type MessageType = 'success' | 'error' | 'warning' | 'info';
 
 interface FeedbackState {
   message: string;

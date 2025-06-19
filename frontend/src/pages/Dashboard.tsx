@@ -1,5 +1,5 @@
 // Updated Dashboard.tsx with production-quality UI/UX improvements
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchAccounts } from '../services/AccountService';
 import { fetchTransactions } from '../services/TransactionService';
 import { Account } from '../types/account';
@@ -7,6 +7,7 @@ import { Transaction } from '../types/transaction';
 import { formatCurrency } from '../utils/formatUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { SmartGoalSuggestions } from '../components/SmartGoalSuggestions';
+import { toast } from 'react-hot-toast';
 
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -31,7 +32,8 @@ const Dashboard = () => {
         setError(null);
       } catch (err) {
         console.error('Error loading dashboard data:', err);
-        setError('Failed to load dashboard data');
+        setError('Failed to load dashboard data. Please try again.');
+        toast.error('Failed to load dashboard data. Please refresh the page.');
       } finally {
         setIsLoading(false);
       }
@@ -40,35 +42,46 @@ const Dashboard = () => {
     loadData();
   }, []);
 
-  const cashAccounts = (accounts || []).filter(account => {
-    console.log('Checking account:', {
-      id: account.id,
-      name: account.name,
-      type: account.type,
-      category: account.category,
-      balance: account.balance
+  // Memoize expensive calculations
+  const cashAccounts = useMemo(() => {
+    return (accounts || []).filter(account => {
+      console.log('Checking account:', {
+        id: account.id,
+        name: account.name,
+        type: account.type,
+        category: account.category,
+        balance: account.balance
+      });
+      // Include CURRENT_ASSET accounts as cash accounts (most liquid)
+      return account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET';
     });
-    // Include CURRENT_ASSET accounts as cash accounts (most liquid)
-    return account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET';
-  });
+  }, [accounts]);
 
-  const totalCash = cashAccounts.reduce((sum, account) => {
-    const balance = typeof account.balance === 'number' ? account.balance : parseFloat(account.balance) || 0;
-    return sum + balance;
-  }, 0);
+  const totalCash = useMemo(() => {
+    return cashAccounts.reduce((sum, account) => {
+      const balance = typeof account.balance === 'number' ? account.balance : parseFloat(account.balance) || 0;
+      return sum + balance;
+    }, 0);
+  }, [cashAccounts]);
   
   console.log('Cash accounts found:', cashAccounts.length);
   console.log('Total cash:', totalCash);
 
-  const recentTransactions = (transactions || [])
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const recentTransactions = useMemo(() => {
+    return (transactions || [])
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [transactions]);
 
-  // Helper function to format transaction amounts
-  const formatTransactionAmount = (transaction: Transaction) => {
+  // Memoize helper function to prevent recreation on every render
+  const formatTransactionAmount = useCallback((transaction: Transaction) => {
     const amount = Math.abs(transaction.amount);
     return formatCurrency(amount);
-  };
+  }, []);
+
+  // Memoize callback functions to prevent recreation on every render
+  const handleReload = useCallback(() => window.location.reload(), []);
+  const handleGoalSelected = useCallback(() => {}, []);
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -131,7 +144,7 @@ const Dashboard = () => {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="text-red-600 font-medium">{error}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={handleReload} 
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -148,7 +161,7 @@ const Dashboard = () => {
       {/* Smart Goal Suggestions Section */}
       <div className="mb-12">
         <SmartGoalSuggestions
-          onGoalSelected={() => {}}
+          onGoalSelected={handleGoalSelected}
           userRiskTolerance={user?.riskTolerance}
         />
       </div>
