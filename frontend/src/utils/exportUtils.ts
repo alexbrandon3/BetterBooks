@@ -53,10 +53,41 @@ export const balanceSheetToCSV = (data: BalanceSheet): string => {
 
 export const incomeStatementToCSV = (data: IncomeStatement): string => {
   const rows: string[] = [];
-  rows.push('Category,Amount');
-  rows.push(`Total Income,${formatAmount(data.totalIncome)}`);
-  rows.push(`Total Expenses,${formatAmount(data.totalExpenses)}`);
-  rows.push(`Net Income,${formatAmount(data.netIncome)}`);
+  rows.push('Section,Category,Account,Amount');
+  
+  // Revenue Section
+  rows.push('Revenue,,,');
+  if (data.revenue.length > 0) {
+    data.revenue.forEach((group) => {
+      rows.push(`Revenue,${escapeCSV(group.subcategoryName)},,`);
+      group.accounts.forEach((account) => {
+        rows.push(`Revenue,${escapeCSV(group.subcategoryName)},${escapeCSV(account.name)},${formatAmount(account.balance)}`);
+      });
+      rows.push(`Revenue,${escapeCSV(group.subcategoryName)},Total,${formatAmount(group.subtotal)}`);
+    });
+  } else {
+    rows.push('Revenue,No revenue found for the selected period,,');
+  }
+  rows.push(`Revenue,Total Revenue,,${formatAmount(data.totalIncome)}`);
+  
+  // Expenses Section
+  rows.push('Expenses,,,');
+  if (data.expenses.length > 0) {
+    data.expenses.forEach((group) => {
+      rows.push(`Expenses,${escapeCSV(group.subcategoryName)},,`);
+      group.accounts.forEach((account) => {
+        rows.push(`Expenses,${escapeCSV(group.subcategoryName)},${escapeCSV(account.name)},${formatAmount(account.balance)}`);
+      });
+      rows.push(`Expenses,${escapeCSV(group.subcategoryName)},Total,${formatAmount(group.subtotal)}`);
+    });
+  } else {
+    rows.push('Expenses,No expenses found for the selected period,,');
+  }
+  rows.push(`Expenses,Total Expenses,,${formatAmount(data.totalExpenses)}`);
+  
+  // Net Income
+  rows.push(`Net Income,,,${formatAmount(data.netIncome)}`);
+  
   return rows.join('\n');
 };
 

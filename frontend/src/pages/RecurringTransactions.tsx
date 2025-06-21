@@ -5,7 +5,6 @@ import {
   deleteRecurringTransaction,
 } from "../services/RecurringTransactionService";
 import axios from "../utils/axios";
-import { FaTrash } from "react-icons/fa";
 import { toast } from 'react-hot-toast';
 
 interface RecurringTransaction {
@@ -163,11 +162,11 @@ const RecurringTransactions = () => {
               <td className="border px-4 py-2">
                 <button
                   onClick={() => handleDelete(txn.id)}
-                  className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                  className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
                   title="Delete recurring transaction"
                   aria-label="Delete recurring transaction"
                 >
-                  {FaTrash({ size: 16 })}
+                  <span className="text-gray-600 hover:text-red-600">🗑️</span>
                 </button>
               </td>
             </tr>

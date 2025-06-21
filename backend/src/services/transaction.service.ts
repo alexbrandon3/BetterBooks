@@ -13,14 +13,8 @@ export class TransactionService {
   private userRepo = AppDataSource.getRepository("User");
 
   async getTransactions(userId: number): Promise<Transaction[]> {
-    console.log('🔍 Fetching transactions for user', userId);
+    logInfo(`Fetching transactions for user ${userId}`, 'TransactionService');
     
-    const totalEntries = await this.journalEntryRepo
-      .createQueryBuilder('entry')
-      .where('entry.userId = :userId', { userId })
-      .getCount();
-    console.log('📊 Found', totalEntries, 'total journal entries for user');
-
     const transactions = await this.transactionRepo
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.entries', 'entry')
@@ -31,19 +25,7 @@ export class TransactionService {
       .take(5)
       .getMany();
 
-    console.log('🔍 Retrieved transactions:', transactions.map(tx => ({
-      id: tx.id,
-      description: tx.description,
-      entryCount: tx.entries?.length,
-      entries: tx.entries?.map(e => ({
-        id: e.id,
-        amount: e.amount,
-        type: e.type,
-        accountId: e.account?.id,
-        accountName: e.account?.name
-      }))
-    })));
-
+    logSuccess(`Retrieved ${transactions.length} transactions for user ${userId}`, 'TransactionService');
     return transactions;
   }
 
@@ -113,13 +95,6 @@ export class TransactionService {
               throw new Error(`Account ${entry.accountId} not found in validated accounts`);
             }
 
-            console.log('📝 Creating journal entry:', {
-              amount: entry.amount,
-              type: entry.type,
-              accountId: entry.accountId,
-              transactionId: savedTransaction.id
-            });
-
             return transactionalEntityManager.create(JournalEntry, {
               amount: entry.amount,
               type: entry.type as EntryType,
@@ -130,13 +105,7 @@ export class TransactionService {
           });
 
           const savedEntries = await transactionalEntityManager.save(journalEntries);
-          console.log('✅ Saved journal entries:', savedEntries.map(e => ({
-            id: e.id,
-            amount: e.amount,
-            type: e.type,
-            accountId: e.account?.id,
-            transactionId: e.transaction?.id
-          })));
+          logSuccess(`Saved ${savedEntries.length} journal entries`, 'TransactionService');
 
           // Return the full transaction with entries
           const fullTransaction = await transactionalEntityManager.findOne(Transaction, {
@@ -148,18 +117,6 @@ export class TransactionService {
             logError('Failed to retrieve created transaction', 'TransactionService');
             throw new Error("Failed to retrieve created transaction");
           }
-
-          console.log('📦 Final transaction with entries:', {
-            id: fullTransaction.id,
-            description: fullTransaction.description,
-            entryCount: fullTransaction.entries?.length,
-            entries: fullTransaction.entries?.map(e => ({
-              id: e.id,
-              amount: e.amount,
-              type: e.type,
-              accountId: e.account?.id
-            }))
-          });
 
           logSuccess(`Transaction creation complete (ID: ${fullTransaction.id})`, 'TransactionService');
           return fullTransaction;
@@ -175,13 +132,7 @@ export class TransactionService {
   }
 
   async updateTransaction(id: string, data: UpdateTransactionDTO): Promise<Transaction> {
-    console.log("🚀 Transaction Service - Starting updateTransaction");
-    console.log("📦 Update data:", {
-      id,
-      description: data.description,
-      date: data.date,
-      entryCount: data.entries?.length
-    });
+    logInfo(`Starting updateTransaction for ID: ${id}`, 'TransactionService');
 
     try {
       const transaction = await this.transactionRepo.findOne({
@@ -190,7 +141,7 @@ export class TransactionService {
       });
 
       if (!transaction) {
-        console.error("❌ Transaction not found:", id);
+        logError(`Transaction not found: ${id}`, 'TransactionService');
         throw new Error(`Transaction with ID ${id} not found`);
       }
 
@@ -203,15 +154,17 @@ export class TransactionService {
 
       // Save the updated transaction
       const updatedTransaction = await this.transactionRepo.save(transaction);
-      console.log("✅ Transaction updated successfully:", updatedTransaction.id);
+      logSuccess(`Transaction updated successfully: ${updatedTransaction.id}`, 'TransactionService');
       return updatedTransaction;
     } catch (error) {
-      console.error("❌ Error updating transaction:", error);
+      logError(`Error updating transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }
 
   async deleteTransaction(id: string, userId: number): Promise<void> {
+    logInfo(`Starting deleteTransaction for ID: ${id}`, 'TransactionService');
+    
     try {
       const transaction = await this.transactionRepo.findOne({
         where: { id, user: { id: userId } },
@@ -219,18 +172,21 @@ export class TransactionService {
       });
 
       if (!transaction) {
+        logError(`Transaction not found: ${id}`, 'TransactionService');
         throw new Error(`Transaction with ID ${id} not found`);
       }
 
       // First delete all associated journal entries
       if (transaction.entries && transaction.entries.length > 0) {
         await this.journalEntryRepo.remove(transaction.entries);
+        logSuccess(`Deleted ${transaction.entries.length} journal entries`, 'TransactionService');
       }
 
       // Then delete the transaction
       await this.transactionRepo.remove(transaction);
+      logSuccess(`Transaction deleted successfully: ${id}`, 'TransactionService');
     } catch (error) {
-      console.error("Error in deleteTransaction service:", error);
+      logError(`Error in deleteTransaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }
@@ -240,7 +196,7 @@ export class TransactionService {
       // Implementation for account suggestion
       return null;
     } catch (error) {
-      console.error("Error in suggestAccount service:", error);
+      logError(`Error in suggestAccount: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }
@@ -250,7 +206,7 @@ export class TransactionService {
       // Implementation for recurring transactions
       return [];
     } catch (error) {
-      console.error("Error in getRecurringTransactions service:", error);
+      logError(`Error in getRecurringTransactions: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }

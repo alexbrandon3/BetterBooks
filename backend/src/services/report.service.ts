@@ -248,51 +248,107 @@ export class ReportService {
 
     console.log('📊 Found entries for income statement:', entries.length);
 
-    let totalIncome = 0;
-    let totalExpenses = 0;
+    // Get all accounts for the user
+    const accounts = await AppDataSource.getRepository(Account).find({
+      where: { user: { id: userId } }
+    });
+
+    // Calculate account balances for the period
+    const accountBalances = new Map<number, number>();
+    accounts.forEach((account: any) => {
+      accountBalances.set(account.id, 0);
+    });
 
     entries.forEach((entry: JournalEntry) => {
-      // Convert amount to number to ensure proper arithmetic
+      const currentBalance = accountBalances.get(entry.account.id) || 0;
       const amount = parseFloat(entry.amount.toString());
-      console.log(`📝 Processing entry: Account ${entry.account.name} (${entry.account.financialCategory}) - Type: ${entry.type}, Amount: ${amount}`);
       
-      // For income statement, we need to look at the account type to determine if it's income or expense
-      // Revenue accounts normally have credit balances
-      // Expense accounts normally have debit balances
+      // For income statement accounts, we need to consider the normal balance direction
+      let balanceChange = 0;
       
       if (entry.account.financialCategory === FinancialCategory.OPERATING_REVENUE || 
           entry.account.financialCategory === FinancialCategory.NON_OPERATING_REVENUE) {
-        // Revenue accounts: credits increase income, debits decrease income
-        if (entry.type === EntryType.CREDIT) {
-          totalIncome += amount;
-          console.log(`💰 Added to income: ${amount}, Total: ${totalIncome}`);
-        } else {
-          totalIncome -= amount;
-          console.log(`💰 Subtracted from income: ${amount}, Total: ${totalIncome}`);
-        }
+        // Revenue accounts: credits increase income (positive), debits decrease income (negative)
+        balanceChange = entry.type === EntryType.CREDIT ? amount : -amount;
       } else if (entry.account.financialCategory === FinancialCategory.OPERATING_EXPENSE || 
                  entry.account.financialCategory === FinancialCategory.NON_OPERATING_EXPENSE) {
-        // Expense accounts: debits increase expenses, credits decrease expenses
-        if (entry.type === EntryType.DEBIT) {
-          totalExpenses += amount;
-          console.log(`💸 Added to expenses: ${amount}, Total: ${totalExpenses}`);
-        } else {
-          totalExpenses -= amount;
-          console.log(`💸 Subtracted from expenses: ${amount}, Total: ${totalExpenses}`);
-        }
-      } else {
-        console.log(`⏭️ Skipping entry for account category: ${entry.account.financialCategory}`);
+        // Expense accounts: debits increase expenses (positive), credits decrease expenses (negative)
+        balanceChange = entry.type === EntryType.DEBIT ? amount : -amount;
       }
-      // Note: We ignore asset, liability, and equity accounts for income statement
+      
+      accountBalances.set(entry.account.id, currentBalance + balanceChange);
     });
 
+    // Group accounts by revenue and expense categories
+    const revenueAccounts = new Map<string, AccountBalance[]>();
+    const expenseAccounts = new Map<string, AccountBalance[]>();
+    const subcategoryOrder = new Map<string, number>();
+    let orderCounter = 0;
+
+    accounts.forEach((account: any) => {
+      const balance = accountBalances.get(account.id) || 0;
+      
+      // Skip accounts with zero balance for the period
+      if (balance === 0) return;
+      
+      if (account.financialCategory === FinancialCategory.OPERATING_REVENUE || 
+          account.financialCategory === FinancialCategory.NON_OPERATING_REVENUE) {
+        const subcategory = account.financialSubcategory || 'OTHER_REVENUE';
+        
+        if (!revenueAccounts.has(subcategory)) {
+          revenueAccounts.set(subcategory, []);
+          subcategoryOrder.set(subcategory, orderCounter++);
+        }
+        
+        revenueAccounts.get(subcategory)!.push({
+          id: account.id,
+          name: account.name,
+          balance
+        });
+      } else if (account.financialCategory === FinancialCategory.OPERATING_EXPENSE || 
+                 account.financialCategory === FinancialCategory.NON_OPERATING_EXPENSE) {
+        const subcategory = account.financialSubcategory || 'OTHER_EXPENSE';
+        
+        if (!expenseAccounts.has(subcategory)) {
+          expenseAccounts.set(subcategory, []);
+          subcategoryOrder.set(subcategory, orderCounter++);
+        }
+        
+        expenseAccounts.get(subcategory)!.push({
+          id: account.id,
+          name: account.name,
+          balance
+        });
+      }
+    });
+
+    // Helper function to create subcategory groups
+    const createSubcategoryGroups = (accountMap: Map<string, AccountBalance[]>): SubcategoryGroup[] => {
+      return Array.from(accountMap.entries())
+        .map(([subcategory, accounts]) => ({
+          subcategoryName: subcategory,
+          accounts: accounts.sort((a, b) => a.name.localeCompare(b.name)),
+          subtotal: accounts.reduce((sum, acc) => sum + acc.balance, 0),
+          displayOrder: subcategoryOrder.get(subcategory) || 0
+        }))
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+    };
+
+    const revenueGroups = createSubcategoryGroups(revenueAccounts);
+    const expenseGroups = createSubcategoryGroups(expenseAccounts);
+
+    const totalIncome = revenueGroups.reduce((sum, group) => sum + group.subtotal, 0);
+    const totalExpenses = expenseGroups.reduce((sum, group) => sum + group.subtotal, 0);
+
     const result = {
+      revenue: revenueGroups,
+      expenses: expenseGroups,
       totalIncome: Number(totalIncome),
       totalExpenses: Number(totalExpenses),
       netIncome: Number(totalIncome - totalExpenses),
     };
 
-    console.log('💰 Income statement result:', result);
+    console.log('💰 Enhanced income statement result:', result);
     return result;
   }
 }

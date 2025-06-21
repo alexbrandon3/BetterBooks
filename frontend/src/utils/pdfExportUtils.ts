@@ -125,19 +125,101 @@ const generateIncomeStatementPDF = (
   doc.setFontSize(12);
   doc.text(formatDateRange(dateRange), 14, 30);
   let yPos = 40;
-  const tableData = [
-    ['Total Income', formatAmount(data.totalIncome)],
-    ['Total Expenses', formatAmount(data.totalExpenses)],
-    ['Net Income', formatAmount(data.netIncome)]
-  ];
+
+  // Revenue Section
+  doc.setFontSize(14);
+  doc.text('Revenue', 14, yPos);
+  yPos += 10;
+  
+  if (data.revenue.length > 0) {
+    data.revenue.forEach((group) => {
+      const revenueData = [
+        [group.subcategoryName, '', formatAmount(group.subtotal)],
+        ...group.accounts.map((account) => ['', account.name, formatAmount(account.balance)])
+      ];
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [['Category', 'Account', 'Amount']],
+        body: revenueData,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 139, 202] },
+        styles: { fontSize: 10 },
+        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    });
+  } else {
+    (doc as any).autoTable({
+      startY: yPos,
+      body: [['No revenue found for the selected period', '', '']],
+      theme: 'grid',
+      styles: { fontSize: 10, fontStyle: 'italic' },
+      columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Total Revenue
   (doc as any).autoTable({
     startY: yPos,
-    head: [['Category', 'Amount']],
-    body: tableData,
+    body: [['Total Revenue', '', formatAmount(data.totalIncome)]],
     theme: 'grid',
-    headStyles: { fillColor: [66, 139, 202] },
-    styles: { fontSize: 10 },
-    columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 80, halign: 'right' } }
+    styles: { fontSize: 10, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 20;
+
+  // Expenses Section
+  doc.setFontSize(14);
+  doc.text('Expenses', 14, yPos);
+  yPos += 10;
+  
+  if (data.expenses.length > 0) {
+    data.expenses.forEach((group) => {
+      const expenseData = [
+        [group.subcategoryName, '', formatAmount(group.subtotal)],
+        ...group.accounts.map((account) => ['', account.name, formatAmount(account.balance)])
+      ];
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [['Category', 'Account', 'Amount']],
+        body: expenseData,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 139, 202] },
+        styles: { fontSize: 10 },
+        columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    });
+  } else {
+    (doc as any).autoTable({
+      startY: yPos,
+      body: [['No expenses found for the selected period', '', '']],
+      theme: 'grid',
+      styles: { fontSize: 10, fontStyle: 'italic' },
+      columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Total Expenses
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Total Expenses', '', formatAmount(data.totalExpenses)]],
+    theme: 'grid',
+    styles: { fontSize: 10, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 20;
+
+  // Net Income
+  const netIncomeColor = data.netIncome >= 0 ? [34, 197, 94] : [239, 68, 68]; // Green for positive, red for negative
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Net Income', '', formatAmount(data.netIncome)]],
+    theme: 'grid',
+    styles: { fontSize: 12, fontStyle: 'bold', textColor: netIncomeColor },
+    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
   });
 };
 

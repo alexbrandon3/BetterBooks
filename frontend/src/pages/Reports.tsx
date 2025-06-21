@@ -230,7 +230,65 @@ const Reports: React.FC = () => {
   // Helper function to properly capitalize subcategory names
   const formatSubcategoryName = useCallback((name: string): string => {
     if (!name) return '';
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    
+    // Handle common financial subcategory names with proper formatting
+    const subcategoryMappings: Record<string, string> = {
+      'ACCOUNTS_PAYABLE': 'Accounts Payable',
+      'ACCOUNTS_RECEIVABLE': 'Accounts Receivable',
+      'CASH_AND_EQUIVALENTS': 'Cash and Equivalents',
+      'PREPAID_EXPENSES': 'Prepaid Expenses',
+      'INVENTORY': 'Inventory',
+      'FIXED_ASSETS': 'Fixed Assets',
+      'ACCUMULATED_DEPRECIATION': 'Accumulated Depreciation',
+      'SHORT_TERM_DEBT': 'Short Term Debt',
+      'LONG_TERM_DEBT': 'Long Term Debt',
+      'RETAINED_EARNINGS': 'Retained Earnings',
+      'COMMON_STOCK': 'Common Stock',
+      'PREFERRED_STOCK': 'Preferred Stock',
+      'OPERATING_REVENUE': 'Operating Revenue',
+      'NON_OPERATING_REVENUE': 'Non-Operating Revenue',
+      'OPERATING_EXPENSE': 'Operating Expense',
+      'NON_OPERATING_EXPENSE': 'Non-Operating Expense',
+      'COST_OF_GOODS_SOLD': 'Cost of Goods Sold',
+      'SALES_REVENUE': 'Sales Revenue',
+      'SERVICE_REVENUE': 'Service Revenue',
+      'INTEREST_EXPENSE': 'Interest Expense',
+      'TAX_EXPENSE': 'Tax Expense',
+      'DEPRECIATION_EXPENSE': 'Depreciation Expense',
+      'AMORTIZATION_EXPENSE': 'Amortization Expense',
+      'BAD_DEBT_EXPENSE': 'Bad Debt Expense',
+      'RENT_EXPENSE': 'Rent Expense',
+      'UTILITIES_EXPENSE': 'Utilities Expense',
+      'SALARY_EXPENSE': 'Salary Expense',
+      'WAGE_EXPENSE': 'Wage Expense',
+      'INSURANCE_EXPENSE': 'Insurance Expense',
+      'ADVERTISING_EXPENSE': 'Advertising Expense',
+      'MAINTENANCE_EXPENSE': 'Maintenance Expense',
+      'TRAVEL_EXPENSE': 'Travel Expense',
+      'MEAL_EXPENSE': 'Meal Expense',
+      'OFFICE_SUPPLIES': 'Office Supplies',
+      'TECHNOLOGY_EXPENSE': 'Technology Expense',
+      'LEGAL_EXPENSE': 'Legal Expense',
+      'ACCOUNTING_EXPENSE': 'Accounting Expense',
+      'BANK_FEES': 'Bank Fees',
+      'CREDIT_CARD_FEES': 'Credit Card Fees',
+      'INTEREST_INCOME': 'Interest Income',
+      'DIVIDEND_INCOME': 'Dividend Income',
+      'GAIN_ON_SALE': 'Gain on Sale',
+      'LOSS_ON_SALE': 'Loss on Sale',
+      'UNCATEGORIZED': 'Uncategorized'
+    };
+
+    // Check if we have a specific mapping
+    if (subcategoryMappings[name]) {
+      return subcategoryMappings[name];
+    }
+
+    // Fallback: handle underscores and basic capitalization
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }, []);
 
   const renderBalanceSheet = () => {
@@ -367,29 +425,110 @@ const Reports: React.FC = () => {
 
     return (
       <div className="space-y-6" role="region" aria-label="Income Statement report">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200" aria-label="Income Statement">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Total Income</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(incomeStatement.totalIncome)}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Total Expenses</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(incomeStatement.totalExpenses)}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Net Income</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(incomeStatement.netIncome)}</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Revenue Section */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Revenue</h2>
+          <div className="space-y-4">
+            {incomeStatement.revenue.length > 0 ? (
+              incomeStatement.revenue.map((group, index) => (
+                <div key={index}>
+                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Revenue'}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Revenue'}`}>
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {group.accounts.map((account) => (
+                          <tr key={account.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 pl-8">{account.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Revenue'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No revenue found for the selected period.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Total Revenue */}
+        <div className="border-t-2 border-gray-300 pt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Total Revenue</h3>
+            <span className="text-lg font-semibold text-gray-900">{formatAmount(incomeStatement.totalIncome)}</span>
+          </div>
+        </div>
+
+        {/* Expenses Section */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Expenses</h2>
+          <div className="space-y-4">
+            {incomeStatement.expenses.length > 0 ? (
+              incomeStatement.expenses.map((group, index) => (
+                <div key={index}>
+                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Expenses'}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Expenses'}`}>
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {group.accounts.map((account) => (
+                          <tr key={account.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 pl-8">{account.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Expenses'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No expenses found for the selected period.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Total Expenses */}
+        <div className="border-t-2 border-gray-300 pt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Total Expenses</h3>
+            <span className="text-lg font-semibold text-gray-900">{formatAmount(incomeStatement.totalExpenses)}</span>
+          </div>
+        </div>
+
+        {/* Net Income */}
+        <div className="border-t-4 border-gray-400 pt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-gray-900">Net Income</h3>
+            <span className={`text-xl font-bold ${incomeStatement.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatAmount(incomeStatement.netIncome)}
+            </span>
+          </div>
         </div>
       </div>
     );

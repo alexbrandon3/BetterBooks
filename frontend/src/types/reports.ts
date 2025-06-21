@@ -18,6 +18,8 @@ export interface BalanceSheet {
 }
 
 export interface IncomeStatement {
+  revenue: SubcategoryGroup[];
+  expenses: SubcategoryGroup[];
   totalIncome: number;
   totalExpenses: number;
   netIncome: number;

@@ -113,26 +113,6 @@ export const schemas = {
     }).optional(),
   }),
 
-  createSplitTransaction: z.object({
-    description: z.string().min(1, 'Description is required'),
-    type: z.enum(['INCOME', 'EXPENSE']),
-    entries: z.array(
-      z.object({
-        amount: z.coerce.number()
-          .positive()
-          .refine(val => !isNaN(val), {
-            message: 'Amount must be a valid number',
-          }),
-        accountId: z.coerce.number()
-          .int()
-          .positive()
-          .refine(val => !isNaN(val), {
-            message: 'Account ID must be a valid number',
-          }),
-      })
-    ).min(1, 'At least one entry is required'),
-  }),
-
   suggestAccount: z.object({
     description: z.string().min(1, 'Description is required'),
   }),

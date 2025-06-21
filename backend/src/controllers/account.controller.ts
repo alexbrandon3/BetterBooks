@@ -4,12 +4,10 @@ import { Account } from "../entities/Account";
 import { getUser } from "../utils/getUser";
 import { AuthenticationError, NotFoundError } from "../utils/errors";
 import { AuthenticatedRequest } from "../types/express";
-import { getSuggestedMetadata } from "../utils/accountCategorizer";
+import { getSuggestedMetadata, validateAccountMetadata } from "../utils/accountCategorizer";
 import { BaseController } from "./base.controller";
 
 const accountRepo = AppDataSource.getRepository(Account);
-
-
 
 export class AccountController extends BaseController {
   async getAccounts(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -26,13 +24,35 @@ export class AccountController extends BaseController {
 
   async createAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { name, type, balance, isLiquid } = req.body;
+      const { 
+        name, 
+        type, 
+        balance, 
+        isLiquid,
+        category,
+        subcategory,
+        financialCategory,
+        financialSubcategory
+      } = req.body;
+      
+      // Validate and clean the account metadata
+      const validatedMetadata = validateAccountMetadata({
+        type,
+        category,
+        subcategory,
+        financialCategory,
+        financialSubcategory
+      });
       
       const account = accountRepo.create({
         name,
-        type,
+        type: validatedMetadata.type,
         balance,
         isLiquid,
+        category: validatedMetadata.category,
+        subcategory: validatedMetadata.subcategory,
+        financialCategory: validatedMetadata.financialCategory,
+        financialSubcategory: validatedMetadata.financialSubcategory,
         user: { id: req.user.userId },
       });
 
@@ -47,7 +67,16 @@ export class AccountController extends BaseController {
   async updateAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, type, balance, isLiquid } = req.body;
+      const { 
+        name, 
+        type, 
+        balance, 
+        isLiquid,
+        category,
+        subcategory,
+        financialCategory,
+        financialSubcategory
+      } = req.body;
 
       const account = await accountRepo.findOne({
         where: { id: Number(id), user: { id: req.user.userId } },
@@ -58,10 +87,23 @@ export class AccountController extends BaseController {
         return;
       }
 
+      // Validate and clean the account metadata if provided
+      const validatedMetadata = validateAccountMetadata({
+        type: type || account.type,
+        category: category || account.category,
+        subcategory: subcategory || account.subcategory,
+        financialCategory: financialCategory || account.financialCategory,
+        financialSubcategory: financialSubcategory || account.financialSubcategory
+      });
+
       account.name = name ?? account.name;
-      account.type = type ?? account.type;
+      account.type = validatedMetadata.type;
       account.balance = balance ?? account.balance;
       account.isLiquid = isLiquid ?? account.isLiquid;
+      account.category = validatedMetadata.category;
+      account.subcategory = validatedMetadata.subcategory;
+      account.financialCategory = validatedMetadata.financialCategory;
+      account.financialSubcategory = validatedMetadata.financialSubcategory;
 
       await accountRepo.save(account);
       this.sendResponse(res, 200, account);

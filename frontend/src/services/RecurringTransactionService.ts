@@ -20,6 +20,16 @@ export const createRecurringTransaction = async (transaction: any) => {
   }
 };
 
+export const updateRecurringTransaction = async (id: number, transaction: any) => {
+  try {
+    const response = await axios.put(`/recurring-transactions/${id}`, transaction);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating recurring transaction:", error);
+    throw error;
+  }
+};
+
 export const deleteRecurringTransaction = async (id: number) => {
   try {
     await axios.delete(`/recurring-transactions/${id}`);

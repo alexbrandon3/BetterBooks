@@ -20,13 +20,13 @@ const Dashboard = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        console.log('Loading dashboard data...');
+        // console.log('Loading dashboard data...');
         const [accountsData, transactionsData] = await Promise.all([
           fetchAccounts(),
           fetchTransactions()
         ]);
-        console.log('Accounts data:', accountsData);
-        console.log('Transactions data:', transactionsData);
+        // console.log('Accounts data:', accountsData);
+        // console.log('Transactions data:', transactionsData);
         setAccounts(accountsData);
         setTransactions(transactionsData);
         setError(null);
@@ -45,13 +45,6 @@ const Dashboard = () => {
   // Memoize expensive calculations
   const cashAccounts = useMemo(() => {
     return (accounts || []).filter(account => {
-      console.log('Checking account:', {
-        id: account.id,
-        name: account.name,
-        type: account.type,
-        category: account.category,
-        balance: account.balance
-      });
       // Include CURRENT_ASSET accounts as cash accounts (most liquid)
       return account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET';
     });
@@ -64,8 +57,8 @@ const Dashboard = () => {
     }, 0);
   }, [cashAccounts]);
   
-  console.log('Cash accounts found:', cashAccounts.length);
-  console.log('Total cash:', totalCash);
+  // console.log('Cash accounts found:', cashAccounts.length);
+  // console.log('Total cash:', totalCash);
 
   const recentTransactions = useMemo(() => {
     return (transactions || [])

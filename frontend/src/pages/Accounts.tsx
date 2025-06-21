@@ -540,15 +540,19 @@ const Accounts = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right space-x-2">
                       <button
                         onClick={() => handleEdit(account)}
-                        className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                        title="Edit account"
+                        aria-label="Edit account"
                       >
-                        Edit
+                        <span className="text-blue-600 hover:text-blue-800">✏️</span>
                       </button>
                       <button
                         onClick={() => handleDelete(Number(account.id))}
-                        className="text-red-600 hover:text-red-800 focus:outline-none"
+                        className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                        title="Delete account"
+                        aria-label="Delete account"
                       >
-                        Delete
+                        <span className="text-gray-600 hover:text-red-600">🗑️</span>
                       </button>
                     </td>
                   </tr>

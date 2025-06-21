@@ -5,7 +5,6 @@ import Navigation from "./components/Navigation";
 import { Settings } from "./components/PageStubs";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
-import SplitTransactions from "./pages/SplitTransactions";
 import RecurringTransactions from "./pages/RecurringTransactions";
 import Reports from "./pages/Reports";
 import Accounts from "./pages/Accounts";
@@ -44,11 +43,6 @@ const App = () => {
             <Route path="/transactions" element={
               <ProtectedRoute>
                 <Transactions />
-              </ProtectedRoute>
-            } />
-            <Route path="/split-transactions" element={
-              <ProtectedRoute>
-                <SplitTransactions />
               </ProtectedRoute>
             } />
             <Route path="/recurring-transactions" element={

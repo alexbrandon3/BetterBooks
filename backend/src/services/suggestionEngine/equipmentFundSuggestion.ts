@@ -27,7 +27,60 @@ export const generateEquipmentFundSuggestion = (
     );
     
     if (businessExpenses.length === 0) {
-      return null;
+      // Fallback: Suggest a General Expense Reserve Fund for non-equipment users
+      const allExpenses = transactions.filter(t => 
+        t.type === 'EXPENSE' && 
+        new Date(t.date) >= oneYearAgo
+      );
+      
+      if (allExpenses.length === 0) {
+        // No expense data available, suggest a default reserve fund
+        const defaultTarget = 2000; // Default $2,000 reserve fund
+        
+        // Adjust target based on risk tolerance
+        let adjustedTarget = defaultTarget;
+        if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
+          adjustedTarget = 3000; // $3,000 for conservative
+        } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
+          adjustedTarget = 1000; // $1,000 for aggressive
+        }
+
+        return {
+          id: 'general-reserve-fund',
+          title: 'General Expense Reserve Fund',
+          targetAmount: adjustedTarget,
+          reason: `Build a $${adjustedTarget.toLocaleString()} reserve fund for unexpected expenses${
+            user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
+          }`,
+          action: 'goals'
+        };
+      }
+      
+      // Calculate average monthly expenses
+      const totalExpense = allExpenses.reduce((sum, t) => sum + t.amount, 0);
+      const averageMonthlyExpense = totalExpense / 12;
+      
+      // Suggest 1-2 months of expenses as reserve fund
+      const targetAmount = Math.round(averageMonthlyExpense * 1.5); // 1.5 months default
+      
+      // Adjust target based on risk tolerance
+      let adjustedTarget = targetAmount;
+      if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
+        adjustedTarget = Math.round(averageMonthlyExpense * 2); // 2 months for conservative
+      } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
+        adjustedTarget = Math.round(averageMonthlyExpense * 1); // 1 month for aggressive
+      }
+
+      return {
+        id: 'business-safety-net',
+        title: 'Business Safety Net',
+        targetAmount: adjustedTarget,
+        reason: `Save ${user.riskTolerance === RiskTolerance.CONSERVATIVE ? '2' : 
+                 user.riskTolerance === RiskTolerance.AGGRESSIVE ? '1' : '1.5'} months of expenses (${adjustedTarget.toLocaleString()})${
+          user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
+        }`,
+        action: 'goals'
+      };
     }
     
     // Calculate average business expense

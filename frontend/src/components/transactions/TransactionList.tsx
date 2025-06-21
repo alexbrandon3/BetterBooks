@@ -2,7 +2,6 @@ import React from 'react';
 import { Transaction } from '../../types/transaction';
 import { Account } from '../../types/account';
 import { formatCurrency } from '../../utils/formatUtils';
-import { FaEdit, FaTrash } from 'react-icons/fa';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -55,17 +54,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 aria-label="Edit transaction"
                 title="Edit transaction"
               >
-                {FaEdit({ size: 16 })}
+                <span className="text-blue-600 hover:text-blue-800">✏️</span>
               </button>
               <button
                 onClick={() => onDelete(transaction.id)}
-                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors flex items-center gap-1"
+                className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
                 data-testid={`delete-transaction-${transaction.id}`}
                 aria-label="Delete transaction"
                 title="Delete transaction"
               >
-                {FaTrash({ size: 16 })}
-                <span>Delete</span>
+                <span className="text-gray-600 hover:text-red-600">🗑️</span>
               </button>
             </div>
           </div>

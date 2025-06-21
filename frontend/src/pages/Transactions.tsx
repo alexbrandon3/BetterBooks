@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
-  TransactionForm, 
   fetchTransactions,
   createTransaction,
   updateTransaction,
   deleteTransaction,
   getSuggestedAccount,
   JournalEntryFields,
-  BackendTransactionForm
 } from '../services/TransactionService';
 import { fetchAccounts } from '../services/AccountService';
 import { Account, AccountType, FinancialCategory } from '../types/account';
@@ -17,16 +15,62 @@ import { JournalEntryFields as JournalEntryFieldsComponent } from '../components
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Resolver } from 'react-hook-form';
+import {
+  fetchRecurringTransactions,
+  createRecurringTransaction,
+  updateRecurringTransaction,
+  deleteRecurringTransaction,
+} from "../services/RecurringTransactionService";
+
+interface TransactionForm {
+  date: string;
+  type: "INCOME" | "EXPENSE";
+  description: string;
+  category: string;
+  amount: number;
+  entries: {
+    accountId: string;
+    amount: string;
+    type: "DEBIT" | "CREDIT";
+  }[];
+  // Recurring transaction fields
+  isRecurring: boolean;
+  recurrencePattern: "DAILY" | "WEEKLY" | "MONTHLY";
+  nextRun: string;
+  endDate?: string;
+}
+
+interface BackendTransactionForm {
+  description: string;
+  date: string;
+  type: "INCOME" | "EXPENSE";
+  category: string;
+  amount: number;
+  entries: {
+    accountId: number;
+    amount: number;
+    type: "DEBIT" | "CREDIT";
+    description: string;
+  }[];
+  // Recurring transaction fields
+  isRecurring?: boolean;
+  recurrencePattern?: "DAILY" | "WEEKLY" | "MONTHLY";
+  nextRun?: string;
+  endDate?: string;
+}
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [recurringTransactions, setRecurringTransactions] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [editingRecurringId, setEditingRecurringId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -78,10 +122,6 @@ const Transactions = () => {
         if (!entry.type) {
           entryError.type = { type: 'required', message: 'Entry type is required' };
         }
-        // Description required for split mode
-        if (values.entries.length > 2 && !entry.description) {
-          entryError.description = { type: 'required', message: 'Description is required' };
-        }
         return Object.keys(entryError).length > 0 ? entryError : undefined;
       });
       
@@ -94,17 +134,32 @@ const Transactions = () => {
     return { values, errors };
   };
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TransactionForm>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<TransactionForm>({
+    resolver,
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       type: "EXPENSE",
       description: "",
+      category: "Uncategorized",
+      amount: 0,
       entries: [
-        { accountId: "", amount: "", type: "DEBIT", description: "" },
-        { accountId: "", amount: "", type: "CREDIT", description: "" }
-      ]
-    },
-    resolver
+        { accountId: "", amount: "", type: "DEBIT" },
+        { accountId: "", amount: "", type: "CREDIT" }
+      ],
+      // Recurring transaction defaults
+      isRecurring: false,
+      recurrencePattern: "MONTHLY",
+      nextRun: new Date().toISOString().split('T')[0],
+      endDate: undefined
+    }
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -176,40 +231,54 @@ const Transactions = () => {
     }
   };
 
-  const handleEntryDescriptionChange = (index: number, value: string) => {
-    const updatedFields = [...fields];
-    updatedFields[index] = { ...updatedFields[index], description: value };
-    reset({ ...fields, entries: updatedFields });
-  };
-
-  const isEditingSplitTransaction = Boolean(editingTransactionId && fields.length > 1);
-
   const handleResetForm = () => {
-    reset({
+    const resetData: TransactionForm = {
       date: new Date().toISOString().split('T')[0],
       type: "EXPENSE",
       description: "",
       category: "Uncategorized",
       amount: 0,
       entries: [
-        { accountId: "", amount: "", type: "DEBIT", description: "" },
-        { accountId: "", amount: "", type: "CREDIT", description: "" }
-      ]
-    });
+        { accountId: "", amount: "", type: "DEBIT" },
+        { accountId: "", amount: "", type: "CREDIT" }
+      ],
+      // Reset recurring fields
+      isRecurring: false,
+      recurrencePattern: "MONTHLY",
+      nextRun: new Date().toISOString().split('T')[0],
+      endDate: undefined
+    };
+    reset(resetData);
+    setFormKey(prev => prev + 1);
     setEditingTransactionId(null);
-    setError(null);
-    setSuccessMessage(null);
+    setEditingRecurringId(null);
   };
 
   const onSubmit = async (data: TransactionForm) => {
     setIsSubmitting(true);
     // Don't clear successMessage or error here
     try {
-      // Calculate total amount from entries
-      const totalAmount = data.entries.reduce((sum, entry) => {
-        const amount = parseFloat(entry.amount) || 0;
-        return sum + amount;
-      }, 0);
+      // Calculate net amount (debits - credits)
+      // For INCOME: positive amount (credits > debits)
+      // For EXPENSE: positive amount (debits > credits)
+      const debitTotal = data.entries
+        .filter(entry => entry.type === "DEBIT")
+        .reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+      
+      const creditTotal = data.entries
+        .filter(entry => entry.type === "CREDIT")
+        .reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+
+      // For INCOME transactions, the amount should be the credit side
+      // For EXPENSE transactions, the amount should be the debit side
+      const totalAmount = data.type === "INCOME" ? creditTotal : debitTotal;
+
+      console.log('💰 Amount calculation:', {
+        debitTotal,
+        creditTotal,
+        transactionType: data.type,
+        calculatedAmount: totalAmount
+      });
 
       // Create backend-compatible transaction data
       const backendTransactionData: BackendTransactionForm = {
@@ -222,7 +291,7 @@ const Transactions = () => {
           accountId: parseInt(entry.accountId) || 0, // Convert string to number
           amount: parseFloat(entry.amount) || 0, // Convert string to number
           type: entry.type,
-          description: entry.description || ""
+          description: data.description // Use main transaction description for all entries
         }))
       };
 
@@ -233,11 +302,48 @@ const Transactions = () => {
         setSuccessMessage("Transaction updated successfully!");
         setError(null);
         toast.success("Transaction updated successfully!");
-      } else {
-        await createTransaction(backendTransactionData);
-        setSuccessMessage("Transaction created successfully!");
+      } else if (editingRecurringId) {
+        // Update recurring transaction
+        const recurringData = {
+          description: data.description,
+          amount: totalAmount,
+          recurrencePattern: data.recurrencePattern,
+          nextRun: data.nextRun,
+          endDate: data.endDate || undefined,
+          // For now, use the first account as the main account
+          accountId: parseInt(data.entries[0]?.accountId) || 0
+        };
+        
+        console.log('📤 Updating recurring transaction:', JSON.stringify(recurringData, null, 2));
+        await updateRecurringTransaction(editingRecurringId, recurringData);
+        setSuccessMessage("Recurring transaction updated successfully!");
+        toast.success("Recurring transaction updated successfully!");
         setError(null);
-        toast.success("Transaction created successfully!");
+      } else {
+        // Check if this is a recurring transaction
+        if (data.isRecurring) {
+          // Create recurring transaction
+          const recurringData = {
+            description: data.description,
+            amount: totalAmount,
+            recurrencePattern: data.recurrencePattern,
+            nextRun: data.nextRun,
+            endDate: data.endDate || undefined,
+            // For now, use the first account as the main account
+            accountId: parseInt(data.entries[0]?.accountId) || 0
+          };
+          
+          console.log('📤 Creating recurring transaction:', JSON.stringify(recurringData, null, 2));
+          await createRecurringTransaction(recurringData);
+          setSuccessMessage("Recurring transaction created successfully!");
+          toast.success("Recurring transaction created successfully!");
+        } else {
+          // Create regular transaction
+          await createTransaction(backendTransactionData);
+          setSuccessMessage("Transaction created successfully!");
+          toast.success("Transaction created successfully!");
+        }
+        setError(null);
       }
       // Reset form completely after successful submission
       const resetData: TransactionForm = {
@@ -247,13 +353,19 @@ const Transactions = () => {
         category: "Uncategorized",
         amount: 0,
         entries: [
-          { accountId: "", amount: "", type: "DEBIT", description: "" },
-          { accountId: "", amount: "", type: "CREDIT", description: "" }
-        ]
+          { accountId: "", amount: "", type: "DEBIT" },
+          { accountId: "", amount: "", type: "CREDIT" }
+        ],
+        // Recurring transaction defaults
+        isRecurring: false,
+        recurrencePattern: "MONTHLY",
+        nextRun: new Date().toISOString().split('T')[0],
+        endDate: undefined
       };
       reset(resetData);
       setFormKey(prev => prev + 1); // Force form re-render
       setEditingTransactionId(null);
+      setEditingRecurringId(null);
       fetchData();
     } catch (err) {
       console.error('Failed to save transaction:', err);
@@ -289,11 +401,47 @@ const Transactions = () => {
       entries: entries.map(entry => ({
         accountId: entry.account.id,
         amount: entry.amount.toString(),
-        type: entry.type,
-        description: entry.description || ""
-      }))
+        type: entry.type
+      })),
+      // Reset recurring fields
+      isRecurring: false,
+      recurrencePattern: "MONTHLY",
+      nextRun: new Date().toISOString().split('T')[0],
+      endDate: undefined
     });
     setEditingTransactionId(transaction.id);
+    setEditingRecurringId(null);
+  };
+
+  const handleEditRecurringTransaction = (recurring: any) => {
+    // For recurring transactions, we need to create a simple entry structure
+    // since they only have one account
+    reset({
+      date: new Date(recurring.nextRun).toISOString().split('T')[0],
+      type: recurring.amount > 0 ? "INCOME" : "EXPENSE",
+      description: recurring.description,
+      category: "Uncategorized",
+      amount: Math.abs(recurring.amount),
+      entries: [
+        { 
+          accountId: recurring.account.id.toString(), 
+          amount: Math.abs(recurring.amount).toString(), 
+          type: recurring.amount > 0 ? "CREDIT" : "DEBIT" 
+        },
+        { 
+          accountId: "", 
+          amount: Math.abs(recurring.amount).toString(), 
+          type: recurring.amount > 0 ? "DEBIT" : "CREDIT" 
+        }
+      ],
+      // Set recurring fields
+      isRecurring: true,
+      recurrencePattern: recurring.recurrencePattern,
+      nextRun: new Date(recurring.nextRun).toISOString().split('T')[0],
+      endDate: recurring.endDate ? new Date(recurring.endDate).toISOString().split('T')[0] : undefined
+    });
+    setEditingRecurringId(recurring.id);
+    setEditingTransactionId(null);
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -313,19 +461,50 @@ const Transactions = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [transactionsData, accountsData] = await Promise.all([
+      const [transactionsData, accountsData, recurringData] = await Promise.all([
         fetchTransactions(),
-        fetchAccounts()
+        fetchAccounts(),
+        fetchRecurringTransactions().catch(err => {
+          console.error('Failed to fetch recurring transactions:', err);
+          return []; // Return empty array on error
+        })
       ]);
+      
+      console.log('📊 Fetched data:', {
+        transactions: transactionsData,
+        accounts: accountsData,
+        recurring: recurringData,
+        recurringType: typeof recurringData,
+        isArray: Array.isArray(recurringData)
+      });
+      
       setTransactions(transactionsData);
       setAccounts(accountsData);
+      // Ensure recurringTransactions is always an array
+      setRecurringTransactions(Array.isArray(recurringData) ? recurringData : []);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError("Failed to fetch transactions. Please try again later.");
       toast.error("Failed to fetch transactions. Please try again later.");
+      // Ensure recurringTransactions is set to empty array on error
+      setRecurringTransactions([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRecurringTransaction = async (id: number) => {
+    try {
+      await deleteRecurringTransaction(id);
+      setSuccessMessage("Recurring transaction deleted successfully!");
+      toast.success("Recurring transaction deleted successfully!");
+      fetchData();
+    } catch (err) {
+      console.error('Failed to delete recurring transaction:', err);
+      setError("Failed to delete recurring transaction. Please try again.");
+      toast.error("Failed to delete recurring transaction. Please try again.");
+      setSuccessMessage(null);
     }
   };
 
@@ -363,9 +542,6 @@ const Transactions = () => {
               ))}
               {errors.entries && typeof errors.entries === 'object' && Array.isArray(errors.entries) && errors.entries.map((entryErr, idx) => (
                 entryErr && entryErr.type && <div key={`err-type-${idx}`}>{`Entry ${idx + 1}: ${entryErr.type.message}`}</div>
-              ))}
-              {errors.entries && typeof errors.entries === 'object' && Array.isArray(errors.entries) && errors.entries.map((entryErr, idx) => (
-                entryErr && entryErr.description && <div key={`err-description-${idx}`}>{`Entry ${idx + 1}: ${entryErr.description.message}`}</div>
               ))}
             </>
           )}
@@ -409,6 +585,59 @@ const Transactions = () => {
           />
         </div>
 
+        {/* Recurring Transaction Toggle */}
+        <div className="mb-4">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="recurring-toggle"
+              {...register("isRecurring")}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="recurring-toggle" className="ml-2 block text-sm text-gray-900">
+              Recurring Transaction
+            </label>
+          </div>
+        </div>
+
+        {/* Recurring Transaction Fields */}
+        {watch("isRecurring") && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 className="text-lg font-medium text-blue-900 mb-3">Recurring Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Recurrence Pattern</label>
+                <select
+                  {...register("recurrencePattern")}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="DAILY">Daily</option>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Next Run Date</label>
+                <input
+                  type="date"
+                  {...register("nextRun")}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">End Date (Optional)</label>
+                <input
+                  type="date"
+                  {...register("endDate")}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-medium text-gray-700">Entries</label>
@@ -419,10 +648,8 @@ const Transactions = () => {
             accounts={usableAccounts}
             register={register}
             errors={errors}
-            onAdd={() => append({ accountId: '', amount: '', type: 'DEBIT', description: '' })}
+            onAdd={() => append({ accountId: '', amount: '', type: 'DEBIT' })}
             onRemove={remove}
-            onDescriptionChange={handleEntryDescriptionChange}
-            showDescriptionFields={isEditingSplitTransaction}
           />
         </div>
 
@@ -440,7 +667,10 @@ const Transactions = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : editingTransactionId ? 'Update Transaction' : 'Create Transaction'}
+            {isSubmitting ? 'Saving...' : 
+              editingTransactionId ? 'Update Transaction' : 
+              editingRecurringId ? 'Update Recurring Transaction' : 
+              'Create Transaction'}
           </button>
         </div>
       </form>
@@ -461,12 +691,76 @@ const Transactions = () => {
           </div>
         </div>
       ) : (
-        <TransactionList
-          transactions={transactions}
-          accounts={accounts}
-          onEdit={handleEditTransaction}
-          onDelete={handleDeleteTransaction}
-        />
+        <>
+          <TransactionList
+            transactions={transactions}
+            accounts={accounts}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+          />
+          
+          {/* Recurring Transactions Section */}
+          {Array.isArray(recurringTransactions) && recurringTransactions.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4 text-blue-900">Recurring Transactions</h2>
+              <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                <ul className="divide-y divide-gray-200">
+                  {recurringTransactions.map((recurring) => (
+                    <li key={recurring.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span className="text-blue-600 font-bold text-sm">📅</span>
+                              </div>
+                            </div>
+                            <div className="ml-4 flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {recurring.description}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  ${Math.abs(recurring.amount).toFixed(2)}
+                                </p>
+                              </div>
+                              <div className="mt-1 flex items-center justify-between">
+                                <p className="text-sm text-gray-500">
+                                  {recurring.account?.name} • {recurring.recurrencePattern}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Next: {new Date(recurring.nextRun).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="ml-4 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditRecurringTransaction(recurring)}
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors mr-2"
+                            title="Edit recurring transaction"
+                            aria-label="Edit recurring transaction"
+                          >
+                            <span className="text-blue-600 hover:text-blue-800">✏️</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRecurringTransaction(recurring.id)}
+                            className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                            title="Delete recurring transaction"
+                            aria-label="Delete recurring transaction"
+                          >
+                            <span className="text-gray-600 hover:text-red-600">🗑️</span>
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
