@@ -4,6 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "npm@10.0.0",
+  "engines": {
+    "node": ">=22.16.0",
+    "npm": ">=10.0.0"
+  },
   "proxy": "http://localhost:5000",
   "_comment": "Updated for Vercel deployment compatibility",
   "dependencies": {
