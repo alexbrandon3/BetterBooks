@@ -98,6 +98,12 @@ export class ReportService {
     };
   }
 
+  /**
+   * Get balance sheet for a user
+   * Note: This method always calculates account balances fresh from journal entries
+   * to ensure consistency with the actual transaction data, regardless of the
+   * stored account.balance field values.
+   */
   async getBalanceSheet(userId: number): Promise<BalanceSheetResponse> {
     console.log('🔍 Getting balance sheet for user:', userId);
     
@@ -114,7 +120,7 @@ export class ReportService {
 
     console.log('🏦 Found accounts:', accounts.length);
 
-    // Calculate balances for each account
+    // Calculate balances for each account from journal entries (always fresh calculation)
     const accountBalances = new Map<number, number>();
     accounts.forEach((account: any) => {
       accountBalances.set(account.id, 0);
@@ -133,8 +139,13 @@ export class ReportService {
           break;
         case FinancialCategory.CURRENT_LIABILITY:
         case FinancialCategory.LONG_TERM_LIABILITY:
+          // Liabilities normally have credit balances (positive)
+          normalBalanceMultiplier = -1;
+          break;
         case FinancialCategory.EQUITY:
-          // Liabilities and Equity normally have credit balances (positive)
+        case FinancialCategory.RETAINED_EARNINGS:
+        case FinancialCategory.DRAWINGS:
+          // Equity accounts normally have credit balances (positive)
           normalBalanceMultiplier = -1;
           break;
         default:
@@ -151,7 +162,7 @@ export class ReportService {
       accountBalances.set(entry.account.id, currentBalance + adjustedChange);
     });
 
-    console.log('💰 Account balances:', Object.fromEntries(accountBalances));
+    console.log('💰 Account balances (calculated from journal entries):', Object.fromEntries(accountBalances));
 
     // Group accounts by category and subcategory
     const groupedAccounts = new Map<string, Map<string, AccountBalance[]>>();
@@ -170,6 +181,8 @@ export class ReportService {
           category = 'liability';
           break;
         case FinancialCategory.EQUITY:
+        case FinancialCategory.RETAINED_EARNINGS:
+        case FinancialCategory.DRAWINGS:
           category = 'equity';
           break;
         default:

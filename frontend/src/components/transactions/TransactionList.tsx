@@ -11,6 +11,11 @@ interface TransactionListProps {
   isLoading?: boolean;
 }
 
+// Helper function to format transaction type with proper capitalization
+const formatTransactionType = (type: string): string => {
+  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+};
+
 export const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
   accounts,
@@ -44,7 +49,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               <div className="text-sm text-gray-600">
                 {new Date(transaction.date).toLocaleDateString()}
               </div>
-              <div className="text-sm text-gray-600">{transaction.type}</div>
+              <div className="text-sm text-gray-600">{formatTransactionType(transaction.type)}</div>
             </div>
             <div className="flex space-x-2">
               <button

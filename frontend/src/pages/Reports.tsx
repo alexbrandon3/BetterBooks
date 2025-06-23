@@ -25,6 +25,15 @@ const exportOptions: ExportOption[] = [
   { label: 'Download as PDF', value: 'pdf', icon: '📄' }
 ];
 
+// Helper to format enum-like strings to title case with spaces
+function formatEnumLabel(str: string): string {
+  return str
+    .toLowerCase()
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 const Reports: React.FC = () => {
   console.log('🔍 Reports component rendering');
   const { user } = useAuth();
@@ -169,10 +178,10 @@ const Reports: React.FC = () => {
         <button
           onClick={() => setShowExportMenu(!showExportMenu)}
           disabled={!hasData || exporting}
-          className={`px-4 py-2 rounded flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
             !hasData || exporting
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md'
           }`}
           aria-label="Export options"
           aria-expanded={showExportMenu}
@@ -189,6 +198,9 @@ const Reports: React.FC = () => {
             </span>
           ) : (
             <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
               <span>Export</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -198,222 +210,241 @@ const Reports: React.FC = () => {
         </button>
 
         {showExportMenu && (
-          <div 
-            className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10"
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="export-menu"
-            data-testid="export-menu"
-          >
-            {exportOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleExport(option.value)}
-                onKeyDown={(e) => handleKeyDown(e, option.value)}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                role="menuitem"
-                aria-label={`Export as ${option.label}`}
-                disabled={exporting}
-                data-export-option={option.value}
-                data-testid={`export-option-${option.value}`}
-              >
-                <span>{option.icon}</span>
-                <span>{option.label}</span>
-              </button>
-            ))}
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+            <div className="py-1">
+              {exportOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleExport(option.value)}
+                  onKeyDown={(e) => handleKeyDown(e, option.value)}
+                  data-export-option={option.value}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors duration-150"
+                  role="menuitem"
+                >
+                  <span className="mr-2">{option.icon}</span>
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
     );
   };
 
-  // Helper function to properly capitalize subcategory names
-  const formatSubcategoryName = useCallback((name: string): string => {
-    if (!name) return '';
-    
-    // Handle common financial subcategory names with proper formatting
-    const subcategoryMappings: Record<string, string> = {
-      'ACCOUNTS_PAYABLE': 'Accounts Payable',
-      'ACCOUNTS_RECEIVABLE': 'Accounts Receivable',
-      'CASH_AND_EQUIVALENTS': 'Cash and Equivalents',
-      'PREPAID_EXPENSES': 'Prepaid Expenses',
-      'INVENTORY': 'Inventory',
-      'FIXED_ASSETS': 'Fixed Assets',
-      'ACCUMULATED_DEPRECIATION': 'Accumulated Depreciation',
-      'SHORT_TERM_DEBT': 'Short Term Debt',
-      'LONG_TERM_DEBT': 'Long Term Debt',
-      'RETAINED_EARNINGS': 'Retained Earnings',
-      'COMMON_STOCK': 'Common Stock',
-      'PREFERRED_STOCK': 'Preferred Stock',
-      'OPERATING_REVENUE': 'Operating Revenue',
-      'NON_OPERATING_REVENUE': 'Non-Operating Revenue',
-      'OPERATING_EXPENSE': 'Operating Expense',
-      'NON_OPERATING_EXPENSE': 'Non-Operating Expense',
-      'COST_OF_GOODS_SOLD': 'Cost of Goods Sold',
-      'SALES_REVENUE': 'Sales Revenue',
-      'SERVICE_REVENUE': 'Service Revenue',
-      'INTEREST_EXPENSE': 'Interest Expense',
-      'TAX_EXPENSE': 'Tax Expense',
-      'DEPRECIATION_EXPENSE': 'Depreciation Expense',
-      'AMORTIZATION_EXPENSE': 'Amortization Expense',
-      'BAD_DEBT_EXPENSE': 'Bad Debt Expense',
-      'RENT_EXPENSE': 'Rent Expense',
-      'UTILITIES_EXPENSE': 'Utilities Expense',
-      'SALARY_EXPENSE': 'Salary Expense',
-      'WAGE_EXPENSE': 'Wage Expense',
-      'INSURANCE_EXPENSE': 'Insurance Expense',
-      'ADVERTISING_EXPENSE': 'Advertising Expense',
-      'MAINTENANCE_EXPENSE': 'Maintenance Expense',
-      'TRAVEL_EXPENSE': 'Travel Expense',
-      'MEAL_EXPENSE': 'Meal Expense',
-      'OFFICE_SUPPLIES': 'Office Supplies',
-      'TECHNOLOGY_EXPENSE': 'Technology Expense',
-      'LEGAL_EXPENSE': 'Legal Expense',
-      'ACCOUNTING_EXPENSE': 'Accounting Expense',
-      'BANK_FEES': 'Bank Fees',
-      'CREDIT_CARD_FEES': 'Credit Card Fees',
-      'INTEREST_INCOME': 'Interest Income',
-      'DIVIDEND_INCOME': 'Dividend Income',
-      'GAIN_ON_SALE': 'Gain on Sale',
-      'LOSS_ON_SALE': 'Loss on Sale',
-      'UNCATEGORIZED': 'Uncategorized'
-    };
-
-    // Check if we have a specific mapping
-    if (subcategoryMappings[name]) {
-      return subcategoryMappings[name];
-    }
-
-    // Fallback: handle underscores and basic capitalization
-    return name
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  }, []);
-
   const renderBalanceSheet = () => {
     if (!balanceSheet) return null;
 
-    // Handle the actual backend response structure
-    // Backend returns: { assets: SubcategoryGroup[], liabilities: SubcategoryGroup[], equity: SubcategoryGroup[] }
-    // Where SubcategoryGroup = { subcategoryName: string, accounts: AccountBalance[], subtotal: number, displayOrder: number }
+    const totalAssets = balanceSheet.assets.reduce((sum, group) => sum + group.subtotal, 0);
+    const totalLiabilities = balanceSheet.liabilities.reduce((sum, group) => sum + group.subtotal, 0);
+    const totalEquity = balanceSheet.equity.reduce((sum, group) => sum + group.subtotal, 0);
+    const isBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
 
     return (
-      <div className="space-y-6" role="region" aria-label="Balance Sheet report">
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Assets</h2>
-          <div className="space-y-4">
-            {balanceSheet.assets.length > 0 ? (
-              balanceSheet.assets.map((group, index) => (
-                <div key={index}>
-                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Assets'}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Assets'}`}>
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {group.accounts.map((account) => (
-                          <tr key={account.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Assets'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No assets found for the selected period.</p>
+      <div className="space-y-8">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
               </div>
-            )}
+              <span className="text-sm font-medium text-gray-500">Total Assets</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAssets)}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {balanceSheet.assets.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-500">Total Liabilities</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalLiabilities)}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {balanceSheet.liabilities.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-500">Total Equity</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalEquity)}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {balanceSheet.equity.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+            </p>
           </div>
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Liabilities</h2>
-          <div className="space-y-4">
-            {balanceSheet.liabilities.length > 0 ? (
-              balanceSheet.liabilities.map((group, index) => (
-                <div key={index}>
-                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Liabilities'}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Liabilities'}`}>
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {group.accounts.map((account) => (
-                          <tr key={account.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Liabilities'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No liabilities found for the selected period.</p>
-              </div>
-            )}
+        {/* Balance Sheet Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Balance Sheet</h2>
+            <p className="text-sm text-gray-600 mt-1">As of {new Date().toLocaleDateString()}</p>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Equity</h2>
-          <div className="space-y-4">
-            {balanceSheet.equity.length > 0 ? (
-              balanceSheet.equity.map((group, index) => (
-                <div key={index}>
-                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Equity'}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Equity'}`}>
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {group.accounts.map((account) => (
-                          <tr key={account.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{account.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Equity'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+          
+          <div className="p-6 space-y-8">
+            {/* Assets */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                Assets
+              </h3>
+              <div className="space-y-3">
+                {balanceSheet.assets.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <div className="flex justify-between items-center py-2 px-4 bg-green-50 rounded-lg border border-green-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                        <p className="text-xs text-gray-500">Subcategory</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {formatCurrency(group.subtotal)}
+                      </p>
+                    </div>
+                    {group.accounts.map((account, accountIndex) => (
+                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                          <p className="text-xs text-gray-500">Account</p>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatCurrency(account.balance)}
+                        </p>
+                      </div>
+                    ))}
                   </div>
+                ))}
+                <div className="flex justify-between items-center py-4 px-4 bg-green-100 rounded-lg border-2 border-green-300">
+                  <p className="font-semibold text-gray-900">Total Assets</p>
+                  <p className="font-semibold text-gray-900">{formatCurrency(totalAssets)}</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No equity accounts found for the selected period.</p>
               </div>
-            )}
+            </div>
+
+            {/* Liabilities */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                Liabilities
+              </h3>
+              <div className="space-y-3">
+                {balanceSheet.liabilities.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <div className="flex justify-between items-center py-2 px-4 bg-red-50 rounded-lg border border-red-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                        <p className="text-xs text-gray-500">Subcategory</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {formatCurrency(group.subtotal)}
+                      </p>
+                    </div>
+                    {group.accounts.map((account, accountIndex) => (
+                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                          <p className="text-xs text-gray-500">Account</p>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatCurrency(account.balance)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-4 px-4 bg-red-100 rounded-lg border-2 border-red-300">
+                  <p className="font-semibold text-gray-900">Total Liabilities</p>
+                  <p className="font-semibold text-gray-900">{formatCurrency(totalLiabilities)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Equity */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                Equity
+              </h3>
+              <div className="space-y-3">
+                {balanceSheet.equity.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <div className="flex justify-between items-center py-2 px-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                        <p className="text-xs text-gray-500">Subcategory</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {formatCurrency(group.subtotal)}
+                      </p>
+                    </div>
+                    {group.accounts.map((account, accountIndex) => (
+                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                          <p className="text-xs text-gray-500">Account</p>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatCurrency(account.balance)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-4 px-4 bg-blue-100 rounded-lg border-2 border-blue-300">
+                  <p className="font-semibold text-gray-900">Total Equity</p>
+                  <p className="font-semibold text-gray-900">{formatCurrency(totalEquity)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Balance Sheet Equation */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 mb-2">Balance Sheet Equation</p>
+                <p className="text-lg font-semibold text-gray-900 mb-2">
+                  Assets = Liabilities + Equity
+                </p>
+                <p className="text-sm text-gray-600 mb-3">
+                  {formatCurrency(totalAssets)} = {formatCurrency(totalLiabilities)} + {formatCurrency(totalEquity)}
+                </p>
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  isBalanced 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {isBalanced ? (
+                    <>
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Balanced
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Not Balanced
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -423,195 +454,318 @@ const Reports: React.FC = () => {
   const renderIncomeStatement = () => {
     if (!incomeStatement) return null;
 
+    const totalRevenue = incomeStatement.revenue.reduce((sum, group) => sum + group.subtotal, 0);
+    const totalExpenses = incomeStatement.expenses.reduce((sum, group) => sum + group.subtotal, 0);
+    const netIncome = incomeStatement.netIncome;
+
     return (
-      <div className="space-y-6" role="region" aria-label="Income Statement report">
-        {/* Revenue Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Revenue</h2>
-          <div className="space-y-4">
-            {incomeStatement.revenue.length > 0 ? (
-              incomeStatement.revenue.map((group, index) => (
-                <div key={index}>
-                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Revenue'}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Revenue'}`}>
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {group.accounts.map((account) => (
-                          <tr key={account.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 pl-8">{account.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Revenue'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No revenue found for the selected period.</p>
+      <div className="space-y-8">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
               </div>
-            )}
+              <span className="text-sm font-medium text-gray-500">Total Revenue</span>
+            </div>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {incomeStatement.revenue.reduce((sum, group) => sum + group.accounts.length, 0)} revenue sources
+            </p>
           </div>
-        </div>
 
-        {/* Total Revenue */}
-        <div className="border-t-2 border-gray-300 pt-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Total Revenue</h3>
-            <span className="text-lg font-semibold text-gray-900">{formatAmount(incomeStatement.totalIncome)}</span>
-          </div>
-        </div>
-
-        {/* Expenses Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Expenses</h2>
-          <div className="space-y-4">
-            {incomeStatement.expenses.length > 0 ? (
-              incomeStatement.expenses.map((group, index) => (
-                <div key={index}>
-                  <h3 className="font-medium mb-2">{formatSubcategoryName(group.subcategoryName) || 'Other Expenses'}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" aria-label={`${formatSubcategoryName(group.subcategoryName) || 'Expenses'}`}>
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {group.accounts.map((account) => (
-                          <tr key={account.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 pl-8">{account.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatAmount(account.balance)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total {formatSubcategoryName(group.subcategoryName) || 'Expenses'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{formatAmount(group.subtotal)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No expenses found for the selected period.</p>
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                </svg>
               </div>
-            )}
+              <span className="text-sm font-medium text-gray-500">Total Expenses</span>
+            </div>
+            <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {incomeStatement.expenses.reduce((sum, group) => sum + group.accounts.length, 0)} expense categories
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2 rounded-lg ${netIncome >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                <svg className={`w-6 h-6 ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-500">Net Income</span>
+            </div>
+            <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(netIncome)}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {netIncome >= 0 ? 'Profit' : 'Loss'} for the period
+            </p>
           </div>
         </div>
 
-        {/* Total Expenses */}
-        <div className="border-t-2 border-gray-300 pt-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Total Expenses</h3>
-            <span className="text-lg font-semibold text-gray-900">{formatAmount(incomeStatement.totalExpenses)}</span>
+        {/* Income Statement Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Income Statement</h2>
+            <p className="text-sm text-gray-600 mt-1">For the period ending {new Date().toLocaleDateString()}</p>
           </div>
-        </div>
+          
+          <div className="p-6 space-y-8">
+            {/* Revenue */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                Revenue
+              </h3>
+              <div className="space-y-3">
+                {incomeStatement.revenue.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <div className="flex justify-between items-center py-3 px-4 bg-green-50 rounded-lg border border-green-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                        <p className="text-xs text-gray-500">Revenue Category</p>
+                      </div>
+                      <p className="text-sm font-medium text-green-600">
+                        {formatCurrency(group.subtotal)}
+                      </p>
+                    </div>
+                    {group.accounts.map((account, accountIndex) => (
+                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                          <p className="text-xs text-gray-500">Account</p>
+                        </div>
+                        <p className="text-sm font-medium text-green-600">
+                          {formatCurrency(account.balance)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-4 px-4 bg-green-100 rounded-lg border-2 border-green-300">
+                  <p className="font-semibold text-gray-900">Total Revenue</p>
+                  <p className="font-semibold text-green-600">{formatCurrency(totalRevenue)}</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Net Income */}
-        <div className="border-t-4 border-gray-400 pt-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold text-gray-900">Net Income</h3>
-            <span className={`text-xl font-bold ${incomeStatement.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatAmount(incomeStatement.netIncome)}
-            </span>
+            {/* Expenses */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                Expenses
+              </h3>
+              <div className="space-y-3">
+                {incomeStatement.expenses.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <div className="flex justify-between items-center py-3 px-4 bg-red-50 rounded-lg border border-red-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                        <p className="text-xs text-gray-500">Expense Category</p>
+                      </div>
+                      <p className="text-sm font-medium text-red-600">
+                        {formatCurrency(group.subtotal)}
+                      </p>
+                    </div>
+                    {group.accounts.map((account, accountIndex) => (
+                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                          <p className="text-xs text-gray-500">Account</p>
+                        </div>
+                        <p className="text-sm font-medium text-red-600">
+                          {formatCurrency(account.balance)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-4 px-4 bg-red-100 rounded-lg border-2 border-red-300">
+                  <p className="font-semibold text-gray-900">Total Expenses</p>
+                  <p className="font-semibold text-red-600">{formatCurrency(totalExpenses)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Net Income */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex justify-between items-center">
+                <p className="text-lg font-semibold text-gray-900">Net Income</p>
+                <p className={`text-lg font-semibold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(netIncome)}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                {netIncome >= 0 ? 'Profit' : 'Loss'} for the period
+              </p>
+            </div>
           </div>
         </div>
       </div>
     );
   };
 
-  // Update the formatCurrency calls to handle unknown types
   const formatAmount = (amount: unknown): string => {
     if (typeof amount === 'number') {
       return formatCurrency(amount);
     }
     if (typeof amount === 'string') {
-      const parsed = parseFloat(amount);
-      if (!isNaN(parsed)) {
-        return formatCurrency(parsed);
-      }
+      const num = parseFloat(amount);
+      return isNaN(num) ? formatCurrency(0) : formatCurrency(num);
     }
     return formatCurrency(0);
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8" lang="en">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Financial Reports</h1>
-        <div className="flex items-center gap-4">
-          <div role="tablist" aria-label="Report type selection">
-            <select
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value as 'balance-sheet' | 'income-statement')}
-              className="border rounded px-3 py-2"
-              aria-label="Select report type"
-            >
-              <option value="balance-sheet">Balance Sheet</option>
-              <option value="income-statement">Income Statement</option>
-            </select>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            {/* Header Skeleton */}
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+            
+            {/* Controls Skeleton */}
+            <div className="h-12 bg-gray-200 rounded w-1/2 mb-8"></div>
+            
+            {/* Summary Cards Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Report Skeleton */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          {renderExportButton()}
         </div>
       </div>
+    );
+  }
 
-      <div className="mb-6">
-        <div className="flex items-center gap-4">
-          <label htmlFor="start-date" className="text-sm font-medium">
-            Start Date:
-          </label>
-          <input
-            id="start-date"
-            type="date"
-            value={dateRange.start}
-            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="border rounded px-3 py-2"
-          />
-          <label htmlFor="end-date" className="text-sm font-medium">
-            End Date:
-          </label>
-          <input
-            id="end-date"
-            type="date"
-            value={dateRange.end}
-            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="border rounded px-3 py-2"
-          />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Financial Reports
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Comprehensive financial statements and analysis for better decision making
+              </p>
+            </div>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700">Reports</span>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Report Type Selector */}
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700">Report Type:</label>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setReportType('balance-sheet')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                      reportType === 'balance-sheet'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Balance Sheet
+                  </button>
+                  <button
+                    onClick={() => setReportType('income-statement')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                      reportType === 'income-statement'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Income Statement
+                  </button>
+                </div>
+              </div>
+
+              {/* Date Range Selector */}
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700">Date Range:</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <span className="text-gray-500">to</span>
+                  <input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Export Button */}
+            {renderExportButton()}
+          </div>
+        </div>
+
+        {/* Report Content */}
+        {reportType === 'balance-sheet' ? renderBalanceSheet() : renderIncomeStatement()}
       </div>
-
-      {loading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-2">Loading reports...</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && (
-        <div className="bg-white rounded-lg shadow">
-          {reportType === 'balance-sheet' && renderBalanceSheet()}
-          {reportType === 'income-statement' && renderIncomeStatement()}
-        </div>
-      )}
     </div>
   );
 };

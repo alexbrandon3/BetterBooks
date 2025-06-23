@@ -1,14 +1,26 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
-import { Account } from "../entities/Account";
+import { Account, AccountType } from "../entities/Account";
 import { CreateTransactionDTO, UpdateTransactionDTO, EntryType } from "../types/transaction.types";
 import { In } from "typeorm";
 import { logInfo, logSuccess, logError } from '../utils/logger';
 
+interface BalanceWarning {
+  accountId: number;
+  accountName: string;
+  currentBalance: number;
+  newBalance: number;
+  message: string;
+}
+
+interface TransactionResult {
+  transaction: Transaction;
+  warnings?: BalanceWarning[];
+}
+
 export class TransactionService {
   private transactionRepo = AppDataSource.getRepository(Transaction);
-  private journalEntryRepo = AppDataSource.getRepository(JournalEntry);
   private accountRepo = AppDataSource.getRepository(Account);
   private userRepo = AppDataSource.getRepository("User");
 
@@ -29,7 +41,7 @@ export class TransactionService {
     return transactions;
   }
 
-  async createTransaction(transactionData: CreateTransactionDTO): Promise<Transaction> {
+  async createTransaction(transactionData: CreateTransactionDTO): Promise<TransactionResult> {
     logInfo('Starting createTransaction', 'TransactionService');
 
     try {
@@ -73,6 +85,48 @@ export class TransactionService {
       // Create a map for quick account lookup
       const accountMap = new Map(accounts.map(account => [account.id, account]));
 
+      // Check for potential negative balances
+      const warnings: BalanceWarning[] = [];
+      for (const entry of transactionData.entries) {
+        const account = accountMap.get(entry.accountId);
+        if (!account) continue;
+
+        // Calculate balance change based on entry type and account type
+        let balanceChange = 0;
+        
+        if (entry.type === EntryType.DEBIT) {
+          // For ASSET and EXPENSE accounts, debit increases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+          if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+            balanceChange = entry.amount;
+          } else {
+            balanceChange = -entry.amount;
+          }
+        } else if (entry.type === EntryType.CREDIT) {
+          // For ASSET and EXPENSE accounts, credit decreases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+          if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+            balanceChange = -entry.amount;
+          } else {
+            balanceChange = entry.amount;
+          }
+        }
+
+        const currentBalance = parseFloat(account.balance?.toString() || '0');
+        const newBalance = currentBalance + balanceChange;
+        
+        // Check for negative balance on ASSET accounts (cash, checking, etc.)
+        if (account.type === AccountType.ASSET && newBalance < 0) {
+          warnings.push({
+            accountId: account.id,
+            accountName: account.name,
+            currentBalance: currentBalance,
+            newBalance: newBalance,
+            message: `This transaction will result in a negative balance of $${Math.abs(newBalance).toFixed(2)} in ${account.name}`
+          });
+        }
+      }
+
       return await AppDataSource.transaction(async transactionalEntityManager => {
         try {
           // Create and save the transaction
@@ -107,6 +161,56 @@ export class TransactionService {
           const savedEntries = await transactionalEntityManager.save(journalEntries);
           logSuccess(`Saved ${savedEntries.length} journal entries`, 'TransactionService');
 
+          // Update account balances based on journal entries
+          for (const entry of transactionData.entries) {
+            const account = accountMap.get(entry.accountId);
+            if (!account) continue;
+
+            // Calculate balance change based on entry type and account type
+            let balanceChange = 0;
+            
+            if (entry.type === EntryType.DEBIT) {
+              // For ASSET and EXPENSE accounts, debit increases balance
+              // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+              if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+                balanceChange = entry.amount;
+              } else {
+                balanceChange = -entry.amount;
+              }
+            } else if (entry.type === EntryType.CREDIT) {
+              // For ASSET and EXPENSE accounts, credit decreases balance
+              // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+              if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
+                balanceChange = -entry.amount;
+              } else {
+                balanceChange = entry.amount;
+              }
+            }
+
+            // Update account balance
+            const currentBalance = parseFloat(account.balance?.toString() || '0');
+            const newBalance = currentBalance + balanceChange;
+            
+            // Safety checks to prevent numeric overflow
+            if (isNaN(newBalance) || !isFinite(newBalance)) {
+              logError(`Invalid balance calculation for account ${account.name}: current=${currentBalance}, change=${balanceChange}, new=${newBalance}`, 'TransactionService');
+              throw new Error(`Invalid balance calculation for account ${account.name}`);
+            }
+            
+            // Check if the new balance would exceed the database field limits (decimal(10,2))
+            const maxBalance = 99999999.99; // Maximum value for decimal(10,2)
+            if (Math.abs(newBalance) > maxBalance) {
+              logError(`Balance would exceed database limits for account ${account.name}: ${newBalance}`, 'TransactionService');
+              throw new Error(`Balance would exceed database limits for account ${account.name}`);
+            }
+            
+            // Ensure the balance is a proper number and handle decimal precision
+            account.balance = Math.round(newBalance * 100) / 100; // Round to 2 decimal places
+            
+            await transactionalEntityManager.save(account);
+            logSuccess(`Updated account ${account.name} balance: ${account.balance}`, 'TransactionService');
+          }
+
           // Return the full transaction with entries
           const fullTransaction = await transactionalEntityManager.findOne(Transaction, {
             where: { id: savedTransaction.id },
@@ -119,7 +223,10 @@ export class TransactionService {
           }
 
           logSuccess(`Transaction creation complete (ID: ${fullTransaction.id})`, 'TransactionService');
-          return fullTransaction;
+          return {
+            transaction: fullTransaction,
+            warnings: warnings.length > 0 ? warnings : undefined
+          };
         } catch (error) {
           logError(`Database transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
           throw error;
@@ -168,7 +275,7 @@ export class TransactionService {
     try {
       const transaction = await this.transactionRepo.findOne({
         where: { id, user: { id: userId } },
-        relations: ['entries']
+        relations: ['entries', 'entries.account']
       });
 
       if (!transaction) {
@@ -176,15 +283,70 @@ export class TransactionService {
         throw new Error(`Transaction with ID ${id} not found`);
       }
 
-      // First delete all associated journal entries
-      if (transaction.entries && transaction.entries.length > 0) {
-        await this.journalEntryRepo.remove(transaction.entries);
-        logSuccess(`Deleted ${transaction.entries.length} journal entries`, 'TransactionService');
-      }
+      return await AppDataSource.transaction(async transactionalEntityManager => {
+        // Reverse account balance changes before deleting entries
+        if (transaction.entries && transaction.entries.length > 0) {
+          for (const entry of transaction.entries) {
+            if (!entry.account) continue;
 
-      // Then delete the transaction
-      await this.transactionRepo.remove(transaction);
-      logSuccess(`Transaction deleted successfully: ${id}`, 'TransactionService');
+            // Calculate balance change to reverse (opposite of creation)
+            let balanceChange = 0;
+            
+            if (entry.type === EntryType.DEBIT) {
+              // For ASSET and EXPENSE accounts, debit increases balance, so reverse decreases it
+              // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance, so reverse increases it
+              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
+                balanceChange = -entry.amount;
+              } else {
+                balanceChange = entry.amount;
+              }
+            } else if (entry.type === EntryType.CREDIT) {
+              // For ASSET and EXPENSE accounts, credit decreases balance, so reverse increases it
+              // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance, so reverse decreases it
+              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
+                balanceChange = entry.amount;
+              } else {
+                balanceChange = -entry.amount;
+              }
+            }
+
+            // Update account balance (reverse the change)
+            const currentBalance = parseFloat(entry.account.balance?.toString() || '0');
+            const newBalance = currentBalance + balanceChange;
+            
+            // Safety checks to prevent numeric overflow
+            if (isNaN(newBalance) || !isFinite(newBalance)) {
+              logError(`Invalid balance calculation for account ${entry.account.name}: current=${currentBalance}, change=${balanceChange}, new=${newBalance}`, 'TransactionService');
+              throw new Error(`Invalid balance calculation for account ${entry.account.name}`);
+            }
+            
+            // Check if the new balance would exceed the database field limits (decimal(10,2))
+            const maxBalance = 99999999.99; // Maximum value for decimal(10,2)
+            if (Math.abs(newBalance) > maxBalance) {
+              logError(`Balance would exceed database limits for account ${entry.account.name}: ${newBalance}`, 'TransactionService');
+              throw new Error(`Balance would exceed database limits for account ${entry.account.name}`);
+            }
+            
+            // Ensure the balance is a proper number and handle decimal precision
+            entry.account.balance = Math.round(newBalance * 100) / 100; // Round to 2 decimal places
+            
+            logInfo(`Updating account ${entry.account.name} balance: ${currentBalance} + ${balanceChange} = ${entry.account.balance}`, 'TransactionService');
+            
+            await transactionalEntityManager.save(entry.account);
+            logSuccess(`Reversed account ${entry.account.name} balance: ${entry.account.balance}`, 'TransactionService');
+          }
+        }
+
+        // Delete all associated journal entries
+        if (transaction.entries && transaction.entries.length > 0) {
+          await transactionalEntityManager.remove(transaction.entries);
+          logSuccess(`Deleted ${transaction.entries.length} journal entries`, 'TransactionService');
+        }
+
+        // Delete the transaction
+        await transactionalEntityManager.remove(transaction);
+        logSuccess(`Transaction deleted successfully: ${id}`, 'TransactionService');
+      });
     } catch (error) {
       logError(`Error in deleteTransaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
@@ -207,6 +369,90 @@ export class TransactionService {
       return [];
     } catch (error) {
       logError(`Error in getRecurringTransactions: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
+  }
+
+  async recalculateAccountBalances(userId: number): Promise<void> {
+    logInfo(`Starting account balance recalculation for user ${userId}`, 'TransactionService');
+    
+    try {
+      // Get all accounts for the user
+      const accounts = await this.accountRepo.find({
+        where: { user: { id: userId } }
+      });
+
+      // Reset all account balances to 0
+      for (const account of accounts) {
+        account.balance = 0;
+        await this.accountRepo.save(account);
+      }
+
+      // Get all transactions for the user ordered by date
+      const transactions = await this.transactionRepo.find({
+        where: { user: { id: userId } },
+        relations: ['entries', 'entries.account'],
+        order: { date: 'ASC' }
+      });
+
+      // Process each transaction to update account balances
+      for (const transaction of transactions) {
+        if (!transaction.entries) continue;
+
+        for (const entry of transaction.entries) {
+          if (!entry.account) continue;
+
+          // Calculate balance change based on entry type and account type
+          let balanceChange = 0;
+          
+          if (entry.type === EntryType.DEBIT) {
+            // For ASSET and EXPENSE accounts, debit increases balance
+            // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+            if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
+              balanceChange = entry.amount;
+            } else {
+              balanceChange = -entry.amount;
+            }
+          } else if (entry.type === EntryType.CREDIT) {
+            // For ASSET and EXPENSE accounts, credit decreases balance
+            // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+            if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
+              balanceChange = -entry.amount;
+            } else {
+              balanceChange = entry.amount;
+            }
+          }
+
+          // Update account balance
+          const currentBalance = parseFloat(entry.account.balance?.toString() || '0');
+          const newBalance = currentBalance + balanceChange;
+          
+          // Safety checks to prevent numeric overflow
+          if (isNaN(newBalance) || !isFinite(newBalance)) {
+            logError(`Invalid balance calculation for account ${entry.account.name}: current=${currentBalance}, change=${balanceChange}, new=${newBalance}`, 'TransactionService');
+            throw new Error(`Invalid balance calculation for account ${entry.account.name}`);
+          }
+          
+          // Check if the new balance would exceed the database field limits (decimal(10,2))
+          const maxBalance = 99999999.99; // Maximum value for decimal(10,2)
+          if (Math.abs(newBalance) > maxBalance) {
+            logError(`Balance would exceed database limits for account ${entry.account.name}: ${newBalance}`, 'TransactionService');
+            throw new Error(`Balance would exceed database limits for account ${entry.account.name}`);
+          }
+          
+          // Ensure the balance is a proper number and handle decimal precision
+          entry.account.balance = Math.round(newBalance * 100) / 100; // Round to 2 decimal places
+          
+          logInfo(`Updating account ${entry.account.name} balance: ${currentBalance} + ${balanceChange} = ${entry.account.balance}`, 'TransactionService');
+          
+          await this.accountRepo.save(entry.account);
+          logSuccess(`Updated account ${entry.account.name} balance: ${entry.account.balance}`, 'TransactionService');
+        }
+      }
+
+      logSuccess(`Account balance recalculation completed for user ${userId}`, 'TransactionService');
+    } catch (error) {
+      logError(`Error in recalculateAccountBalances: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }

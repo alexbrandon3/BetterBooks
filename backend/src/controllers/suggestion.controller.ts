@@ -1,13 +1,7 @@
-import { Request, Response } from 'express';
-import { generateSuggestions } from '../services/suggestionEngine/generateSuggestions';
-import { AccountService } from '../services/AccountService';
-import { TransactionService } from '../services/TransactionService';
-import { logAnalytics } from '../utils/analytics';
-import { User } from '../entities/User';
+import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/express';
 import { BaseController } from './base.controller';
 import { SuggestionService } from '../services/suggestion.service';
-import { AppDataSource } from '../config/data-source';
 
 export class SuggestionController extends BaseController {
   private suggestionService: SuggestionService;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { formatEnumLabel } from "../utils/formatEnumLabel";
-import { Account, AccountForm, AccountType, FinancialCategory } from "../types/account";
+import { Account, AccountForm, AccountType, FinancialCategory, AccountTemplate } from "../types/account";
 import * as AccountService from "../services/AccountService";
 import { toast } from 'react-hot-toast';
 
@@ -9,12 +9,17 @@ const initialFormState: AccountForm = {
   type: AccountType.ASSET,
   category: "",
   subcategory: "",
-  financialCategory: FinancialCategory.OPERATING_EXPENSE,
+  financialCategory: FinancialCategory.CURRENT_ASSET,
   financialSubcategory: "",
   balance: "0"
 };
 
 const formatCurrency = (amount: number) => {
+  // Safety check for NaN or invalid values
+  if (isNaN(amount) || !isFinite(amount)) {
+    console.warn('Invalid amount for currency formatting:', amount);
+    return '$0.00';
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -27,6 +32,26 @@ const displayBalance = (account: Account) => {
   return formatCurrency(Math.abs(account.balance));
 };
 
+const isNegativeBalance = (account: Account) => {
+  const balance = Number(account.balance);
+  return !isNaN(balance) && balance < 0;
+};
+
+const getBalanceDisplay = (account: Account) => {
+  const balance = Number(account.balance);
+  
+  // Safety check for NaN or invalid values
+  if (isNaN(balance) || !isFinite(balance)) {
+    console.warn('Invalid balance for account:', account.name, 'balance:', account.balance);
+    return '$0.00';
+  }
+  
+  if (balance < 0) {
+    return `-${formatCurrency(Math.abs(balance))}`;
+  }
+  return formatCurrency(balance);
+};
+
 const Accounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [form, setForm] = useState<AccountForm>(initialFormState);
@@ -36,10 +61,15 @@ const Accounts = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [suggestedFields, setSuggestedFields] = useState<string[]>([]);
   const [editingAccountId, setEditingAccountId] = useState<number | null>(null);
+  const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
+  const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
+  const [templates, setTemplates] = useState<AccountTemplate[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchAccounts();
+    fetchTemplates();
   }, []);
 
   useEffect(() => {
@@ -52,14 +82,43 @@ const Accounts = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await AccountService.fetchAccounts();
-      setAccounts(data);
+      const data = await AccountService.fetchAccountsWithConsistentBalances();
+      console.log('📊 Received accounts data:', data);
+      
+      // Check for any invalid balance values
+      data.forEach(account => {
+        if (isNaN(Number(account.balance)) || !isFinite(Number(account.balance))) {
+          console.warn('⚠️ Invalid balance detected for account:', account.name, 'balance:', account.balance, 'type:', typeof account.balance);
+        }
+      });
+      
+      // Sort accounts by type first, then by category
+      const sortedData = data.sort((a, b) => {
+        // First sort by account type
+        if (a.type !== b.type) {
+          return a.type.localeCompare(b.type);
+        }
+        // Then sort by category
+        return (a.category || '').localeCompare(b.category || '');
+      });
+      
+      setAccounts(sortedData);
     } catch (err) {
       console.error("Error fetching accounts", err);
       setError("Failed to fetch accounts. Please try again later.");
       toast.error('Failed to load accounts. Please refresh the page.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const data = await AccountService.getAccountTemplates();
+      setTemplates(data);
+    } catch (err) {
+      console.error("Error fetching templates", err);
+      // Don't show error toast for templates as it's not critical
     }
   };
 
@@ -85,6 +144,17 @@ const Accounts = () => {
       return false;
     }
 
+    // Validate logical consistency
+    if (form.type === AccountType.ASSET && form.financialCategory === FinancialCategory.OPERATING_EXPENSE) {
+      setError("Assets cannot be classified as operating expenses. Please check your account type and financial category.");
+      return false;
+    }
+
+    if (form.type === AccountType.LIABILITY && form.financialCategory === FinancialCategory.CURRENT_ASSET) {
+      setError("Liabilities cannot be classified as current assets. Please check your account type and financial category.");
+      return false;
+    }
+
     setError("");
     return true;
   };
@@ -104,10 +174,10 @@ const Accounts = () => {
       const payload = {
         name: form.name.trim(),
         type: form.type,
-        category: form.category?.trim() || null,
-        subcategory: form.subcategory?.trim() || null,
+        category: form.category?.trim() || undefined,
+        subcategory: form.subcategory?.trim() || undefined,
         financialCategory: form.financialCategory,
-        financialSubcategory: form.financialSubcategory?.trim() || null,
+        financialSubcategory: form.financialSubcategory?.trim() || undefined,
         balance: parseFloat(form.balance)
       };
 
@@ -123,6 +193,9 @@ const Accounts = () => {
 
       setForm(initialFormState);
       setEditingAccountId(null);
+      setSuggestionExplanation(null);
+      setSuggestionConfidence(null);
+      setSuggestedFields([]);
       fetchAccounts();
     } catch (err: any) {
       console.error("Error saving account:", err);
@@ -149,14 +222,17 @@ const Accounts = () => {
     setForm({
       name: account.name,
       type: account.type,
-      category: account.category,
-      subcategory: account.subcategory,
+      category: account.category || "",
+      subcategory: account.subcategory || "",
       financialCategory: account.financialCategory,
-      financialSubcategory: account.financialSubcategory,
+      financialSubcategory: account.financialSubcategory || "",
       balance: account.balance.toString()
     });
     setEditingAccountId(Number(account.id));
     setShowAdvanced(true);
+    setSuggestionExplanation(null);
+    setSuggestionConfidence(null);
+    setSuggestedFields([]);
   };
 
   const handleDelete = async (id: number) => {
@@ -198,6 +274,8 @@ const Accounts = () => {
     setForm(initialFormState);
     setEditingAccountId(null);
     setSuggestedFields([]);
+    setSuggestionExplanation(null);
+    setSuggestionConfidence(null);
   };
 
   const handleInputChange = (
@@ -206,26 +284,32 @@ const Accounts = () => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setSuggestedFields((prev) => prev.filter((field) => field !== name));
+    
+    // Clear suggestion explanation when user manually changes fields
+    if (name !== 'name') {
+      setSuggestionExplanation(null);
+      setSuggestionConfidence(null);
+    }
   };
 
   const handleNameBlur = async () => {
     if (!form.name.trim() || editingAccountId) return;
 
     try {
-      const suggestions = await AccountService.suggestAccountMetadata(form.name.trim());
+      const suggestion = await AccountService.suggestAccountMetadata(form.name.trim());
       
-      if (suggestions) {
+      if (suggestion) {
         const updates: Partial<AccountForm> = {};
         
-        if (!form.type) updates.type = suggestions.type;
-        if (!form.category) updates.category = suggestions.category;
-        if (!form.subcategory) updates.subcategory = suggestions.subcategory;
+        if (!form.type) updates.type = suggestion.type as AccountType;
+        if (!form.category) updates.category = suggestion.category;
+        if (!form.subcategory) updates.subcategory = suggestion.subcategory;
         
         if (!form.financialCategory || form.financialCategory === FinancialCategory.OPERATING_EXPENSE) {
-          updates.financialCategory = suggestions.financialCategory;
+          updates.financialCategory = suggestion.financialCategory as FinancialCategory;
         }
         if (!form.financialSubcategory || form.financialSubcategory === "Uncategorized") {
-          updates.financialSubcategory = suggestions.financialSubcategory;
+          updates.financialSubcategory = suggestion.financialSubcategory;
         }
 
         if (Object.keys(updates).length > 0) {
@@ -234,11 +318,59 @@ const Accounts = () => {
             ...updates
           }));
           setSuggestedFields(Object.keys(updates));
+          setSuggestionExplanation(suggestion.explanation || null);
+          setSuggestionConfidence(suggestion.confidence || null);
         }
       }
     } catch (err) {
       console.error("Error getting account suggestions:", err);
       // Silent failure for minor fetches like smart suggestions
+    }
+  };
+
+  const handleTemplateSelect = (template: AccountTemplate) => {
+    setForm({
+      name: form.name, // Keep the name the user typed
+      type: template.type as AccountType,
+      category: template.category,
+      subcategory: template.subcategory,
+      financialCategory: template.financialCategory as FinancialCategory,
+      financialSubcategory: template.financialSubcategory,
+      balance: form.balance
+    });
+    setSuggestedFields(['type', 'category', 'subcategory', 'financialCategory', 'financialSubcategory']);
+    setSuggestionExplanation(`Applied template: ${template.description}`);
+    setSuggestionConfidence(0.9);
+    setShowTemplates(false);
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return 'text-green-600';
+    if (confidence >= 0.6) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getConfidenceText = (confidence: number) => {
+    if (confidence >= 0.8) return "High Confidence";
+    if (confidence >= 0.6) return "Medium Confidence";
+    return "Low Confidence";
+  };
+
+  // Helper function to get color-coded styling for account types
+  const getAccountTypeStyle = (type: AccountType) => {
+    switch (type) {
+      case AccountType.ASSET:
+        return "bg-green-50 text-green-800 border border-green-200";
+      case AccountType.LIABILITY:
+        return "bg-red-50 text-red-800 border border-red-200";
+      case AccountType.EQUITY:
+        return "bg-blue-50 text-blue-800 border border-blue-200";
+      case AccountType.INCOME:
+        return "bg-green-50 text-green-800 border border-green-200";
+      case AccountType.EXPENSE:
+        return "bg-red-50 text-red-800 border border-red-200";
+      default:
+        return "bg-gray-50 text-gray-800 border border-gray-200";
     }
   };
 
@@ -303,6 +435,70 @@ const Accounts = () => {
             />
           </div>
 
+          {/* Quick Templates Section */}
+          {!editingAccountId && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="text-blue-600 hover:text-blue-800 focus:outline-none flex items-center gap-2"
+              >
+                {showTemplates ? "Hide Quick Templates" : "Show Quick Templates"}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showTemplates && (
+                <div className="mt-3 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Popular Account Types</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {templates.filter(t => t.isPopular).map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleTemplateSelect(template)}
+                        className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-sm"
+                      >
+                        <span className="text-lg mb-1">{template.icon}</span>
+                        <span className="font-medium text-gray-900">{template.name}</span>
+                        <span className="text-xs text-gray-500 text-center">{template.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Suggestion Explanation */}
+          {suggestionExplanation && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm text-blue-800">{suggestionExplanation}</p>
+                  {suggestionConfidence !== null && (
+                    <p className={`text-xs mt-1 ${getConfidenceColor(suggestionConfidence)}`}>
+                      {getConfidenceText(suggestionConfidence)} ({Math.round(suggestionConfidence * 100)}%)
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuggestionExplanation(null);
+                    setSuggestionConfidence(null);
+                  }}
+                  className="text-blue-400 hover:text-blue-600 ml-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Advanced Classification Section */}
           <div className="mt-4">
             <button
@@ -353,19 +549,26 @@ const Accounts = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reporting Category (GAAP) *
                   </label>
-                  <select
-                    name="financialCategory"
-                    value={form.financialCategory}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    {Object.values(FinancialCategory).map((category) => (
-                      <option key={category} value={category}>
-                        {formatEnumLabel(category)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="financialCategory"
+                      value={form.financialCategory}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      {Object.values(FinancialCategory).map((category) => (
+                        <option key={category} value={category}>
+                          {formatEnumLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                    {suggestedFields.includes("financialCategory") && (
+                      <span className="absolute top-0 right-0 mt-1 mr-2 text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">
+                        Suggested
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">Used for classification in financial reports. We'll suggest a value when possible.</p>
                 </div>
 
@@ -421,146 +624,91 @@ const Accounts = () => {
         )}
       </div>
 
-      {/* Accounts Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Subcategory
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Financial Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Financial Subcategory
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
+      {/* Accounts List */}
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold">Your Accounts</h2>
+        </div>
+        {isLoading ? (
+          <div className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading accounts...</p>
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-gray-500">No accounts found. Create your first account above.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                    Loading accounts...
-                  </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Account Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Balance
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ) : accounts.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                    No accounts found
-                  </td>
-                </tr>
-              ) : (
-                accounts.map((account) => (
-                  <tr 
-                    key={account.id} 
-                    className={`hover:bg-gray-50 ${
-                      editingAccountId === Number(account.id) 
-                        ? 'bg-yellow-50 border-l-4 border-yellow-400' 
-                        : ''
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {account.name}
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {accounts.map((account) => (
+                  <tr key={account.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{account.name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatEnumLabel(account.type)}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getAccountTypeStyle(account.type)}`}>
+                        {formatEnumLabel(account.type)}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        {account.category || "—"}
-                        {suggestedFields.includes("category") && (
-                          <span 
-                            className="text-blue-500 cursor-help" 
-                            title="Category suggested based on the account name"
-                          >
-                            💡
-                          </span>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{account.category}</div>
+                      {account.subcategory && (
+                        <div className="text-xs text-gray-500">{account.subcategory}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm font-medium ${isNegativeBalance(account) ? 'text-red-600' : 'text-gray-900'}`}>
+                        {getBalanceDisplay(account)}
+                        {isNegativeBalance(account) && (
+                          <svg className="inline w-4 h-4 ml-1 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        {account.subcategory || "—"}
-                        {suggestedFields.includes("subcategory") && (
-                          <span 
-                            className="text-blue-500 cursor-help" 
-                            title="Subcategory suggested based on the account name"
-                          >
-                            💡
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        {formatEnumLabel(account.financialCategory)}
-                        {suggestedFields.includes("financialCategory") && (
-                          <span 
-                            className="text-blue-500 cursor-help" 
-                            title="Financial category suggested based on the account name"
-                          >
-                            💡
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        {formatEnumLabel(account.financialSubcategory)}
-                        {suggestedFields.includes("financialSubcategory") && (
-                          <span 
-                            className="text-blue-500 cursor-help" 
-                            title="Financial subcategory suggested based on the account name"
-                          >
-                            💡
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                      {displayBalance(account)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleEdit(account)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                        className="text-blue-600 hover:text-blue-900 mr-4"
                         title="Edit account"
-                        aria-label="Edit account"
                       >
-                        <span className="text-blue-600 hover:text-blue-800">✏️</span>
+                        ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(Number(account.id))}
-                        className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                        className="text-red-600 hover:text-red-900"
                         title="Delete account"
-                        aria-label="Delete account"
                       >
-                        <span className="text-gray-600 hover:text-red-600">🗑️</span>
+                        🗑️
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { AuthenticationError, NotFoundError } from "../utils/errors";
 import { AuthenticatedRequest } from "../types/express";
 import { getSuggestedMetadata, validateAccountMetadata } from "../utils/accountCategorizer";
 import { BaseController } from "./base.controller";
+import { AccountTemplateService } from "../services/accountTemplate.service";
 
 const accountRepo = AppDataSource.getRepository(Account);
 
@@ -18,6 +19,91 @@ export class AccountController extends BaseController {
       this.sendResponse(res, 200, accounts);
     } catch (error) {
       console.error("Get accounts error:", error);
+      this.sendError(res, 500, "Internal server error");
+    }
+  }
+
+  async getAccountsWithRecalculatedBalances(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user.userId;
+      
+      // Get all accounts for the user
+      const accounts = await accountRepo.find({
+        where: { user: { id: userId } },
+      });
+
+      // Get all journal entries for the user
+      const journalEntries = await AppDataSource.getRepository("JournalEntry").find({
+        where: { transaction: { user: { id: userId } } },
+        relations: ['account', 'transaction']
+      });
+
+      console.log(`🔍 Calculating balances for ${accounts.length} accounts with ${journalEntries.length} journal entries`);
+
+      // Calculate balances from journal entries
+      const accountBalances = new Map<number, number>();
+      accounts.forEach((account: any) => {
+        accountBalances.set(account.id, 0);
+      });
+
+      journalEntries.forEach((entry: any) => {
+        const currentBalance = accountBalances.get(entry.account.id) || 0;
+        
+        // Ensure entry.amount is a number
+        const amount = parseFloat(entry.amount?.toString() || '0');
+        if (isNaN(amount)) {
+          console.warn(`⚠️ Invalid amount in journal entry:`, entry);
+          return;
+        }
+        
+        // Calculate balance change based on entry type and account type
+        let balanceChange = 0;
+        
+        if (entry.type === 'DEBIT') {
+          // For ASSET and EXPENSE accounts, debit increases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = amount;
+          } else {
+            balanceChange = -amount;
+          }
+        } else if (entry.type === 'CREDIT') {
+          // For ASSET and EXPENSE accounts, credit decreases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = -amount;
+          } else {
+            balanceChange = amount;
+          }
+        }
+        
+        const newBalance = currentBalance + balanceChange;
+        accountBalances.set(entry.account.id, newBalance);
+        
+        console.log(`📝 Entry: Account ${entry.account.name} - Type: ${entry.type}, Amount: ${amount}, Balance Change: ${balanceChange}, New Balance: ${newBalance}`);
+      });
+
+      // Update account objects with recalculated balances
+      const accountsWithRecalculatedBalances = accounts.map(account => {
+        const calculatedBalance = accountBalances.get(account.id) || 0;
+        console.log(`💰 Account ${account.name}: calculated balance = ${calculatedBalance}`);
+        
+        return {
+          ...account,
+          balance: calculatedBalance
+        };
+      });
+
+      console.log('📤 Sending accounts data to frontend:', JSON.stringify(accountsWithRecalculatedBalances.map(acc => ({
+        id: acc.id,
+        name: acc.name,
+        balance: acc.balance,
+        balanceType: typeof acc.balance
+      })), null, 2));
+
+      this.sendResponse(res, 200, accountsWithRecalculatedBalances);
+    } catch (error) {
+      console.error("Get accounts with recalculated balances error:", error);
       this.sendError(res, 500, "Internal server error");
     }
   }
@@ -232,13 +318,27 @@ export class AccountController extends BaseController {
 
       console.log("[AutoCategory] Incoming name:", name);
 
-      // 1. Check against keyword map FIRST
+      // Get enhanced suggestion with explanation and confidence
       const suggestion = getSuggestedMetadata(name);
       if (suggestion) {
-        console.log("[AutoCategory] Keyword match found:", suggestion);
-        this.sendResponse(res, 200, suggestion);
+        console.log("[AutoCategory] Enhanced suggestion found:", {
+          ...suggestion,
+          confidence: suggestion.confidence,
+          explanation: suggestion.explanation
+        });
+        
+        // Return the enhanced suggestion with explanation
+        this.sendResponse(res, 200, {
+          type: suggestion.type,
+          category: suggestion.category,
+          subcategory: suggestion.subcategory,
+          financialCategory: suggestion.financialCategory,
+          financialSubcategory: suggestion.financialSubcategory,
+          explanation: suggestion.explanation,
+          confidence: suggestion.confidence
+        });
       } else {
-        // 2. If no keyword match, look through user's existing accounts
+        // Fallback to user's existing accounts if no keyword match
         console.log("[AutoCategory] No keyword match, checking user accounts");
         const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
         const match = accounts.find((acc) =>
@@ -255,16 +355,20 @@ export class AccountController extends BaseController {
             subcategory: match.subcategory,
             financialCategory: match.financialCategory,
             financialSubcategory: match.financialSubcategory,
+            explanation: `Matched existing account: ${match.name}`,
+            confidence: 0.6
           });
         } else {
-          // 3. Final fallback
-          console.log("[AutoCategory] No match found, using full fallback");
+          // Final fallback with explanation
+          console.log("[AutoCategory] No match found, using enhanced fallback");
           this.sendResponse(res, 200, {
             type: "ASSET",
             category: "Uncategorized",
             subcategory: "",
             financialCategory: "CURRENT_ASSET",
-            financialSubcategory: "Uncategorized",
+            financialSubcategory: "UNCATEGORIZED",
+            explanation: "No specific category match found. This account has been classified as a current asset by default. You may want to adjust the classification based on the account's purpose.",
+            confidence: 0.3
           });
         }
       }
@@ -274,6 +378,19 @@ export class AccountController extends BaseController {
         message: "Suggestion failed", 
         error: error instanceof Error ? error.message : "Unknown error" 
       });
+    }
+  }
+
+  async getAccountTemplates(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = await getUser(req);
+      if (!user) throw new AuthenticationError();
+
+      const templates = AccountTemplateService.getAllTemplates();
+      this.sendResponse(res, 200, templates);
+    } catch (error) {
+      console.error("Get account templates error:", error);
+      this.sendError(res, 500, "Internal server error");
     }
   }
 }

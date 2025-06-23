@@ -41,6 +41,19 @@ export interface BackendTransactionForm {
   terminationDate?: string;
 }
 
+export interface BalanceWarning {
+  accountId: number;
+  accountName: string;
+  currentBalance: number;
+  newBalance: number;
+  message: string;
+}
+
+export interface TransactionResponse {
+  transaction: Transaction;
+  warnings?: BalanceWarning[];
+}
+
 export const fetchTransactions = async (): Promise<Transaction[]> => {
   try {
     const response = await axios.get("/transactions");
@@ -51,11 +64,19 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
   }
 };
 
-export const createTransaction = async (transaction: BackendTransactionForm): Promise<Transaction> => {
+export const createTransaction = async (transaction: BackendTransactionForm): Promise<TransactionResponse> => {
   try {
     console.log('📤 Sending transaction data:', JSON.stringify(transaction, null, 2));
     const response = await axios.post("/transactions", transaction);
-    return response.data;
+    
+    // Check if the response contains warnings
+    const warnings = response.data.warnings;
+    const transactionData = warnings ? { ...response.data, warnings: undefined } : response.data;
+    
+    return {
+      transaction: transactionData,
+      warnings: warnings
+    };
   } catch (error: any) {
     console.error("Error creating transaction:", error);
     if (error.response) {

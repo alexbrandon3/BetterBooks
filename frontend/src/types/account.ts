@@ -2,7 +2,7 @@ export enum AccountType {
   ASSET = "ASSET",
   LIABILITY = "LIABILITY",
   EQUITY = "EQUITY",
-  REVENUE = "REVENUE",
+  INCOME = "INCOME",
   EXPENSE = "EXPENSE"
 }
 
@@ -19,7 +19,7 @@ export enum FinancialCategory {
 }
 
 export interface Account {
-  id: string;
+  id: number;
   name: string;
   type: AccountType;
   category: string;
@@ -27,6 +27,9 @@ export interface Account {
   financialCategory: FinancialCategory;
   financialSubcategory: string;
   balance: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AccountForm {
@@ -42,9 +45,32 @@ export interface AccountForm {
 export interface AccountPayload {
   name: string;
   type: AccountType;
-  category: string | null;
-  subcategory: string | null;
+  category?: string;
+  subcategory?: string;
   financialCategory: FinancialCategory;
-  financialSubcategory: string | null;
+  financialSubcategory?: string;
   balance: number;
+}
+
+export interface AccountSuggestion {
+  type: AccountType;
+  category: string;
+  subcategory: string;
+  financialCategory: FinancialCategory;
+  financialSubcategory: string;
+  explanation?: string;
+  confidence?: number;
+}
+
+export interface AccountTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: AccountType;
+  category: string;
+  subcategory: string;
+  financialCategory: FinancialCategory;
+  financialSubcategory: string;
+  icon?: string;
+  isPopular?: boolean;
 } 

@@ -6,8 +6,10 @@ import {
   deleteTransaction,
   getSuggestedAccount,
   JournalEntryFields,
+  BalanceWarning,
+  TransactionResponse,
 } from '../services/TransactionService';
-import { fetchAccounts } from '../services/AccountService';
+import { fetchAccountsWithConsistentBalances } from '../services/AccountService';
 import { Account, AccountType, FinancialCategory } from '../types/account';
 import { Transaction } from '../types/transaction';
 import { TransactionList } from '../components/transactions/TransactionList';
@@ -71,6 +73,7 @@ const Transactions = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -170,34 +173,43 @@ const Transactions = () => {
   // Fallback accounts for tests and empty state
   const fallbackAccounts: Account[] = [
     { 
-      id: "1", 
+      id: 1, 
       name: "Checking",
       type: AccountType.ASSET,
       category: "Bank",
       subcategory: "Checking",
       financialCategory: FinancialCategory.CURRENT_ASSET,
       financialSubcategory: "Cash",
-      balance: 0
+      balance: 0,
+      userId: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     },
     { 
-      id: "2", 
+      id: 2, 
       name: "Savings",
       type: AccountType.ASSET,
       category: "Bank",
       subcategory: "Savings",
       financialCategory: FinancialCategory.CURRENT_ASSET,
       financialSubcategory: "Cash",
-      balance: 0
+      balance: 0,
+      userId: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     },
     { 
-      id: "3", 
+      id: 3, 
       name: "Groceries",
       type: AccountType.EXPENSE,
       category: "Food",
       subcategory: "Groceries",
       financialCategory: FinancialCategory.OPERATING_EXPENSE,
       financialSubcategory: "Food",
-      balance: 0
+      balance: 0,
+      userId: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   ];
   const fallbackUsed = accounts.length === 0;
@@ -252,6 +264,7 @@ const Transactions = () => {
     setFormKey(prev => prev + 1);
     setEditingTransactionId(null);
     setEditingRecurringId(null);
+    setWarnings([]); // Clear warnings when form is reset
   };
 
   const onSubmit = async (data: TransactionForm) => {
@@ -339,9 +352,37 @@ const Transactions = () => {
           toast.success("Recurring transaction created successfully!");
         } else {
           // Create regular transaction
-          await createTransaction(backendTransactionData);
-          setSuccessMessage("Transaction created successfully!");
-          toast.success("Transaction created successfully!");
+          const result: TransactionResponse = await createTransaction(backendTransactionData);
+          
+          // Check for warnings
+          if (result.warnings && result.warnings.length > 0) {
+            // Set warnings state for UI display
+            setWarnings(result.warnings);
+            
+            // Show warnings but still consider it a success
+            const warningMessages = result.warnings.map(w => w.message).join('\n');
+            setSuccessMessage(`Transaction created successfully! ⚠️ Warnings: ${warningMessages}`);
+            toast.success("Transaction created successfully!", {
+              duration: 5000,
+              icon: '⚠️'
+            });
+            // Also show individual warning toasts
+            result.warnings.forEach(warning => {
+              toast(warning.message, {
+                duration: 4000,
+                icon: '⚠️',
+                style: {
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #f59e0b'
+                }
+              });
+            });
+          } else {
+            setWarnings([]); // Clear any previous warnings
+            setSuccessMessage("Transaction created successfully!");
+            toast.success("Transaction created successfully!");
+          }
         }
         setError(null);
       }
@@ -381,6 +422,7 @@ const Transactions = () => {
   const handleAnyInput = () => {
     if (successMessage) setSuccessMessage(null);
     if (error) setError(null);
+    if (warnings.length > 0) setWarnings([]);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -399,7 +441,7 @@ const Transactions = () => {
       category: transaction.category || "Uncategorized",
       amount: transaction.amount || 0,
       entries: entries.map(entry => ({
-        accountId: entry.account.id,
+        accountId: entry.account.id.toString(),
         amount: entry.amount.toString(),
         type: entry.type
       })),
@@ -463,7 +505,7 @@ const Transactions = () => {
       setIsLoading(true);
       const [transactionsData, accountsData, recurringData] = await Promise.all([
         fetchTransactions(),
-        fetchAccounts(),
+        fetchAccountsWithConsistentBalances(),
         fetchRecurringTransactions().catch(err => {
           console.error('Failed to fetch recurring transactions:', err);
           return []; // Return empty array on error
@@ -547,6 +589,25 @@ const Transactions = () => {
           )}
         </div>
       ) : null}
+
+      {/* Display balance warnings */}
+      {warnings.length > 0 && (
+        <div role="alert" className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+          <div className="flex items-center mb-2">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="font-medium">Balance Warnings</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1">
+            {warnings.map((warning, index) => (
+              <li key={index} className="text-sm">
+                {warning.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form key={formKey} onSubmit={handleSubmit(onSubmit)} className="mb-8" onChange={handleAnyInput} onInput={handleAnyInput}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

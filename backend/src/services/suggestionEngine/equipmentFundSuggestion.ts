@@ -76,7 +76,7 @@ export const generateEquipmentFundSuggestion = (
         title: 'Business Safety Net',
         targetAmount: adjustedTarget,
         reason: `Save ${user.riskTolerance === RiskTolerance.CONSERVATIVE ? '2' : 
-                 user.riskTolerance === RiskTolerance.AGGRESSIVE ? '1' : '1.5'} months of expenses (${adjustedTarget.toLocaleString()})${
+                 user.riskTolerance === RiskTolerance.AGGRESSIVE ? '1' : '1.5'} months of expenses ($${adjustedTarget.toLocaleString()})${
           user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
         }`,
         action: 'goals'
@@ -102,7 +102,7 @@ export const generateEquipmentFundSuggestion = (
       id: 'business-expense-fund',
       title: 'Business Expense Fund',
       targetAmount: adjustedTarget,
-      reason: `Save for business expenses (based on your average monthly expense of ${averageExpense.toLocaleString()})${
+      reason: `Save for business expenses (based on your average monthly expense of $${averageExpense.toLocaleString()})${
         user.riskTolerance ? ` adjusted for your ${user.riskTolerance} risk tolerance` : ''
       }`,
       action: 'goals'
@@ -132,7 +132,7 @@ export const generateEquipmentFundSuggestion = (
     id: 'equipment-fund',
     title: 'Equipment Replacement Fund',
     targetAmount: adjustedTarget,
-    reason: `Save for your next equipment purchase (based on your average expense of ${averageExpense.toLocaleString()})${
+    reason: `Save for your next equipment purchase (based on your average expense of $${averageExpense.toLocaleString()})${
       user.riskTolerance ? ` adjusted for your ${user.riskTolerance} risk tolerance` : ''
     }`,
     action: 'goals'

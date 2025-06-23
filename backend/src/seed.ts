@@ -132,4 +132,11 @@ async function seed() {
   }
 }
 
-seed(); 
+console.log("✅ Database seeded successfully!");
+// Remove automatic execution
+// process.exit(0);
+
+// Only run if this script is executed directly
+if (require.main === module) {
+  seed();
+} 

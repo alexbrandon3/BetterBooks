@@ -7,14 +7,17 @@ import isEqual from 'lodash.isequal';
 describe('Goal Mutations Prevention Tests', () => {
   const mockAccounts: Account[] = [
     { 
-      id: '1', 
+      id: 1, 
       name: 'Checking', 
       balance: 1000, 
       category: 'Banking',
       subcategory: 'Personal',
       type: AccountType.ASSET,
       financialCategory: FinancialCategory.CURRENT_ASSET,
-      financialSubcategory: 'Cash' 
+      financialSubcategory: 'Cash',
+      userId: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   ];
   

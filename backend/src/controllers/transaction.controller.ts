@@ -163,9 +163,17 @@ export class TransactionController extends BaseController {
       };
 
       logInfo('Input validated, creating transaction', 'TransactionController');
-      const transaction = await this.transactionService.createTransaction(transactionData);
-      logSuccess(`Transaction created successfully (ID: ${transaction.id})`, 'TransactionController');
-      res.status(201).json(transaction);
+      const result = await this.transactionService.createTransaction(transactionData);
+      logSuccess(`Transaction created successfully (ID: ${result.transaction.id})`, 'TransactionController');
+      
+      // Return transaction with warnings if any
+      const response: any = result.transaction;
+      if (result.warnings && result.warnings.length > 0) {
+        response.warnings = result.warnings;
+        logInfo(`Transaction created with ${result.warnings.length} warnings`, 'TransactionController');
+      }
+      
+      res.status(201).json(response);
     } catch (error) {
       logError(`Error creating transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionController');
       if (error instanceof Error && error.message.includes("not found")) {

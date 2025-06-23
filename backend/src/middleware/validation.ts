@@ -31,23 +31,27 @@ export const validateTransaction = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   const { amount, description, date, accountId } = req.body;
 
   if (!amount || typeof amount !== "number") {
-    return res.status(400).json({ message: "Amount is required and must be a number" });
+    res.status(400).json({ message: "Amount is required and must be a number" });
+    return;
   }
 
   if (!description || typeof description !== "string") {
-    return res.status(400).json({ message: "Description is required and must be a string" });
+    res.status(400).json({ message: "Description is required and must be a string" });
+    return;
   }
 
   if (!date || !(date instanceof Date || !isNaN(Date.parse(date)))) {
-    return res.status(400).json({ message: "Valid date is required" });
+    res.status(400).json({ message: "Valid date is required" });
+    return;
   }
 
   if (!accountId || typeof accountId !== "number") {
-    return res.status(400).json({ message: "Account ID is required and must be a number" });
+    res.status(400).json({ message: "Account ID is required and must be a number" });
+    return;
   }
 
   next();

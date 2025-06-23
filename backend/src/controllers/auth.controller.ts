@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
+import { Account } from '../entities/Account';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { BaseController } from './base.controller';
 import { JwtPayload } from '../types/express';
+import { getDefaultAccounts } from '../seeders/seedDefaultAccounts';
 
 export class AuthController extends BaseController {
   async login(req: Request, res: Response): Promise<void> {
@@ -53,6 +55,8 @@ export class AuthController extends BaseController {
       console.log("Registration attempt for:", email);
 
       const userRepository = AppDataSource.getRepository(User);
+      const accountRepository = AppDataSource.getRepository(Account);
+
       const existingUser = await userRepository.findOne({ where: { email } });
 
       if (existingUser) {
@@ -68,6 +72,27 @@ export class AuthController extends BaseController {
 
       await userRepository.save(user);
       console.log("User registered successfully:", email);
+
+      // Create default accounts for the new user
+      try {
+        console.log(`Starting to create default accounts for user ${user.id}...`);
+        const defaultAccounts = getDefaultAccounts(user.id);
+        console.log(`Default accounts data prepared: ${defaultAccounts.length} accounts`);
+        
+        const createdAccounts: Account[] = [];
+        
+        for (const accountData of defaultAccounts) {
+          console.log(`Creating account: ${accountData.name}`);
+          const account = accountRepository.create(accountData);
+          const savedAccount = await accountRepository.save(account);
+          createdAccounts.push(savedAccount);
+          console.log(`Successfully created account: ${savedAccount.name} (ID: ${savedAccount.id})`);
+        }
+        
+        console.log(`Created ${createdAccounts.length} default accounts for user ${user.id}`);
+      } catch (accountError) {
+        console.error("Error creating default accounts:", accountError);
+      }
 
       const payload: JwtPayload = {
         userId: user.id,

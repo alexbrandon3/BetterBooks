@@ -56,7 +56,7 @@ export const generateIncomeSuggestion = (
     id: 'monthly-income',
     title: 'Save 1 Month of Income',
     targetAmount,
-    reason: `Save one month's income (${targetAmount.toLocaleString()}) as a financial buffer${
+    reason: `Save one month's income ($${targetAmount.toLocaleString()}) as a financial buffer${
       user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
     }`,
     action: 'goals'
