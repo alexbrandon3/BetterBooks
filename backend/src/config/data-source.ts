@@ -21,20 +21,14 @@ const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_U
 
 // Add connection parameters to help with DNS resolution
 const connectionUrl = databaseUrl.includes('?') 
-  ? `${databaseUrl}&sslmode=require&connect_timeout=10`
-  : `${databaseUrl}?sslmode=require&connect_timeout=10`;
+  ? `${databaseUrl}&sslmode=no-verify&connect_timeout=10`
+  : `${databaseUrl}?sslmode=no-verify&connect_timeout=10`;
 
 console.log("🔗 Database URL being used:", connectionUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
 
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: connectionUrl,
-  ssl: {
-    rejectUnauthorized: false,
-    ca: undefined,
-    key: undefined,
-    cert: undefined
-  },
   synchronize: true,
   logging: true,
   entities: [
