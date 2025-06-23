@@ -24,6 +24,9 @@ console.log("🔗 Database URL being used:", databaseUrl.replace(/:[^:@]*@/, ':*
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false
+  },
   synchronize: true,
   logging: true,
   entities: [
