@@ -17,9 +17,13 @@ import { RecurringTransaction } from "../entities/RecurringTransaction";
 import { FinancialGoal } from "../entities/FinancialGoal";
 import { Suggestion } from "../entities/Suggestion";
 
+const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`;
+
+console.log("🔗 Database URL being used:", databaseUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
+
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`,
+  url: databaseUrl,
   synchronize: true,
   logging: true,
   entities: [
