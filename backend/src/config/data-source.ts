@@ -30,7 +30,10 @@ export const AppDataSource = new DataSource({
   type: "postgres",
   url: connectionUrl,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    ca: undefined,
+    key: undefined,
+    cert: undefined
   },
   synchronize: true,
   logging: true,
