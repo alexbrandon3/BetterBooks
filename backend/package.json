@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "start:dev": "nodemon",
-    "start:prod": "node dist/main.js",
+    "start:prod": "node dist/index.js",
     "dev": "concurrently \"ts-node-dev --respawn --transpile-only src/index.ts\" \"npm run watch\"",
     "watch": "tsc -w",
     "build": "tsc",
