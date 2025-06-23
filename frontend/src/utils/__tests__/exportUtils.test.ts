@@ -140,6 +140,8 @@ describe('balanceSheetToCSV', () => {
 
 describe('incomeStatementToCSV', () => {
   const mockIncomeStatement: IncomeStatement = {
+    revenue: [],
+    expenses: [],
     totalIncome: 5000,
     totalExpenses: 7000,
     netIncome: -2000
@@ -161,6 +163,8 @@ describe('incomeStatementToCSV', () => {
 
   it('handles positive net income', () => {
     const positiveIncome: IncomeStatement = {
+      revenue: [],
+      expenses: [],
       totalIncome: 10000,
       totalExpenses: 6000,
       netIncome: 4000
@@ -171,6 +175,8 @@ describe('incomeStatementToCSV', () => {
 
   it('handles zero values', () => {
     const zeroIncome: IncomeStatement = {
+      revenue: [],
+      expenses: [],
       totalIncome: 0,
       totalExpenses: 0,
       netIncome: 0
@@ -274,6 +280,8 @@ describe('exportToCSV', () => {
 
   it('exports income statement correctly', () => {
     const mockIncomeStatement: IncomeStatement = {
+      revenue: [],
+      expenses: [],
       totalIncome: 1000,
       totalExpenses: 500,
       netIncome: 500
