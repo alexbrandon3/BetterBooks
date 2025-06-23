@@ -19,11 +19,16 @@ import { Suggestion } from "../entities/Suggestion";
 
 const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`;
 
-console.log("🔗 Database URL being used:", databaseUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
+// Add connection parameters to help with DNS resolution
+const connectionUrl = databaseUrl.includes('?') 
+  ? `${databaseUrl}&sslmode=require&connect_timeout=10`
+  : `${databaseUrl}?sslmode=require&connect_timeout=10`;
+
+console.log("🔗 Database URL being used:", connectionUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: databaseUrl,
+  url: connectionUrl,
   ssl: {
     rejectUnauthorized: false
   },
