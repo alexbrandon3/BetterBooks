@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: betterbooks-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    envVars:
+      - key: NODE_ENV
+        value: production 
