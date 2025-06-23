@@ -1,12 +1,18 @@
 {
   "name": "betterbooks",
   "version": "1.0.0",
-  "private": true,
+  "description": "BetterBooks financial management application",
+  "main": "index.js",
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd backend && npm run start:dev",
-    "client": "cd frontend && npm start"
+    "client": "cd frontend && npm run dev",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "concurrently": "^8.2.2"
