@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "proxy": "http://localhost:5000",
+  "_comment": "Updated for Vercel deployment compatibility",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
