@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "BetterBooks financial management application",
   "main": "index.js",
+  "engines": {
+    "node": ">=22.16.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "which npm && cd frontend && npm install --production=false && npm run build",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd backend && npm run start:dev",
     "client": "cd frontend && npm run dev",
