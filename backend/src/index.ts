@@ -30,8 +30,19 @@ AppDataSource.initialize()
     console.log("✅ Database connection established successfully.");
     
     // Start the server only after database connection is established
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+      console.log(`🔍 Server address: ${server.address()}`);
+      console.log(`🌐 Server is listening on all interfaces`);
+    });
+    
+    // Add error handling for the server
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+    });
+    
+    server.on('connection', (socket) => {
+      console.log('🔌 New connection from:', socket.remoteAddress);
     });
   })
   .catch((error) => {

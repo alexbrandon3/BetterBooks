@@ -40,7 +40,9 @@ if (process.env.NODE_ENV !== "test") {
 
 // Debug middleware to log all requests
 app.use((req, _res, next) => {
-  console.log(`${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
+  console.log(`📨 ${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
+  console.log(`🔍 Request headers:`, req.headers);
+  console.log(`🌐 Request IP: ${req.ip}`);
   next();
 });
 
