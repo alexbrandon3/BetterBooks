@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import axios from "../utils/axios";
+import api from "../utils/axios";
 import { toast } from "react-hot-toast";
 
 const Login = () => {
@@ -44,7 +44,7 @@ const Login = () => {
       setIsLoading(true);
       setError("");
       
-      const response = await axios.post("auth/login", {
+      const response = await api.post("auth/login", {
         email,
         password,
       });

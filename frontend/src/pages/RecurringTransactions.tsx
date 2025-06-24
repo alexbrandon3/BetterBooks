@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { format } from "date-fns";
+import api from "../utils/axios";
 import {
   fetchRecurringTransactions,
   createRecurringTransaction,
   deleteRecurringTransaction,
 } from "../services/RecurringTransactionService";
-import axios from "../utils/axios";
-import { toast } from 'react-hot-toast';
 
 interface RecurringTransaction {
   id: number;
@@ -32,7 +34,7 @@ const RecurringTransactions = () => {
   useEffect(() => {
     const loadAccounts = async () => {
       try {
-        const response = await axios.get("/accounts");
+        const response = await api.get("/accounts");
         setAccounts(response.data);
       } catch (error) {
         console.error('Failed to load accounts:', error);

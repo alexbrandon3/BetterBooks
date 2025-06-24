@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from '../utils/axios';
+import api from '../utils/axios';
 
 interface AccountSuggestion {
   suggestedAccountId: number;
@@ -46,7 +46,7 @@ export const useSmartSuggestion = ({ debounceMs = 500 }: UseSmartSuggestionProps
     setError(null);
 
     try {
-      const response = await axios.post('/suggestions/suggest-account', {
+      const response = await api.post('/suggestions/suggest-account', {
         description: description.trim()
       });
       

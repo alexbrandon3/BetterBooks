@@ -1,4 +1,4 @@
-import axios from "../utils/axios";
+import api from "../utils/axios";
 import { Transaction } from "../types/transaction";
 import { JournalEntry } from "../types/journalEntry";
 
@@ -56,7 +56,7 @@ export interface TransactionResponse {
 
 export const fetchTransactions = async (): Promise<Transaction[]> => {
   try {
-    const response = await axios.get("/transactions");
+    const response = await api.get("/transactions");
     return response.data;
   } catch (error) {
     console.error("Error fetching transactions:", error);
@@ -67,7 +67,7 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
 export const createTransaction = async (transaction: BackendTransactionForm): Promise<TransactionResponse> => {
   try {
     console.log('📤 Sending transaction data:', JSON.stringify(transaction, null, 2));
-    const response = await axios.post("/transactions", transaction);
+    const response = await api.post("/transactions", transaction);
     
     // Check if the response contains warnings
     const warnings = response.data.warnings;
@@ -89,7 +89,7 @@ export const createTransaction = async (transaction: BackendTransactionForm): Pr
 
 export const updateTransaction = async (id: string, transaction: BackendTransactionForm): Promise<Transaction> => {
   try {
-    const response = await axios.put(`/transactions/${id}`, transaction);
+    const response = await api.put(`/transactions/${id}`, transaction);
     return response.data;
   } catch (error) {
     console.error("Error updating transaction:", error);
@@ -99,7 +99,7 @@ export const updateTransaction = async (id: string, transaction: BackendTransact
 
 export const deleteTransaction = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`/transactions/${id}`);
+    await api.delete(`/transactions/${id}`);
     console.log("Transaction deleted successfully");
   } catch (error) {
     console.error("Error deleting transaction:", error);
@@ -109,7 +109,7 @@ export const deleteTransaction = async (id: string): Promise<void> => {
 
 export const getSuggestedAccount = async (description: string): Promise<{ suggestedAccountId: number; suggestedAccountName: string; reason: string } | null> => {
   try {
-    const response = await axios.post('/suggestions/suggest-account', {
+    const response = await api.post('/suggestions/suggest-account', {
       description: description.trim()
     });
     return response.data;
