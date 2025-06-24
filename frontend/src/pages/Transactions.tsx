@@ -76,6 +76,8 @@ const Transactions = () => {
   const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
   const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
+  const [showBalanceWarning, setShowBalanceWarning] = useState(false);
+  const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -219,36 +221,44 @@ const Transactions = () => {
 
   // Helper function to find the best default account for an entry
   const findDefaultAccountForEntry = (entryType: 'DEBIT' | 'CREDIT', availableAccounts: any[]) => {
+    // For DEBIT entries, prefer cash/checking accounts
     if (entryType === 'DEBIT') {
-      // For DEBIT entries, prefer asset accounts (Cash, Bank, etc.)
-      const assetAccounts = availableAccounts.filter(acc => acc.type === 'ASSET');
-      
-      // First try to find Cash
-      const cashAccount = assetAccounts.find(acc => 
-        acc.name.toLowerCase().includes('cash') || 
-        acc.category?.toLowerCase().includes('cash')
+      // First try to find cash accounts
+      const cashAccounts = availableAccounts.filter(acc => 
+        acc.type === 'ASSET' && 
+        (acc.name.toLowerCase().includes('cash') || 
+         acc.name.toLowerCase().includes('checking') ||
+         acc.name.toLowerCase().includes('bank'))
       );
-      if (cashAccount) return cashAccount;
+      if (cashAccounts.length > 0) {
+        // Return the one with the highest balance
+        return cashAccounts.reduce((highest, current) => 
+          (current.balance || 0) > (highest.balance || 0) ? current : highest
+        );
+      }
       
-      // Then try to find highest balance asset account
-      const sortedAssets = assetAccounts.sort((a, b) => b.balance - a.balance);
-      if (sortedAssets.length > 0) return sortedAssets[0];
-      
-      // Fallback to any asset account
-      if (assetAccounts.length > 0) return assetAccounts[0];
-    } else {
-      // For CREDIT entries, prefer liability or equity accounts
+      // Fallback to any asset account with highest balance
+      const assetAccounts = availableAccounts.filter(acc => acc.type === 'ASSET');
+      if (assetAccounts.length > 0) {
+        return assetAccounts.reduce((highest, current) => 
+          (current.balance || 0) > (highest.balance || 0) ? current : highest
+        );
+      }
+    }
+    
+    // For CREDIT entries, prefer liability/equity accounts
+    if (entryType === 'CREDIT') {
+      // First try to find liability accounts
       const liabilityAccounts = availableAccounts.filter(acc => acc.type === 'LIABILITY');
-      const equityAccounts = availableAccounts.filter(acc => acc.type === 'EQUITY');
-      
-      // Try to find highest balance liability account
-      const sortedLiabilities = liabilityAccounts.sort((a, b) => b.balance - a.balance);
-      if (sortedLiabilities.length > 0) return sortedLiabilities[0];
-      
-      // Fallback to any liability account
-      if (liabilityAccounts.length > 0) return liabilityAccounts[0];
+      if (liabilityAccounts.length > 0) {
+        // Return the one with the highest balance
+        return liabilityAccounts.reduce((highest, current) => 
+          (current.balance || 0) > (highest.balance || 0) ? current : highest
+        );
+      }
       
       // Fallback to any equity account
+      const equityAccounts = availableAccounts.filter(acc => acc.type === 'EQUITY');
       if (equityAccounts.length > 0) return equityAccounts[0];
     }
     
@@ -364,7 +374,83 @@ const Transactions = () => {
     setSuggestionConfidence(null);
   };
 
-  const onSubmit = async (data: TransactionForm) => {
+  // Function to check for potential negative balances
+  const checkBalanceWarnings = (data: TransactionForm): BalanceWarning[] => {
+    const warnings: BalanceWarning[] = [];
+    
+    // Only check if we have valid entries with amounts
+    if (!data.entries || data.entries.length < 2) return warnings;
+    
+    for (const entry of data.entries) {
+      if (!entry.accountId || !entry.amount || isNaN(Number(entry.amount))) continue;
+      
+      const account = accounts.find(acc => acc.id.toString() === entry.accountId);
+      if (!account || account.type !== 'ASSET') continue; // Only check asset accounts
+      
+      const currentBalance = account.balance || 0;
+      const entryAmount = Number(entry.amount);
+      
+      // Calculate balance change based on entry type
+      let balanceChange = 0;
+      if (entry.type === 'DEBIT') {
+        // For ASSET accounts, debit increases balance
+        balanceChange = entryAmount;
+      } else if (entry.type === 'CREDIT') {
+        // For ASSET accounts, credit decreases balance
+        balanceChange = -entryAmount;
+      }
+      
+      const newBalance = currentBalance + balanceChange;
+      
+      // Check for negative balance
+      if (newBalance < 0) {
+        warnings.push({
+          accountId: account.id,
+          accountName: account.name,
+          currentBalance: currentBalance,
+          newBalance: newBalance,
+          message: `This transaction will result in a negative balance of $${Math.abs(newBalance).toFixed(2)} in ${account.name}`
+        });
+      }
+    }
+    
+    return warnings;
+  };
+
+  // Function to handle form submission with balance validation
+  const handleFormSubmission = async (data: TransactionForm) => {
+    // Check for balance warnings
+    const balanceWarnings = checkBalanceWarnings(data);
+    
+    if (balanceWarnings.length > 0) {
+      // Show warning dialog
+      setWarnings(balanceWarnings);
+      setPendingTransaction(data);
+      setShowBalanceWarning(true);
+      return;
+    }
+    
+    // No warnings, proceed with submission
+    await submitTransaction(data);
+  };
+
+  // Function to proceed with transaction despite warnings
+  const proceedWithTransaction = async () => {
+    if (pendingTransaction) {
+      setShowBalanceWarning(false);
+      setPendingTransaction(null);
+      await submitTransaction(pendingTransaction);
+    }
+  };
+
+  // Function to cancel transaction due to warnings
+  const cancelTransaction = () => {
+    setShowBalanceWarning(false);
+    setPendingTransaction(null);
+    setWarnings([]);
+  };
+
+  const submitTransaction = async (data: TransactionForm) => {
     setIsSubmitting(true);
     // Don't clear successMessage or error here
     try {
@@ -723,7 +809,7 @@ const Transactions = () => {
         </div>
       )}
 
-      <form key={formKey} onSubmit={handleSubmit(onSubmit)} className="mb-8" onChange={handleAnyInput} onInput={handleAnyInput}>
+      <form key={formKey} onSubmit={handleSubmit(handleFormSubmission)} className="mb-8" onChange={handleAnyInput} onInput={handleAnyInput}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Date *</label>
@@ -967,6 +1053,50 @@ const Transactions = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Balance Warning Confirmation Dialog */}
+      {showBalanceWarning && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Negative Balance Warning
+                </h3>
+                <div className="text-sm text-gray-600 mb-4">
+                  <p className="mb-2">This transaction will result in negative balances in the following accounts:</p>
+                  <ul className="text-left space-y-1">
+                    {warnings.map((warning, index) => (
+                      <li key={index} className="text-red-600 font-medium">
+                        • {warning.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex justify-center space-x-3">
+                  <button
+                    onClick={cancelTransaction}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel Transaction
+                  </button>
+                  <button
+                    onClick={proceedWithTransaction}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Proceed Anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
