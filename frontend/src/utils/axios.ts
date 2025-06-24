@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (process.env.NODE_ENV === 'production') {
-    const apiUrl = process.env.REACT_APP_API_URL || 'https://betterbooks-backend.onrender.com/api';
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://betterbooks.onrender.com/api';
     console.log('Using production API URL:', apiUrl);
     return apiUrl;
   }
