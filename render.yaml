@@ -33,4 +33,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: REACT_APP_API_URL
-        value: https://betterbooks-backend.onrender.com 
+        value: https://betterbooks-backend.onrender.com/api 
