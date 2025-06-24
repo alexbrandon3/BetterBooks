@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useFeedback } from '../hooks/useFeedback';
 import { logAnalytics } from '../utils/analytics';
-import axios from 'axios';
+import api from '../utils/axios';
 import { SuggestedGoal } from '../types/suggestion';
 import { RiskTolerance } from '../types/user';
 
@@ -26,7 +26,7 @@ export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({
         setLoading(true);
         setError(null);
         const token = localStorage.getItem('token');
-        const response = await axios.get<SuggestedGoal[]>('/api/suggestions', {
+        const response = await api.get('/suggestions', {
           headers: {
             Authorization: `Bearer ${token}`
           }

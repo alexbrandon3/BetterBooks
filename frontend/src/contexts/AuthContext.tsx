@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/axios';
 import { RiskTolerance } from '../types/user';
 import { toast } from 'react-hot-toast';
 
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (token: string) => {
     try {
       console.log("Fetching user profile with token:", token.substring(0, 20) + "...");
-      const response = await axios.get<UserProfile>('/api/auth/me', {
+      const response = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log("User profile response:", response.data);
