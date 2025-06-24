@@ -128,6 +128,7 @@ const Dashboard = () => {
   // Memoize callback functions to prevent recreation on every render
   const handleReload = useCallback(() => window.location.reload(), []);
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
+    console.log('🎯 Dashboard - handleGoalSelected called with:', suggestedGoal);
     // Convert suggested goal to FinancialGoal and add to goals
     const newGoal: FinancialGoal = {
       id: crypto.randomUUID(),
@@ -137,11 +138,17 @@ const Dashboard = () => {
       createdAt: new Date().toISOString(),
       progress: 0
     };
-    setGoals(prev => [...prev, newGoal]);
+    console.log('🎯 Dashboard - Creating new goal:', newGoal);
+    setGoals(prev => {
+      const updatedGoals = [...prev, newGoal];
+      console.log('🎯 Dashboard - Updated goals array:', updatedGoals);
+      return updatedGoals;
+    });
     toast.success(`Added "${suggestedGoal.title}" goal!`);
   }, []);
 
   const handleGoalsChange = useCallback((newGoals: FinancialGoal[]) => {
+    console.log('🎯 Dashboard - handleGoalsChange called with:', newGoals);
     setGoals(newGoals);
   }, []);
 

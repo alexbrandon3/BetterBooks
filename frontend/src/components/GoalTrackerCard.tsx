@@ -36,50 +36,16 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     targetAmount: '',
     targetDate: ''
   });
-  const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const { showFeedback } = useFeedback();
 
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      setIsLoadingSuggestions(true);
-      setSuggestionsError(null);
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-        const response = await fetch('/api/suggestions/goals', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include',
-          mode: 'cors'
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Authentication required');
-          }
-          throw new Error('Failed to fetch suggestions');
-        }
-        const data = await response.json();
-        setSuggestedGoals(data);
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        setSuggestionsError(error instanceof Error ? error.message : 'Unable to load suggestions');
-      } finally {
-        setIsLoadingSuggestions(false);
-      }
-    };
-    fetchSuggestions();
-  }, []);
+  // Debug logging
+  console.log('🎯 GoalTrackerCard - Current goals:', goals);
+  console.log('🎯 GoalTrackerCard - Accounts count:', accounts.length);
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('🎯 GoalTrackerCard - Creating new goal with form data:', formData);
+    
     const newGoal: FinancialGoal = {
       id: uuidv4(),
       type: formData.type,
@@ -97,6 +63,9 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     const updatedGoal = calculateGoalProgress(newGoal, accounts);
     const updatedGoals = [...goals.map(g => ({ ...g })), updatedGoal];
     
+    console.log('🎯 GoalTrackerCard - Adding new goal:', updatedGoal);
+    console.log('🎯 GoalTrackerCard - Updated goals array:', updatedGoals);
+    
     // Only call onGoalsChange if there's an actual difference
     if (!isEqual(goals, updatedGoals)) {
       onGoalsChange(updatedGoals.map(g => ({ ...g })));
@@ -108,6 +77,7 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
   }, [formData, goals, accounts, onGoalsChange, showFeedback]);
 
   const deleteGoal = useCallback((id: string) => {
+    console.log('🎯 GoalTrackerCard - Deleting goal with ID:', id);
     const filteredGoals = goals.filter((goal: FinancialGoal) => goal.id !== id);
     const updatedGoals = filteredGoals.map((g: FinancialGoal) => ({ ...g }));
     
@@ -116,28 +86,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
       onGoalsChange(updatedGoals.map((g: FinancialGoal) => ({ ...g })));
       showFeedback('Goal deleted successfully', 'success');
     }
-  }, [goals, onGoalsChange, showFeedback]);
-
-  const handleAddSuggestedGoal = useCallback((suggestedGoal: SuggestedGoal) => {
-    if (isDuplicateSuggestedGoal(suggestedGoal, goals)) {
-      return;
-    }
-
-    const newGoal: FinancialGoal = {
-      id: crypto.randomUUID(),
-      type: 'INCREASE_ASSETS',
-      targetAmount: suggestedGoal.targetAmount,
-      targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      createdAt: new Date().toISOString(),
-      progress: 0
-    };
-
-    const newGoals = [...goals, newGoal];
-    onGoalsChange(newGoals);
-    logAnalytics('suggested_goal_added', { 
-      target: suggestedGoal.targetAmount 
-    });
-    showFeedback(`Added "${suggestedGoal.title}" goal`, 'success');
   }, [goals, onGoalsChange, showFeedback]);
 
   const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
@@ -159,112 +107,64 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
         </button>
       </div>
 
-      <div className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested Goals</h3>
-        {isLoadingSuggestions ? (
-          <div className="flex justify-center items-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : suggestionsError ? (
-          <div className="text-center py-4 text-gray-500">
-            <p>{suggestionsError}</p>
-          </div>
-        ) : suggestedGoals.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">
-            <p>No personalized goals yet — keep exploring BetterBooks!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {suggestedGoals.map((suggestion) => (
-              <div
-                key={suggestion.id}
-                className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 hover:border-blue-100 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{suggestion.title}</h4>
-                    <p className="text-sm text-gray-500 mt-1">{suggestion.reason}</p>
-                    <p className="text-lg font-semibold text-blue-600 mt-2">
-                      ${suggestion.targetAmount.toLocaleString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleAddSuggestedGoal(suggestion)}
-                    disabled={isDuplicateSuggestedGoal(suggestion, goals)}
-                    className={`px-2 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
-                      isDuplicateSuggestedGoal(suggestion, goals)
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : ''
-                    }`}
-                    aria-label={
-                      isDuplicateSuggestedGoal(suggestion, goals)
-                        ? 'Goal already added'
-                        : `Add ${suggestion.title} goal`
-                    }
-                  >
-                    {isDuplicateSuggestedGoal(suggestion, goals) ? (
-                      <span className="flex items-center">
-                        <CheckIcon className="h-4 w-4 mr-1" />
-                        Already Added
-                      </span>
-                    ) : (
-                      'Add This Goal'
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <div className="space-y-4">
         {goals.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No goals set yet. Create your first financial goal!</p>
+          <div className="text-center py-8">
+            <div className="text-gray-400 mb-3">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-lg font-medium">No goals set yet</p>
+            <p className="text-gray-400 text-sm mt-1">Create your first financial goal or add one from the suggestions above!</p>
+          </div>
         ) : (
-          goals.map(goal => (
-            <div key={goal.id} className="border rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-semibold text-gray-800">{formatGoalTitle(goal)}</h3>
-                  {goal.progress >= 100 && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Completed
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteGoal(goal.id)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      goal.progress >= 100 ? 'bg-green-500' : 'bg-blue-600'
-                    }`}
-                    style={{ width: `${goal.progress}%` }}
-                  />
+          goals.map(goal => {
+            console.log('🎯 GoalTrackerCard - Rendering goal:', goal);
+            return (
+              <div key={goal.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-gray-800">{formatGoalTitle(goal)}</h3>
+                    {goal.progress >= 100 && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Completed
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => deleteGoal(goal.id)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    ×
+                  </button>
                 </div>
                 
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {formatCurrency(goal.currentAmount || 0)} / {formatCurrency(goal.targetAmount)}
-                  </span>
-                  <span className="text-gray-600">
-                    {goal.daysRemaining} days remaining
-                  </span>
+                <div className="space-y-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        goal.progress >= 100 ? 'bg-green-500' : 'bg-blue-600'
+                      }`}
+                      style={{ width: `${goal.progress}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">
+                      {formatCurrency(goal.currentAmount || 0)} / {formatCurrency(goal.targetAmount)}
+                    </span>
+                    <span className="text-gray-600">
+                      {goal.daysRemaining} days remaining
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
