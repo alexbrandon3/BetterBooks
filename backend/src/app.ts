@@ -13,6 +13,11 @@ import reportRoutes from './routes/report.routes';
 
 const app = express();
 
+// Simple test endpoint - should be the first route
+app.get('/test', (_, res) => {
+  res.json({ message: 'Express server is working!', timestamp: new Date().toISOString() });
+});
+
 // Security middleware
 app.use(helmet());
 

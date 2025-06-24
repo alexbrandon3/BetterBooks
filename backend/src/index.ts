@@ -22,7 +22,11 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const PORT = parseInt(process.env.PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || '10000', 10);
+
+console.log(`🔧 Starting server on port: ${PORT}`);
+console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+console.log(`🔧 Process ID: ${process.pid}`);
 
 // Initialize Database Connection
 AppDataSource.initialize()
@@ -31,9 +35,11 @@ AppDataSource.initialize()
     
     // Start the server only after database connection is established
     const server = app.listen(PORT, '0.0.0.0', () => {
+      const address = server.address();
       console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-      console.log(`🔍 Server address: ${server.address()}`);
+      console.log(`🔍 Server address:`, address);
       console.log(`🌐 Server is listening on all interfaces`);
+      console.log(`📡 Ready to accept connections`);
     });
     
     // Add error handling for the server
@@ -43,6 +49,15 @@ AppDataSource.initialize()
     
     server.on('connection', (socket) => {
       console.log('🔌 New connection from:', socket.remoteAddress);
+    });
+    
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('🛑 SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
     });
   })
   .catch((error) => {
