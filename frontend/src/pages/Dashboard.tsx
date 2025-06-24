@@ -130,6 +130,7 @@ const Dashboard = () => {
   const handleReload = useCallback(() => window.location.reload(), []);
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
     console.log('🎯 Dashboard - handleGoalSelected called with:', suggestedGoal);
+    console.log('🎯 Dashboard - Suggested goal title:', suggestedGoal.title);
     
     // Add to dismissed suggestions to remove it from the list
     setDismissedSuggestions(prev => new Set(prev).add(suggestedGoal.id));
@@ -146,9 +147,11 @@ const Dashboard = () => {
       title: suggestedGoal.title
     };
     console.log('🎯 Dashboard - Creating new goal:', newGoal);
+    console.log('🎯 Dashboard - New goal title:', newGoal.title);
     setGoals(prev => {
       const updatedGoals = [...prev, newGoal];
       console.log('🎯 Dashboard - Updated goals array:', updatedGoals);
+      console.log('🎯 Dashboard - First goal title:', updatedGoals[0]?.title);
       return updatedGoals;
     });
     toast.success(`Added "${suggestedGoal.title}" goal!`);

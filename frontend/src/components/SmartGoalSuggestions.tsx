@@ -84,6 +84,10 @@ export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({
     suggestion => !(dismissedSuggestions || dismissedSuggestionsState).has(suggestion.id)
   );
 
+  console.log('🎯 SmartGoalSuggestions - All suggestions:', suggestions);
+  console.log('🎯 SmartGoalSuggestions - Dismissed suggestions:', dismissedSuggestions || dismissedSuggestionsState);
+  console.log('🎯 SmartGoalSuggestions - Visible suggestions:', visibleSuggestions);
+
   // Loading skeleton
   if (loading) {
     return (

@@ -121,6 +121,9 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
         ) : (
           goals.map(goal => {
             console.log('🎯 GoalTrackerCard - Rendering goal:', goal);
+            console.log('🎯 GoalTrackerCard - Goal title:', goal.title);
+            console.log('🎯 GoalTrackerCard - Formatted title:', formatGoalTitle(goal));
+            console.log('🎯 GoalTrackerCard - Final displayed title:', goal.title || formatGoalTitle(goal));
             return (
               <div key={goal.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
