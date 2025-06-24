@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/data-source";
-import { Account } from "../entities/Account";
+import { Account, AccountType, FinancialCategory } from "../entities/Account";
 import { getUser } from "../utils/getUser";
 import { AuthenticationError, NotFoundError } from "../utils/errors";
 import { AuthenticatedRequest } from "../types/express";
@@ -121,14 +121,33 @@ export class AccountController extends BaseController {
         financialSubcategory
       } = req.body;
       
-      // Validate and clean the account metadata
-      const validatedMetadata = validateAccountMetadata({
-        type,
-        category,
-        subcategory,
-        financialCategory,
-        financialSubcategory
-      });
+      // If no categorization data is provided, automatically suggest it based on the account name
+      let validatedMetadata;
+      if (!type && !category && !financialCategory) {
+        console.log(`🔍 Auto-categorizing account: ${name}`);
+        const suggestion = getSuggestedMetadata(name);
+        if (suggestion) {
+          validatedMetadata = suggestion;
+          console.log(`✅ Auto-categorized as: ${suggestion.category} - ${suggestion.financialCategory}`);
+        } else {
+          validatedMetadata = validateAccountMetadata({
+            type: AccountType.ASSET,
+            category: "Uncategorized",
+            subcategory: "",
+            financialCategory: FinancialCategory.CURRENT_ASSET,
+            financialSubcategory: "UNCATEGORIZED"
+          });
+        }
+      } else {
+        // Validate and clean the account metadata provided by frontend
+        validatedMetadata = validateAccountMetadata({
+          type,
+          category,
+          subcategory,
+          financialCategory,
+          financialSubcategory
+        });
+      }
       
       const account = accountRepo.create({
         name,
