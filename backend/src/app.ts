@@ -18,10 +18,19 @@ app.use(helmet());
 
 // CORS configuration - temporarily permissive for testing
 app.use(cors({
-  origin: true, // Allow all origins temporarily
+  origin: function (origin, callback) {
+    console.log('CORS request from origin:', origin);
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins for now
+    callback(null, true);
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Logging middleware
@@ -29,9 +38,25 @@ if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
+  next();
+});
+
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Root endpoint for debugging
+app.get('/', (_, res) => {
+  res.json({ message: 'BetterBooks API is running', endpoints: ['/health', '/api/auth', '/api/accounts', '/api/transactions'] });
+});
+
+// Health check endpoint
+app.get('/health', (_, res) => {
+  res.json({ status: 'OK', message: 'BetterBooks API is running' });
+});
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -42,9 +67,10 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Health check endpoint
-app.get('/health', (_, res) => {
-  res.json({ status: 'OK', message: 'BetterBooks API is running' });
+// 404 handler for unmatched routes
+app.use('*', (req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ message: 'Route not found', path: req.originalUrl });
 });
 
 // Error handling middleware
