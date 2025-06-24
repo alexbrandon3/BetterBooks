@@ -36,11 +36,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('🚨 AUTHCONTEXT DEBUG - Initializing auth...');
       const token = localStorage.getItem('token');
       if (token) {
+        console.log('🚨 AUTHCONTEXT DEBUG - Token found, setting authenticated');
         setIsAuthenticated(true);
         await fetchUserProfile(token);
       } else {
+        console.log('🚨 AUTHCONTEXT DEBUG - No token found');
         setIsLoading(false);
       }
     };
@@ -50,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (token: string) => {
     try {
+      console.log("🚨 AUTHCONTEXT DEBUG - Fetching user profile...");
       console.log("Fetching user profile with token:", token.substring(0, 20) + "...");
       const response = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${token}` }

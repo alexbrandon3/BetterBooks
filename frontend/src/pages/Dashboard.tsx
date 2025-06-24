@@ -32,6 +32,7 @@ const Dashboard = () => {
   console.log('🔍 Dashboard - User data:', user);
   console.log('🔍 Dashboard - User email:', user?.email);
   console.log('🔍 Dashboard - Greeting will show:', user?.email?.split('@')[0] || 'User');
+  console.log('🚨 DASHBOARD DEBUG - This should show if changes are deployed!');
 
   useEffect(() => {
     const loadData = async () => {
