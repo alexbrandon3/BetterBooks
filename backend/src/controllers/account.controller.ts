@@ -121,6 +121,16 @@ export class AccountController extends BaseController {
         financialSubcategory
       } = req.body;
       
+      console.log(`📥 Creating account with data:`, {
+        name,
+        type,
+        category,
+        financialCategory,
+        hasType: !!type,
+        hasCategory: !!category,
+        hasFinancialCategory: !!financialCategory
+      });
+      
       // If no categorization data is provided, automatically suggest it based on the account name
       let validatedMetadata;
       if (!type && !category && !financialCategory) {
@@ -139,6 +149,7 @@ export class AccountController extends BaseController {
           });
         }
       } else {
+        console.log(`🔧 Using provided categorization data`);
         // Validate and clean the account metadata provided by frontend
         validatedMetadata = validateAccountMetadata({
           type,
