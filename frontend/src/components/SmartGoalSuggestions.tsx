@@ -87,6 +87,9 @@ export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({
   console.log('🎯 SmartGoalSuggestions - All suggestions:', suggestions);
   console.log('🎯 SmartGoalSuggestions - Dismissed suggestions:', dismissedSuggestions || dismissedSuggestionsState);
   console.log('🎯 SmartGoalSuggestions - Visible suggestions:', visibleSuggestions);
+  console.log('🎯 SmartGoalSuggestions - FULL SUGGESTIONS ARRAY:', JSON.stringify(suggestions, null, 2));
+  console.log('🎯 SmartGoalSuggestions - FULL DISMISSED SET:', JSON.stringify(Array.from(dismissedSuggestions || dismissedSuggestionsState), null, 2));
+  console.log('🎯 SmartGoalSuggestions - FULL VISIBLE SUGGESTIONS:', JSON.stringify(visibleSuggestions, null, 2));
 
   // Loading skeleton
   if (loading) {

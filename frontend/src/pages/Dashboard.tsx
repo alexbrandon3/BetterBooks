@@ -131,6 +131,7 @@ const Dashboard = () => {
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
     console.log('🎯 Dashboard - handleGoalSelected called with:', suggestedGoal);
     console.log('🎯 Dashboard - Suggested goal title:', suggestedGoal.title);
+    console.log('🎯 Dashboard - FULL SUGGESTION OBJECT:', JSON.stringify(suggestedGoal, null, 2));
     
     // Add to dismissed suggestions to remove it from the list
     setDismissedSuggestions(prev => new Set(prev).add(suggestedGoal.id));
@@ -148,10 +149,12 @@ const Dashboard = () => {
     };
     console.log('🎯 Dashboard - Creating new goal:', newGoal);
     console.log('🎯 Dashboard - New goal title:', newGoal.title);
+    console.log('🎯 Dashboard - FULL NEW GOAL OBJECT:', JSON.stringify(newGoal, null, 2));
     setGoals(prev => {
       const updatedGoals = [...prev, newGoal];
       console.log('🎯 Dashboard - Updated goals array:', updatedGoals);
       console.log('🎯 Dashboard - First goal title:', updatedGoals[0]?.title);
+      console.log('🎯 Dashboard - FULL UPDATED GOALS ARRAY:', JSON.stringify(updatedGoals, null, 2));
       return updatedGoals;
     });
     toast.success(`Added "${suggestedGoal.title}" goal!`);
