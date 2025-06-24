@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log("User profile response:", response.data);
+      console.log("🔍 AuthContext - Setting user data:", response.data);
       setUser(response.data);
       setIsAuthenticated(true);
     } catch (error: any) {

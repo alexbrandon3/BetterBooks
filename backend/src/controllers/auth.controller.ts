@@ -131,6 +131,7 @@ export class AuthController extends BaseController {
       }
 
       console.log("GetMe successful for user:", user.email);
+      console.log("🔍 Backend - Returning user data:", user);
       this.sendResponse(res, 200, user);
     } catch (error) {
       console.error('GetMe error:', error);

@@ -28,6 +28,11 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Debug logging for user data
+  console.log('🔍 Dashboard - User data:', user);
+  console.log('🔍 Dashboard - User email:', user?.email);
+  console.log('🔍 Dashboard - Greeting will show:', user?.email?.split('@')[0] || 'User');
+
   useEffect(() => {
     const loadData = async () => {
       try {
