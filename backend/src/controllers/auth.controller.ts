@@ -119,7 +119,7 @@ export class AuthController extends BaseController {
       const userRepository = AppDataSource.getRepository(User);
       const user = await userRepository.findOne({
         where: { id: Number(req.user?.userId) },
-        select: ["id", "email", "createdAt", "updatedAt"],
+        select: ["id", "email", "riskTolerance", "createdAt", "updatedAt"],
       });
 
       console.log("User found:", user);
