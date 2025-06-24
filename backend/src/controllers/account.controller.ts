@@ -133,7 +133,7 @@ export class AccountController extends BaseController {
       
       // If no categorization data is provided, automatically suggest it based on the account name
       let validatedMetadata;
-      if (!type && !category && !financialCategory) {
+      if (!category || category === 'Uncategorized' || category === '') {
         console.log(`🔍 Auto-categorizing account: ${name}`);
         const suggestion = getSuggestedMetadata(name);
         if (suggestion) {
@@ -141,10 +141,10 @@ export class AccountController extends BaseController {
           console.log(`✅ Auto-categorized as: ${suggestion.category} - ${suggestion.financialCategory}`);
         } else {
           validatedMetadata = validateAccountMetadata({
-            type: AccountType.ASSET,
+            type: type || AccountType.ASSET,
             category: "Uncategorized",
             subcategory: "",
-            financialCategory: FinancialCategory.CURRENT_ASSET,
+            financialCategory: financialCategory || FinancialCategory.CURRENT_ASSET,
             financialSubcategory: "UNCATEGORIZED"
           });
         }
