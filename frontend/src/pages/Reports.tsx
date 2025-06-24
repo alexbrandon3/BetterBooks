@@ -34,6 +34,17 @@ function formatEnumLabel(str: string): string {
     .join(' ');
 }
 
+// Helper to format account counts with proper grammar
+function formatAccountCount(count: number, label: string = 'account'): string {
+  if (count === 0) {
+    return `No ${label}s`;
+  } else if (count === 1) {
+    return `1 ${label}`;
+  } else {
+    return `${count} ${label}s`;
+  }
+}
+
 const Reports: React.FC = () => {
   console.log('🔍 Reports component rendering');
   const { user } = useAuth();
@@ -255,7 +266,7 @@ const Reports: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAssets)}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {balanceSheet.assets.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+              {formatAccountCount(balanceSheet.assets.reduce((sum, group) => sum + group.accounts.length, 0))}
             </p>
           </div>
 
@@ -270,7 +281,7 @@ const Reports: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalLiabilities)}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {balanceSheet.liabilities.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+              {formatAccountCount(balanceSheet.liabilities.reduce((sum, group) => sum + group.accounts.length, 0))}
             </p>
           </div>
 
@@ -285,7 +296,7 @@ const Reports: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalEquity)}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {balanceSheet.equity.reduce((sum, group) => sum + group.accounts.length, 0)} accounts
+              {formatAccountCount(balanceSheet.equity.reduce((sum, group) => sum + group.accounts.length, 0))}
             </p>
           </div>
         </div>
@@ -473,7 +484,7 @@ const Reports: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {incomeStatement.revenue.reduce((sum, group) => sum + group.accounts.length, 0)} revenue sources
+              {formatAccountCount(incomeStatement.revenue.reduce((sum, group) => sum + group.accounts.length, 0))} revenue sources
             </p>
           </div>
 
@@ -488,7 +499,7 @@ const Reports: React.FC = () => {
             </div>
             <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
             <p className="text-sm text-gray-600 mt-1">
-              {incomeStatement.expenses.reduce((sum, group) => sum + group.accounts.length, 0)} expense categories
+              {formatAccountCount(incomeStatement.expenses.reduce((sum, group) => sum + group.accounts.length, 0))} expense categories
             </p>
           </div>
 

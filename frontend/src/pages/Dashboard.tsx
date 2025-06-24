@@ -10,6 +10,17 @@ import { SmartGoalSuggestions } from '../components/SmartGoalSuggestions';
 import { toast } from 'react-hot-toast';
 import { Link } from "react-router-dom";
 
+// Helper to format account counts with proper grammar
+function formatAccountCount(count: number, label: string = 'account'): string {
+  if (count === 0) {
+    return `No ${label}s`;
+  } else if (count === 1) {
+    return `1 ${label}`;
+  } else {
+    return `${count} ${label}s`;
+  }
+}
+
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -284,7 +295,7 @@ const Dashboard = () => {
               {formatCurrency(totalCash)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              Across {accounts.filter(a => a.financialCategory === "CURRENT_ASSET").length} accounts
+              Across {formatAccountCount(accounts.filter(a => a.financialCategory === "CURRENT_ASSET").length)}
             </p>
           </div>
 
@@ -324,7 +335,7 @@ const Dashboard = () => {
               {formatCurrency(totalAssets)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              Across {accounts.filter(a => ["CURRENT_ASSET", "NON_CURRENT_ASSET"].includes(a.financialCategory)).length} accounts
+              Across {formatAccountCount(accounts.filter(a => ["CURRENT_ASSET", "NON_CURRENT_ASSET"].includes(a.financialCategory)).length)}
             </p>
           </div>
 
@@ -344,7 +355,7 @@ const Dashboard = () => {
               {formatCurrency(totalLiabilities)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              Across {accounts.filter(a => ["CURRENT_LIABILITY", "NON_CURRENT_LIABILITY"].includes(a.financialCategory)).length} accounts
+              Across {formatAccountCount(accounts.filter(a => ["CURRENT_LIABILITY", "NON_CURRENT_LIABILITY"].includes(a.financialCategory)).length)}
             </p>
           </div>
         </div>
