@@ -8,7 +8,7 @@ export const getDefaultAccounts = (userId: number) => {
     {
       name: "Cash",
       type: AccountType.ASSET,
-      category: "Cash",
+      category: "Bank",
       subcategory: "Cash",
       financialCategory: FinancialCategory.CURRENT_ASSET,
       financialSubcategory: "CASH_AND_EQUIVALENTS",

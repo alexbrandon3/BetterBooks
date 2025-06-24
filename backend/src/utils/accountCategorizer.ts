@@ -299,11 +299,11 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
       keywords: ["cash", "petty", "bank", "checking", "savings", "money market", "acount", "acct", "account"],
       result: {
         type: AccountType.ASSET,
-        category: "Cash & Cash Equivalents",
+        category: "Bank",
         subcategory: "Bank Accounts",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
-        explanation: "This appears to be a cash or bank account based on the name. Cash accounts are classified as current assets.",
+        explanation: "This appears to be a cash or bank account based on the name. Bank accounts are classified as current assets.",
         confidence: 0.95
       },
     },
@@ -562,7 +562,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
       pattern: /bank/i,
       result: {
         type: AccountType.ASSET,
-        category: "Cash & Cash Equivalents",
+        category: "Bank",
         subcategory: "Bank Accounts",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
@@ -574,7 +574,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
       pattern: /account/i,
       result: {
         type: AccountType.ASSET,
-        category: "Cash & Cash Equivalents", 
+        category: "Bank", 
         subcategory: "Bank Accounts",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
