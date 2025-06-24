@@ -211,6 +211,67 @@ export class SuggestionService {
           accountTypes: ['EXPENSE'],
           categories: ['Housing', 'Home Maintenance'],
           reason: 'Home maintenance related transaction'
+        },
+        // Business and sales related keywords
+        {
+          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods'],
+          accountTypes: ['INCOME', 'REVENUE'],
+          categories: ['Income', 'Sales', 'Revenue', 'Service Income'],
+          reason: 'Sales and revenue related transaction'
+        },
+        {
+          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials'],
+          accountTypes: ['EXPENSE', 'ASSET'],
+          categories: ['Supplies', 'Equipment', 'Inventory', 'Equipment Purchase'],
+          reason: 'Purchase and procurement transaction'
+        },
+        {
+          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Taxes', 'Expenses'],
+          reason: 'Tax related transaction'
+        },
+        {
+          keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Payroll', 'Expenses'],
+          reason: 'Payroll and employee compensation transaction'
+        },
+        {
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Marketing', 'Marketing Expense'],
+          reason: 'Marketing and advertising transaction'
+        },
+        {
+          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'interest', 'principal'],
+          accountTypes: ['LIABILITY', 'EXPENSE'],
+          categories: ['Loan', 'Credit', 'Loan Payable'],
+          reason: 'Loan and credit related transaction'
+        },
+        {
+          keywords: ['draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend'],
+          accountTypes: ['EXPENSE', 'EQUITY'],
+          categories: ['Drawings', 'Owner Equity'],
+          reason: 'Owner withdrawal or distribution transaction'
+        },
+        {
+          keywords: ['utility', 'utilities', 'electric', 'water', 'gas', 'internet', 'phone', 'cable', 'wifi', 'electricity', 'power', 'sewer', 'trash', 'garbage'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Utilities', 'Bills'],
+          reason: 'Utility bill transaction'
+        },
+        {
+          keywords: ['rent', 'lease', 'rental', 'landlord', 'property', 'real estate', 'office space', 'warehouse'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Rent', 'Rent Expense'],
+          reason: 'Rent and lease transaction'
+        },
+        {
+          keywords: ['interest', 'dividend', 'investment', 'return', 'yield', 'earnings', 'capital gains'],
+          accountTypes: ['INCOME'],
+          categories: ['Interest', 'Interest Income'],
+          reason: 'Interest and investment income transaction'
         }
       ];
 
