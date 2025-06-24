@@ -15,11 +15,11 @@ const formatMessage = (level: LogLevel, message: string, context?: string): stri
   return `${emoji} ${prefix} ${message}`;
 };
 
-export const logInfo = (message: string, context?: string): void => {
+export const logInfo = (_message: string, _context?: string): void => {
   // console.log(formatMessage('info', message, context));
 };
 
-export const logSuccess = (message: string, context?: string): void => {
+export const logSuccess = (_message: string, _context?: string): void => {
   // console.log(formatMessage('success', message, context));
 };
 

@@ -8,7 +8,7 @@ export type AnalyticsEvent =
   | 'suggestion_action_taken'
   | 'dismiss_goal';
 
-export const logAnalytics = (event: AnalyticsEvent, details?: Record<string, any>): void => {
+export const logAnalytics = (_event: AnalyticsEvent, _details?: Record<string, any>): void => {
   // In production, this would send to an analytics service
   // console.log('📊 Analytics:', { event, details });
 }; 
