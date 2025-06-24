@@ -22,11 +22,13 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const PORT = parseInt(process.env.PORT || '10000', 10);
+// More flexible port detection
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 10000;
 
 console.log(`🔧 Starting server on port: ${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
 console.log(`🔧 Process ID: ${process.pid}`);
+console.log(`🔧 All environment variables:`, Object.keys(process.env).filter(key => key.includes('PORT') || key.includes('RENDER')));
 
 // Initialize Database Connection
 AppDataSource.initialize()
