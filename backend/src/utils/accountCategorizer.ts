@@ -174,11 +174,15 @@ export const validateAccountMetadata = (metadata: Partial<AccountMetadata>): Acc
  * Enhanced account metadata suggestion with explanations and confidence levels
  */
 export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
+  console.log(`🔍 Categorizing account: "${name}"`);
+  
   // Normalize account name: lowercase, remove punctuation, trim whitespace
   const normalizedName = name.toLowerCase()
     .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
+
+  console.log(`📝 Normalized name: "${normalizedName}"`);
 
   // Enhanced alias map for common variations and synonyms
   const aliasMap: Record<string, string> = {
@@ -283,8 +287,11 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   for (const [alias, target] of Object.entries(aliasMap)) {
     if (processedName.includes(alias)) {
       processedName = processedName.replace(alias, target);
+      console.log(`🔄 Applied alias: "${alias}" -> "${target}", processed name: "${processedName}"`);
     }
   }
+
+  console.log(`🔧 Final processed name: "${processedName}"`);
 
   // Enhanced keyword map with explanations and confidence levels
   const keywordMap = [
@@ -533,14 +540,18 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
 
   // Check both original normalized name and processed name (with aliases applied)
   for (const entry of keywordMap) {
+    console.log(`🔍 Checking keywords: [${entry.keywords.join(', ')}] against "${processedName}" and "${normalizedName}"`);
+    
     // Check if any keyword matches in the processed name
     if (entry.keywords.some(kw => processedName.includes(kw)) || 
         entry.keywords.some(kw => normalizedName.includes(kw))) {
+      console.log(`✅ Found match! Categorizing as: ${entry.result.category}`);
       return validateAccountMetadata(entry.result);
     }
     
     // Also check if the processed name contains any keyword (for better matching)
     if (entry.keywords.some(kw => processedName.includes(kw))) {
+      console.log(`✅ Found match in processed name! Categorizing as: ${entry.result.category}`);
       return validateAccountMetadata(entry.result);
     }
   }
@@ -574,10 +585,14 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   ];
 
   for (const match of flexibleMatches) {
+    console.log(`🔍 Checking pattern: ${match.pattern} against "${normalizedName}"`);
     if (match.pattern.test(normalizedName)) {
+      console.log(`✅ Pattern match found! Categorizing as: ${match.result.category}`);
       return validateAccountMetadata(match.result);
     }
   }
+
+  console.log(`❌ No matches found, using default categorization`);
 
   // If no specific match found, provide a reasonable default with low confidence
   return validateAccountMetadata({
