@@ -222,10 +222,17 @@ const Transactions = () => {
       try {
         const suggestion = await getSuggestedAccount(desc);
         if (suggestion?.suggestedAccountId) {
-          // Get current form values to check if accounts are already selected
-          const currentValues = control._formValues;
+          // Get current form values using watch function
+          const currentValues = watch();
           const firstEntryAccountId = currentValues?.entries?.[0]?.accountId;
           const secondEntryAccountId = currentValues?.entries?.[1]?.accountId;
+          
+          console.log('🔍 Current form state:', {
+            firstEntryAccountId,
+            secondEntryAccountId,
+            suggestedEntryType: suggestion.suggestedEntryType,
+            suggestedAccount: suggestion.suggestedAccountName
+          });
           
           // Determine which entry to populate based on suggested entry type
           let targetEntryIndex = 0; // Default to first entry
@@ -233,23 +240,30 @@ const Transactions = () => {
           if (suggestion.suggestedEntryType === 'CREDIT' && !secondEntryAccountId) {
             // If suggested entry type is CREDIT and second entry is empty, use second entry
             targetEntryIndex = 1;
+            console.log('✅ Placing CREDIT suggestion in second entry (index 1)');
           } else if (suggestion.suggestedEntryType === 'DEBIT' && !firstEntryAccountId) {
             // If suggested entry type is DEBIT and first entry is empty, use first entry
             targetEntryIndex = 0;
+            console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
           } else if (!firstEntryAccountId) {
             // If first entry is empty, use it regardless
             targetEntryIndex = 0;
+            console.log('✅ Placing suggestion in first entry (index 0) - first entry empty');
           } else if (!secondEntryAccountId) {
             // If second entry is empty, use it regardless
             targetEntryIndex = 1;
+            console.log('✅ Placing suggestion in second entry (index 1) - second entry empty');
           } else {
             // Both entries have accounts, don't suggest
+            console.log('❌ Both entries have accounts, not suggesting');
             return;
           }
           
           const updatedEntries = [...fields];
           updatedEntries[targetEntryIndex].accountId = String(suggestion.suggestedAccountId);
           updatedEntries[targetEntryIndex].type = suggestion.suggestedEntryType;
+          
+          console.log('📝 Updated entries:', updatedEntries);
           
           // Preserve the description and other form values
           reset({ 
