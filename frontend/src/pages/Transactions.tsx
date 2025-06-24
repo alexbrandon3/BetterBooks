@@ -217,6 +217,44 @@ const Transactions = () => {
   const fallbackUsed = accounts.length === 0;
   const usableAccounts = accounts.length > 0 ? accounts : fallbackAccounts;
 
+  // Helper function to find the best default account for an entry
+  const findDefaultAccountForEntry = (entryType: 'DEBIT' | 'CREDIT', availableAccounts: any[]) => {
+    if (entryType === 'DEBIT') {
+      // For DEBIT entries, prefer asset accounts (Cash, Bank, etc.)
+      const assetAccounts = availableAccounts.filter(acc => acc.type === 'ASSET');
+      
+      // First try to find Cash
+      const cashAccount = assetAccounts.find(acc => 
+        acc.name.toLowerCase().includes('cash') || 
+        acc.category?.toLowerCase().includes('cash')
+      );
+      if (cashAccount) return cashAccount;
+      
+      // Then try to find highest balance asset account
+      const sortedAssets = assetAccounts.sort((a, b) => b.balance - a.balance);
+      if (sortedAssets.length > 0) return sortedAssets[0];
+      
+      // Fallback to any asset account
+      if (assetAccounts.length > 0) return assetAccounts[0];
+    } else {
+      // For CREDIT entries, prefer liability or equity accounts
+      const liabilityAccounts = availableAccounts.filter(acc => acc.type === 'LIABILITY');
+      const equityAccounts = availableAccounts.filter(acc => acc.type === 'EQUITY');
+      
+      // Try to find highest balance liability account
+      const sortedLiabilities = liabilityAccounts.sort((a, b) => b.balance - a.balance);
+      if (sortedLiabilities.length > 0) return sortedLiabilities[0];
+      
+      // Fallback to any liability account
+      if (liabilityAccounts.length > 0) return liabilityAccounts[0];
+      
+      // Fallback to any equity account
+      if (equityAccounts.length > 0) return equityAccounts[0];
+    }
+    
+    return null;
+  };
+
   const handleDescriptionChange = async (desc: string) => {
     if (desc && getSuggestedAccount) {
       try {
@@ -259,9 +297,30 @@ const Transactions = () => {
             return;
           }
           
+          // Don't suggest if the account is already in the target entry
+          if (fields[targetEntryIndex].accountId === String(suggestion.suggestedAccountId)) {
+            console.log('❌ Account already in target entry, not suggesting');
+            return;
+          }
+          
           const updatedEntries = [...fields];
           updatedEntries[targetEntryIndex].accountId = String(suggestion.suggestedAccountId);
           updatedEntries[targetEntryIndex].type = suggestion.suggestedEntryType;
+          
+          // Smart default for the other entry
+          const otherEntryIndex = targetEntryIndex === 0 ? 1 : 0;
+          if (!updatedEntries[otherEntryIndex].accountId) {
+            // Find the best default account for the other entry
+            const defaultAccount = findDefaultAccountForEntry(
+              suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT',
+              usableAccounts
+            );
+            if (defaultAccount) {
+              updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
+              updatedEntries[otherEntryIndex].type = suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
+              console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
+            }
+          }
           
           console.log('📝 Updated entries:', updatedEntries);
           
@@ -276,11 +335,8 @@ const Transactions = () => {
           setSuggestionExplanation(suggestion.detailedReason);
           setSuggestionConfidence(suggestion.confidence);
           
-          // Clear suggestion after 5 seconds
-          setTimeout(() => {
-            setSuggestionExplanation(null);
-            setSuggestionConfidence(null);
-          }, 5000);
+          // Keep suggestion visible for 5 seconds after form submission
+          // Don't auto-clear here - let it stay visible for user to read
         }
       } catch (error) {
         console.error('Failed to get account suggestion:', error);
@@ -365,6 +421,12 @@ const Transactions = () => {
         setSuccessMessage("Transaction updated successfully!");
         setError(null);
         toast.success("Transaction updated successfully!");
+        
+        // Clear suggestion explanation after successful update
+        setTimeout(() => {
+          setSuggestionExplanation(null);
+          setSuggestionConfidence(null);
+        }, 5000);
       } else if (editingRecurringId) {
         // Update recurring transaction
         const recurringData = {
@@ -382,6 +444,12 @@ const Transactions = () => {
         setSuccessMessage("Recurring transaction updated successfully!");
         toast.success("Recurring transaction updated successfully!");
         setError(null);
+        
+        // Clear suggestion explanation after successful update
+        setTimeout(() => {
+          setSuggestionExplanation(null);
+          setSuggestionConfidence(null);
+        }, 5000);
       } else {
         // Check if this is a recurring transaction
         if (data.isRecurring) {
@@ -400,6 +468,12 @@ const Transactions = () => {
           await createRecurringTransaction(recurringData);
           setSuccessMessage("Recurring transaction created successfully!");
           toast.success("Recurring transaction created successfully!");
+          
+          // Clear suggestion explanation after successful creation
+          setTimeout(() => {
+            setSuggestionExplanation(null);
+            setSuggestionConfidence(null);
+          }, 5000);
         } else {
           // Create regular transaction
           const result: TransactionResponse = await createTransaction(backendTransactionData);
@@ -435,6 +509,12 @@ const Transactions = () => {
           }
         }
         setError(null);
+        
+        // Clear suggestion explanation after successful submission
+        setTimeout(() => {
+          setSuggestionExplanation(null);
+          setSuggestionConfidence(null);
+        }, 5000); // Keep message visible for 5 seconds
       }
       // Reset form completely after successful submission
       const resetData: TransactionForm = {
