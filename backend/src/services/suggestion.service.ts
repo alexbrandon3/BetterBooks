@@ -406,22 +406,62 @@ export class SuggestionService {
           entryReasoning = 'Default to debit entry';
       }
 
-      // Create detailed reason with matched keyword and reasoning
-      const detailedReason = `Matched keyword: '${matchedKeyword}' → Category: ${matchedCategory.categories[0]} → Account: ${bestMatch.name} (${bestMatch.type}) → ${entryReasoning}. Confidence: ${confidence}% based on: ${bestReasoning}`;
+      // Create human-friendly reason
+      const humanFriendlyReason = this.createHumanFriendlyReason(matchedKeyword || 'unknown', bestMatch, confidence, suggestedEntryType);
 
       return {
         suggestedAccountId: bestMatch.id,
         suggestedAccountName: bestMatch.name,
-        reason: detailedReason,
+        reason: humanFriendlyReason,
         accountType: bestMatch.type,
         confidence: confidence,
         suggestedEntryType: suggestedEntryType,
-        detailedReason: detailedReason
+        detailedReason: humanFriendlyReason
       };
 
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       return null;
     }
+  }
+
+  private createHumanFriendlyReason(matchedKeyword: string, bestMatch: Account, confidence: number, suggestedEntryType: 'DEBIT' | 'CREDIT'): string {
+    // Create natural, concise explanations
+    const accountType = bestMatch.type.toLowerCase();
+    const accountName = bestMatch.name;
+    
+    // Base explanation based on account type
+    let baseExplanation = '';
+    switch (accountType) {
+      case 'income':
+        baseExplanation = `"${matchedKeyword}" suggests income, so I selected ${accountName}`;
+        break;
+      case 'expense':
+        baseExplanation = `"${matchedKeyword}" suggests an expense, so I selected ${accountName}`;
+        break;
+      case 'asset':
+        baseExplanation = `"${matchedKeyword}" suggests an asset transaction, so I selected ${accountName}`;
+        break;
+      case 'liability':
+        baseExplanation = `"${matchedKeyword}" suggests a liability, so I selected ${accountName}`;
+        break;
+      case 'equity':
+        baseExplanation = `"${matchedKeyword}" suggests an equity transaction, so I selected ${accountName}`;
+        break;
+      default:
+        baseExplanation = `Based on "${matchedKeyword}", I selected ${accountName}`;
+    }
+
+    // Add entry type explanation
+    const entryExplanation = suggestedEntryType === 'CREDIT' 
+      ? ' (credit side)' 
+      : ' (debit side)';
+
+    // Add confidence if it's not 100%
+    const confidenceText = confidence < 100 
+      ? ` (${confidence}% confident)`
+      : '';
+
+    return `${baseExplanation}${entryExplanation}${confidenceText}`;
   }
 } 
