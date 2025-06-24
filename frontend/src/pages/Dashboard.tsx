@@ -7,6 +7,8 @@ import { Transaction } from '../types/transaction';
 import { formatCurrency } from '../utils/formatUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { SmartGoalSuggestions } from '../components/SmartGoalSuggestions';
+import GoalTrackerCard from '../components/GoalTrackerCard';
+import { FinancialGoal } from '../types/goal';
 import { toast } from 'react-hot-toast';
 import { Link } from "react-router-dom";
 
@@ -24,6 +26,7 @@ function formatAccountCount(count: number, label: string = 'account'): string {
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -124,7 +127,23 @@ const Dashboard = () => {
 
   // Memoize callback functions to prevent recreation on every render
   const handleReload = useCallback(() => window.location.reload(), []);
-  const handleGoalSelected = useCallback(() => {}, []);
+  const handleGoalSelected = useCallback((suggestedGoal: any) => {
+    // Convert suggested goal to FinancialGoal and add to goals
+    const newGoal: FinancialGoal = {
+      id: crypto.randomUUID(),
+      type: 'INCREASE_ASSETS',
+      targetAmount: suggestedGoal.targetAmount,
+      targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      progress: 0
+    };
+    setGoals(prev => [...prev, newGoal]);
+    toast.success(`Added "${suggestedGoal.title}" goal!`);
+  }, []);
+
+  const handleGoalsChange = useCallback((newGoals: FinancialGoal[]) => {
+    setGoals(newGoals);
+  }, []);
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -369,6 +388,15 @@ const Dashboard = () => {
         {/* Smart Goal Suggestions */}
         <div className="mb-8">
           <SmartGoalSuggestions onGoalSelected={handleGoalSelected} />
+        </div>
+
+        {/* Goal Tracker */}
+        <div className="mb-8">
+          <GoalTrackerCard 
+            accounts={accounts}
+            goals={goals}
+            onGoalsChange={handleGoalsChange}
+          />
         </div>
 
         {/* Main Content Grid */}
