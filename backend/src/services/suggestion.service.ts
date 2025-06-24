@@ -73,7 +73,10 @@ export class SuggestionService {
     reason: string;
   } | null> {
     try {
+      console.log('🔍 SuggestionService: Processing description:', description, 'userId:', userId);
+      
       if (!description || description.trim().length === 0) {
+        console.log('❌ Empty description provided');
         return null;
       }
 
@@ -83,12 +86,16 @@ export class SuggestionService {
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .trim();
       
+      console.log('📝 Normalized description:', normalizedDescription);
+      
       // Get user's accounts
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: userId } },
         order: { updatedAt: 'DESC' } // Prioritize recently used accounts
       });
 
+      console.log('📊 Found user accounts:', userAccounts.length, userAccounts.map(acc => acc.name));
+      
       // Enhanced keyword mapping for account types with personal finance terms
       const keywordMap = [
         {
@@ -215,11 +222,13 @@ export class SuggestionService {
         if (foundKeyword) {
           matchedCategory = mapping;
           matchedKeyword = foundKeyword;
+          console.log('✅ Found keyword match:', foundKeyword, 'Category:', mapping.categories[0]);
           break;
         }
       }
 
       if (!matchedCategory) {
+        console.log('❌ No keyword category match found for:', normalizedDescription);
         return null;
       }
 
@@ -227,8 +236,11 @@ export class SuggestionService {
       let bestMatch = null;
       let bestScore = 0;
 
+      console.log('🔍 Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
+
       for (const account of userAccounts) {
         if (!matchedCategory!.accountTypes.includes(account.type)) {
+          console.log('⏭️ Skipping account', account.name, '- type', account.type, 'not in', matchedCategory!.accountTypes);
           continue;
         }
 
@@ -258,6 +270,8 @@ export class SuggestionService {
         );
         if (subcategoryMatch) score += 5;
 
+        console.log('📊 Account', account.name, 'score:', score, 'exactKeyword:', exactKeywordMatch, 'nameMatch:', nameMatch, 'categoryMatch:', categoryMatch);
+
         if (score > bestScore) {
           bestScore = score;
           bestMatch = account;
@@ -265,8 +279,11 @@ export class SuggestionService {
       }
 
       if (!bestMatch) {
+        console.log('❌ No matching account found');
         return null;
       }
+
+      console.log('✅ Best match found:', bestMatch.name, 'with score:', bestScore);
 
       // Create detailed reason with matched keyword
       const detailedReason = `Matched keyword: '${matchedKeyword}' → Category: ${matchedCategory.categories[0]}`;

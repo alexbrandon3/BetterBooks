@@ -118,18 +118,29 @@ export class SuggestionController extends BaseController {
 
   async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      console.log('🔍 Transaction suggestion request:', {
+        body: req.body,
+        userId: req.user.userId
+      });
+      
       const { description } = req.body;
       
       if (!description || typeof description !== 'string') {
+        console.log('❌ Invalid description:', description);
         this.sendError(res, 400, 'Description is required and must be a string');
         return;
       }
 
       const userId = req.user.userId;
+      console.log('🔍 Getting suggestion for description:', description, 'userId:', userId);
+      
       const suggestion = await this.suggestionService.suggestAccountForDescription(description, userId);
+      
+      console.log('✅ Suggestion result:', suggestion);
       
       this.sendResponse(res, 200, suggestion);
     } catch (error) {
+      console.error('❌ Error in suggestAccount:', error);
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
