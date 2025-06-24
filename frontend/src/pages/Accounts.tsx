@@ -193,8 +193,11 @@ const Accounts = () => {
 
       setForm(initialFormState);
       setEditingAccountId(null);
-      setSuggestionExplanation(null);
-      setSuggestionConfidence(null);
+      // Don't clear suggestion explanation immediately - let user read it
+      setTimeout(() => {
+        setSuggestionExplanation(null);
+        setSuggestionConfidence(null);
+      }, 5000); // Keep message visible for 5 seconds
       setSuggestedFields([]);
       fetchAccounts();
     } catch (err: any) {
