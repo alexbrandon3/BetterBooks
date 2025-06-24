@@ -32,33 +32,14 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Debug logging for user data
-  console.log('🔍 Dashboard - User data:', user);
-  console.log('🔍 Dashboard - User email:', user?.email);
-  console.log('🔍 Dashboard - Greeting will show:', user?.email?.split('@')[0] || 'User');
-  console.log('🚨 DASHBOARD DEBUG - This should show if changes are deployed!');
-
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        // console.log('Loading dashboard data...');
         const [accountsData, transactionsData] = await Promise.all([
           fetchAccountsWithConsistentBalances(),
           fetchTransactions()
         ]);
-        // console.log('Accounts data:', accountsData);
-        // console.log('Transactions data:', transactionsData);
-        
-        // Debug: Log cash accounts and their balances
-        const cashAccountsDebug = accountsData.filter(account => 
-          account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET'
-        );
-        console.log('💰 Dashboard - Cash accounts found:', cashAccountsDebug.map(acc => ({
-          name: acc.name,
-          balance: acc.balance,
-          balanceType: typeof acc.balance
-        })));
         
         setAccounts(accountsData);
         setTransactions(transactionsData);
@@ -129,10 +110,6 @@ const Dashboard = () => {
   // Memoize callback functions to prevent recreation on every render
   const handleReload = useCallback(() => window.location.reload(), []);
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
-    console.log('🎯 Dashboard - handleGoalSelected called with:', suggestedGoal);
-    console.log('🎯 Dashboard - Suggested goal title:', suggestedGoal.title);
-    console.log('🎯 Dashboard - FULL SUGGESTION OBJECT:', JSON.stringify(suggestedGoal, null, 2));
-    
     // Add to dismissed suggestions to remove it from the list
     setDismissedSuggestions(prev => new Set(prev).add(suggestedGoal.id));
     
@@ -147,26 +124,18 @@ const Dashboard = () => {
       // Store the original title to preserve it
       title: suggestedGoal.title
     };
-    console.log('🎯 Dashboard - Creating new goal:', newGoal);
-    console.log('🎯 Dashboard - New goal title:', newGoal.title);
-    console.log('🎯 Dashboard - FULL NEW GOAL OBJECT:', JSON.stringify(newGoal, null, 2));
     setGoals(prev => {
       const updatedGoals = [...prev, newGoal];
-      console.log('🎯 Dashboard - Updated goals array:', updatedGoals);
-      console.log('🎯 Dashboard - First goal title:', updatedGoals[0]?.title);
-      console.log('🎯 Dashboard - FULL UPDATED GOALS ARRAY:', JSON.stringify(updatedGoals, null, 2));
       return updatedGoals;
     });
     toast.success(`Added "${suggestedGoal.title}" goal!`);
   }, []);
 
   const handleGoalsChange = useCallback((newGoals: FinancialGoal[]) => {
-    console.log('🎯 Dashboard - handleGoalsChange called with:', newGoals);
     setGoals(newGoals);
   }, []);
 
   const handleDismissSuggestion = useCallback((suggestionId: string) => {
-    console.log('🎯 Dashboard - Dismissing suggestion:', suggestionId);
     setDismissedSuggestions(prev => new Set(prev).add(suggestionId));
   }, []);
 

@@ -38,13 +38,8 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
   });
   const { showFeedback } = useFeedback();
 
-  // Debug logging
-  console.log('🎯 GoalTrackerCard - Current goals:', goals);
-  console.log('🎯 GoalTrackerCard - Accounts count:', accounts.length);
-
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('🎯 GoalTrackerCard - Creating new goal with form data:', formData);
     
     const newGoal: FinancialGoal = {
       id: uuidv4(),
@@ -63,9 +58,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
     const updatedGoal = calculateGoalProgress(newGoal, accounts);
     const updatedGoals = [...goals.map(g => ({ ...g })), updatedGoal];
     
-    console.log('🎯 GoalTrackerCard - Adding new goal:', updatedGoal);
-    console.log('🎯 GoalTrackerCard - Updated goals array:', updatedGoals);
-    
     // Only call onGoalsChange if there's an actual difference
     if (!isEqual(goals, updatedGoals)) {
       onGoalsChange(updatedGoals.map(g => ({ ...g })));
@@ -77,7 +69,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
   }, [formData, goals, accounts, onGoalsChange, showFeedback]);
 
   const deleteGoal = useCallback((id: string) => {
-    console.log('🎯 GoalTrackerCard - Deleting goal with ID:', id);
     const filteredGoals = goals.filter((goal: FinancialGoal) => goal.id !== id);
     const updatedGoals = filteredGoals.map((g: FinancialGoal) => ({ ...g }));
     
@@ -120,11 +111,6 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
           </div>
         ) : (
           goals.map(goal => {
-            console.log('🎯 GoalTrackerCard - Rendering goal:', goal);
-            console.log('🎯 GoalTrackerCard - Goal title:', goal.title);
-            console.log('🎯 GoalTrackerCard - Formatted title:', formatGoalTitle(goal));
-            console.log('🎯 GoalTrackerCard - Final displayed title:', goal.title || formatGoalTitle(goal));
-            console.log('🎯 GoalTrackerCard - FULL GOAL OBJECT:', JSON.stringify(goal, null, 2));
             return (
               <div key={goal.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
