@@ -81,7 +81,7 @@ const Login = () => {
             <span className="text-2xl font-bold text-white">BB</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">BetterBooks</h1>
-          <p className="text-gray-600">Your personal finance companion</p>
+          <p className="text-gray-600">Simple bookkeeping for small businesses</p>
         </div>
 
         {/* Login Card */}

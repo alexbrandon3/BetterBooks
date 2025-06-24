@@ -99,7 +99,7 @@ const Register = () => {
             <span className="text-2xl font-bold text-white">BB</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">BetterBooks</h1>
-          <p className="text-gray-600">Your personal finance companion</p>
+          <p className="text-gray-600">Simple bookkeeping for small businesses</p>
         </div>
 
         {/* Register Card */}
@@ -109,7 +109,7 @@ const Register = () => {
               Create your account
             </h2>
             <p className="text-gray-600">
-              Start your financial journey today
+              Start managing your business finances today
             </p>
           </div>
 
