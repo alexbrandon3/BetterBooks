@@ -262,12 +262,8 @@ const Transactions = () => {
         if (suggestion?.suggestedAccountId) {
           // Get current form values using watch function
           const currentValues = watch();
-          const firstEntryAccountId = currentValues?.entries?.[0]?.accountId;
-          const secondEntryAccountId = currentValues?.entries?.[1]?.accountId;
           
           console.log('🔍 Current form state:', {
-            firstEntryAccountId,
-            secondEntryAccountId,
             suggestedEntryType: suggestion.suggestedEntryType,
             suggestedAccount: suggestion.suggestedAccountName
           });
@@ -285,16 +281,8 @@ const Transactions = () => {
             console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
           } else {
             // Fallback logic
-            if (!firstEntryAccountId) {
-              targetEntryIndex = 0;
-              console.log('✅ Placing suggestion in first entry (index 0) - first entry empty');
-            } else if (!secondEntryAccountId) {
-              targetEntryIndex = 1;
-              console.log('✅ Placing suggestion in second entry (index 1) - second entry empty');
-            } else {
-              console.log('❌ Both entries have accounts, not suggesting');
-              return;
-            }
+            targetEntryIndex = 0;
+            console.log('✅ Placing suggestion in first entry (index 0) - fallback');
           }
           
           // Don't suggest if the account is already in the target entry
@@ -304,22 +292,25 @@ const Transactions = () => {
           }
           
           const updatedEntries = [...fields];
+          
+          // Clear both entries first when we get a new suggestion, but preserve the IDs
+          updatedEntries[0] = { ...updatedEntries[0], accountId: "", amount: "", type: "DEBIT" };
+          updatedEntries[1] = { ...updatedEntries[1], accountId: "", amount: "", type: "CREDIT" };
+          
+          // Place the new suggestion in the correct entry
           updatedEntries[targetEntryIndex].accountId = String(suggestion.suggestedAccountId);
           updatedEntries[targetEntryIndex].type = suggestion.suggestedEntryType;
           
           // Smart default for the other entry
           const otherEntryIndex = targetEntryIndex === 0 ? 1 : 0;
-          if (!updatedEntries[otherEntryIndex].accountId) {
-            // Find the best default account for the other entry
-            const defaultAccount = findDefaultAccountForEntry(
-              suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT',
-              usableAccounts
-            );
-            if (defaultAccount) {
-              updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
-              updatedEntries[otherEntryIndex].type = suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
-              console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
-            }
+          const defaultAccount = findDefaultAccountForEntry(
+            suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT',
+            usableAccounts
+          );
+          if (defaultAccount) {
+            updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
+            updatedEntries[otherEntryIndex].type = suggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
+            console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
           }
           
           console.log('📝 Updated entries:', updatedEntries);
