@@ -12,11 +12,12 @@ import Accounts from "./pages/Accounts";
 import { useAuth } from "./contexts/AuthContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "react-hot-toast";
+import NotFound from "./pages/NotFound";
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  console.log("ProtectedRoute - isAuthenticated:", isAuthenticated, "isLoading:", isLoading);
+  // console.log("ProtectedRoute - isAuthenticated:", isAuthenticated, "isLoading:", isLoading);
   
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -28,7 +29,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!isAuthenticated) {
-    console.log("Redirecting to login...");
+    // console.log("Redirecting to login...");
     return <Navigate to="/login" replace />;
   }
   
@@ -37,7 +38,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  console.log("App component rendering");
+  // console.log("App component rendering");
   
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -79,31 +80,12 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
           
-          {/* Catch-all route - redirect to appropriate page */}
-          <Route path="*" element={<DefaultRedirect />} />
+          {/* Catch-all route - show 404 page */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </div>
   );
-};
-
-// Component to handle default redirects
-const DefaultRedirect = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen bg-gray-50 items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-  
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  } else {
-    return <Navigate to="/login" replace />;
-  }
 };
 
 const App = () => {

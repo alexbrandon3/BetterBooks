@@ -37,13 +37,13 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 // Debug middleware to log all requests
-app.use((req, _res, next) => {
-  console.log(`📨 ${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
-  console.log(`🔍 Request headers:`, req.headers);
-  console.log(`🌐 Request IP: ${req.ip}`);
-  console.log(`🚨 CORS DEBUG - Method: ${req.method}, Origin: ${req.headers.origin}, Path: ${req.path}`);
-  next();
-});
+// app.use((req, _res, next) => {
+//   console.log(`📨 ${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
+//   console.log(`🔍 Request headers:`, req.headers);
+//   console.log(`🌐 Request IP: ${req.ip}`);
+//   console.log(`🚨 CORS DEBUG - Method: ${req.method}, Origin: ${req.headers.origin}, Path: ${req.path}`);
+//   next();
+// });
 
 // Body parsing middleware
 app.use(express.json());

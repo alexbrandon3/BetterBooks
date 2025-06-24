@@ -10,7 +10,7 @@ const MAX_ACTIVITIES = 50;
 const STORAGE_KEY = 'betterbooks_activities';
 
 export const logActivity = (type: Activity['type'], action: string, details?: Record<string, unknown>): void => {
-  console.log("🔥 [ACTIVITY] logActivity called:", { type, action, details });
+  // console.log("🔥 [ACTIVITY] logActivity called:", { type, action, details });
   
   const activities = getRecentActivities();
   const newActivity: Activity = {

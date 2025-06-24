@@ -10,5 +10,5 @@ export type AnalyticsEvent =
 
 export const logAnalytics = (event: AnalyticsEvent, details?: Record<string, any>): void => {
   // In production, this would send to an analytics service
-  console.log('📊 Analytics:', { event, details });
+  // console.log('📊 Analytics:', { event, details });
 }; 

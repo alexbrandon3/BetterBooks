@@ -11,11 +11,11 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 console.log("📝 Environment Variables Check:");
 console.log("JWT_SECRET:", process.env.JWT_SECRET);
 console.log("DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_PORT:", process.env.DB_PORT);
-console.log("DB_USER:", process.env.DB_USER);
-console.log("DB_PASS:", process.env.DB_PASS);
-console.log("DB_NAME:", process.env.DB_NAME);
+// console.log("DB_HOST:", process.env.DB_HOST);
+// console.log("DB_PORT:", process.env.DB_PORT);
+// console.log("DB_USER:", process.env.DB_USER);
+// console.log("DB_PASS:", process.env.DB_PASS);
+// console.log("DB_NAME:", process.env.DB_NAME);
 
 if (!process.env.JWT_SECRET) {
   console.error("❌ JWT_SECRET is not set in .env file");
@@ -26,8 +26,8 @@ if (!process.env.JWT_SECRET) {
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 10000;
 
 console.log(`🔧 Starting server on port: ${PORT}`);
-console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
-console.log(`🔧 Process ID: ${process.pid}`);
+// console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+// console.log(`🔧 Process ID: ${process.pid}`);
 console.log(`🔧 All environment variables:`, Object.keys(process.env).filter(key => key.includes('PORT') || key.includes('RENDER')));
 
 // Initialize Database Connection

@@ -16,11 +16,11 @@ const formatMessage = (level: LogLevel, message: string, context?: string): stri
 };
 
 export const logInfo = (message: string, context?: string): void => {
-  console.log(formatMessage('info', message, context));
+  // console.log(formatMessage('info', message, context));
 };
 
 export const logSuccess = (message: string, context?: string): void => {
-  console.log(formatMessage('success', message, context));
+  // console.log(formatMessage('success', message, context));
 };
 
 export const logError = (message: string, context?: string): void => {
