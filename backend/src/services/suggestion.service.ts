@@ -300,7 +300,6 @@ export class SuggestionService {
       // Find matching user account with better prioritization
       let bestMatch = null;
       let bestScore = 0;
-      let bestReasoning = '';
 
       console.log('🔍 Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
 
@@ -361,7 +360,6 @@ export class SuggestionService {
         if (score > bestScore) {
           bestScore = score;
           bestMatch = account;
-          bestReasoning = reasoning.join(', ');
         }
       }
 
@@ -378,32 +376,25 @@ export class SuggestionService {
 
       // Determine optimal entry type based on account type
       let suggestedEntryType: 'DEBIT' | 'CREDIT';
-      let entryReasoning = '';
       
       switch (bestMatch.type) {
         case 'EXPENSE':
           suggestedEntryType = 'DEBIT';
-          entryReasoning = 'Expense accounts are typically debited to increase';
           break;
         case 'INCOME':
           suggestedEntryType = 'CREDIT';
-          entryReasoning = 'Income accounts are typically credited to increase';
           break;
         case 'ASSET':
           suggestedEntryType = 'DEBIT';
-          entryReasoning = 'Asset accounts are typically debited to increase';
           break;
         case 'LIABILITY':
           suggestedEntryType = 'CREDIT';
-          entryReasoning = 'Liability accounts are typically credited to increase';
           break;
         case 'EQUITY':
           suggestedEntryType = 'CREDIT';
-          entryReasoning = 'Equity accounts are typically credited to increase';
           break;
         default:
           suggestedEntryType = 'DEBIT';
-          entryReasoning = 'Default to debit entry';
       }
 
       // Create human-friendly reason
