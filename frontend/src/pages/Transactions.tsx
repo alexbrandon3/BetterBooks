@@ -74,6 +74,8 @@ const Transactions = () => {
   const [formKey, setFormKey] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
+  const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
+  const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -220,26 +222,60 @@ const Transactions = () => {
       try {
         const suggestion = await getSuggestedAccount(desc);
         if (suggestion?.suggestedAccountId) {
-          // Get current form values to check if account is already selected
+          // Get current form values to check if accounts are already selected
           const currentValues = control._formValues;
           const firstEntryAccountId = currentValues?.entries?.[0]?.accountId;
+          const secondEntryAccountId = currentValues?.entries?.[1]?.accountId;
           
-          // Only suggest if no account is manually selected for the first entry
-          if (!firstEntryAccountId) {
-            const updatedEntries = [...fields];
-            updatedEntries[0].accountId = String(suggestion.suggestedAccountId);
-            // Preserve the description and other form values
-            reset({ 
-              ...currentValues, 
-              description: desc, // Preserve the description
-              entries: updatedEntries 
-            });
+          // Determine which entry to populate based on suggested entry type
+          let targetEntryIndex = 0; // Default to first entry
+          
+          if (suggestion.suggestedEntryType === 'CREDIT' && !secondEntryAccountId) {
+            // If suggested entry type is CREDIT and second entry is empty, use second entry
+            targetEntryIndex = 1;
+          } else if (suggestion.suggestedEntryType === 'DEBIT' && !firstEntryAccountId) {
+            // If suggested entry type is DEBIT and first entry is empty, use first entry
+            targetEntryIndex = 0;
+          } else if (!firstEntryAccountId) {
+            // If first entry is empty, use it regardless
+            targetEntryIndex = 0;
+          } else if (!secondEntryAccountId) {
+            // If second entry is empty, use it regardless
+            targetEntryIndex = 1;
+          } else {
+            // Both entries have accounts, don't suggest
+            return;
           }
+          
+          const updatedEntries = [...fields];
+          updatedEntries[targetEntryIndex].accountId = String(suggestion.suggestedAccountId);
+          updatedEntries[targetEntryIndex].type = suggestion.suggestedEntryType;
+          
+          // Preserve the description and other form values
+          reset({ 
+            ...currentValues, 
+            description: desc, // Preserve the description
+            entries: updatedEntries 
+          });
+          
+          // Set suggestion explanation and confidence
+          setSuggestionExplanation(suggestion.detailedReason);
+          setSuggestionConfidence(suggestion.confidence);
+          
+          // Clear suggestion after 5 seconds
+          setTimeout(() => {
+            setSuggestionExplanation(null);
+            setSuggestionConfidence(null);
+          }, 5000);
         }
       } catch (error) {
         console.error('Failed to get account suggestion:', error);
         // Silent failure for minor fetches like smart suggestions
       }
+    } else {
+      // Clear suggestion when description is empty
+      setSuggestionExplanation(null);
+      setSuggestionConfidence(null);
     }
   };
 
@@ -645,6 +681,37 @@ const Transactions = () => {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
         </div>
+
+        {/* Smart Suggestion Display */}
+        {suggestionExplanation && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-blue-800 font-medium mb-1">
+                  Smart Suggestion Applied
+                </div>
+                <div className="text-sm text-blue-700 mb-1">
+                  {suggestionExplanation}
+                </div>
+                {suggestionConfidence && (
+                  <div className="text-xs text-blue-600">
+                    Confidence: {suggestionConfidence}%
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSuggestionExplanation(null);
+                  setSuggestionConfidence(null);
+                }}
+                className="text-blue-500 hover:text-blue-700 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Recurring Transaction Toggle */}
         <div className="mb-4">

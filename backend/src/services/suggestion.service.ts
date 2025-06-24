@@ -71,6 +71,10 @@ export class SuggestionService {
     suggestedAccountId: number;
     suggestedAccountName: string;
     reason: string;
+    accountType: string;
+    confidence: number;
+    suggestedEntryType: 'DEBIT' | 'CREDIT';
+    detailedReason: string;
   } | null> {
     try {
       console.log('🔍 SuggestionService: Processing description:', description, 'userId:', userId);
@@ -296,6 +300,7 @@ export class SuggestionService {
       // Find matching user account with better prioritization
       let bestMatch = null;
       let bestScore = 0;
+      let bestReasoning = '';
 
       console.log('🔍 Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
 
@@ -306,36 +311,57 @@ export class SuggestionService {
         }
 
         let score = 0;
+        let reasoning = [];
         
         // Check for exact keyword matches in account name (highest priority)
         const exactKeywordMatch = matchedCategory!.keywords.some(keyword => 
           account.name.toLowerCase().includes(keyword.toLowerCase())
         );
-        if (exactKeywordMatch) score += 50; // Higher priority for exact keyword matches
+        if (exactKeywordMatch) {
+          score += 50; // Higher priority for exact keyword matches
+          reasoning.push('exact keyword match in account name');
+        }
         
         // Check name match (higher priority)
         const nameMatch = matchedCategory!.categories.some(cat => 
           account.name.toLowerCase().includes(cat.toLowerCase())
         );
-        if (nameMatch) score += 20;
+        if (nameMatch) {
+          score += 30;
+          reasoning.push('category match in account name');
+        }
         
         // Check category match
         const categoryMatch = matchedCategory!.categories.some(cat => 
           account.category?.toLowerCase().includes(cat.toLowerCase())
         );
-        if (categoryMatch) score += 10;
+        if (categoryMatch) {
+          score += 15;
+          reasoning.push('category field match');
+        }
         
         // Check subcategory match
         const subcategoryMatch = matchedCategory!.categories.some(cat => 
           account.subcategory?.toLowerCase().includes(cat.toLowerCase())
         );
-        if (subcategoryMatch) score += 5;
+        if (subcategoryMatch) {
+          score += 10;
+          reasoning.push('subcategory field match');
+        }
 
-        console.log('📊 Account', account.name, 'score:', score, 'exactKeyword:', exactKeywordMatch, 'nameMatch:', nameMatch, 'categoryMatch:', categoryMatch);
+        // Bonus for recently used accounts
+        const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceUpdate < 7) {
+          score += 5;
+          reasoning.push('recently used account');
+        }
+
+        console.log('📊 Account', account.name, 'score:', score, 'reasoning:', reasoning.join(', '));
 
         if (score > bestScore) {
           bestScore = score;
           bestMatch = account;
+          bestReasoning = reasoning.join(', ');
         }
       }
 
@@ -346,13 +372,51 @@ export class SuggestionService {
 
       console.log('✅ Best match found:', bestMatch.name, 'with score:', bestScore);
 
-      // Create detailed reason with matched keyword
-      const detailedReason = `Matched keyword: '${matchedKeyword}' → Category: ${matchedCategory.categories[0]}`;
+      // Calculate confidence score (0-100)
+      const maxPossibleScore = 110; // 50 + 30 + 15 + 10 + 5
+      const confidence = Math.min(100, Math.round((bestScore / maxPossibleScore) * 100));
+
+      // Determine optimal entry type based on account type
+      let suggestedEntryType: 'DEBIT' | 'CREDIT';
+      let entryReasoning = '';
+      
+      switch (bestMatch.type) {
+        case 'EXPENSE':
+          suggestedEntryType = 'DEBIT';
+          entryReasoning = 'Expense accounts are typically debited to increase';
+          break;
+        case 'INCOME':
+          suggestedEntryType = 'CREDIT';
+          entryReasoning = 'Income accounts are typically credited to increase';
+          break;
+        case 'ASSET':
+          suggestedEntryType = 'DEBIT';
+          entryReasoning = 'Asset accounts are typically debited to increase';
+          break;
+        case 'LIABILITY':
+          suggestedEntryType = 'CREDIT';
+          entryReasoning = 'Liability accounts are typically credited to increase';
+          break;
+        case 'EQUITY':
+          suggestedEntryType = 'CREDIT';
+          entryReasoning = 'Equity accounts are typically credited to increase';
+          break;
+        default:
+          suggestedEntryType = 'DEBIT';
+          entryReasoning = 'Default to debit entry';
+      }
+
+      // Create detailed reason with matched keyword and reasoning
+      const detailedReason = `Matched keyword: '${matchedKeyword}' → Category: ${matchedCategory.categories[0]} → Account: ${bestMatch.name} (${bestMatch.type}) → ${entryReasoning}. Confidence: ${confidence}% based on: ${bestReasoning}`;
 
       return {
         suggestedAccountId: bestMatch.id,
         suggestedAccountName: bestMatch.name,
-        reason: detailedReason
+        reason: detailedReason,
+        accountType: bestMatch.type,
+        confidence: confidence,
+        suggestedEntryType: suggestedEntryType,
+        detailedReason: detailedReason
       };
 
     } catch (error) {

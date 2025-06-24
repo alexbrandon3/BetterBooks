@@ -5,6 +5,10 @@ interface AccountSuggestion {
   suggestedAccountId: number;
   suggestedAccountName: string;
   reason: string;
+  accountType: string;
+  confidence: number;
+  suggestedEntryType: 'DEBIT' | 'CREDIT';
+  detailedReason: string;
 }
 
 interface UseSmartSuggestionProps {

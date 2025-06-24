@@ -107,7 +107,15 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   }
 };
 
-export const getSuggestedAccount = async (description: string): Promise<{ suggestedAccountId: number; suggestedAccountName: string; reason: string } | null> => {
+export const getSuggestedAccount = async (description: string): Promise<{ 
+  suggestedAccountId: number; 
+  suggestedAccountName: string; 
+  reason: string;
+  accountType: string;
+  confidence: number;
+  suggestedEntryType: 'DEBIT' | 'CREDIT';
+  detailedReason: string;
+} | null> => {
   try {
     const response = await api.post('/suggestions/suggest-account', {
       description: description.trim()
