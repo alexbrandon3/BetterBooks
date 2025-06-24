@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? process.env.REACT_APP_API_URL || 'https://betterbooks-backend.onrender.com'
+    : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
