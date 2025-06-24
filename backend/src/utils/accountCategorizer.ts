@@ -193,6 +193,11 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
     'money market': 'cash',
     'certificate of deposit': 'cash',
     'cd': 'cash',
+    'acount': 'account', // Common typo
+    'acct': 'account', // Abbreviation
+    'acc': 'account', // Abbreviation
+    'first bank': 'bank', // Handle "My first bank account"
+    'my bank': 'bank', // Handle "My bank account"
     
     // Loan and debt aliases
     'credit line': 'loan',
@@ -284,7 +289,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   // Enhanced keyword map with explanations and confidence levels
   const keywordMap = [
     {
-      keywords: ["cash", "petty", "bank", "checking", "savings", "money market"],
+      keywords: ["cash", "petty", "bank", "checking", "savings", "money market", "acount", "acct", "account"],
       result: {
         type: AccountType.ASSET,
         category: "Cash & Cash Equivalents",
@@ -528,9 +533,49 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
 
   // Check both original normalized name and processed name (with aliases applied)
   for (const entry of keywordMap) {
+    // Check if any keyword matches in the processed name
     if (entry.keywords.some(kw => processedName.includes(kw)) || 
         entry.keywords.some(kw => normalizedName.includes(kw))) {
       return validateAccountMetadata(entry.result);
+    }
+    
+    // Also check if the processed name contains any keyword (for better matching)
+    if (entry.keywords.some(kw => processedName.includes(kw))) {
+      return validateAccountMetadata(entry.result);
+    }
+  }
+
+  // Additional flexible matching for common patterns
+  const flexibleMatches = [
+    {
+      pattern: /bank/i,
+      result: {
+        type: AccountType.ASSET,
+        category: "Cash & Cash Equivalents",
+        subcategory: "Bank Accounts",
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "CASH_AND_EQUIVALENTS",
+        explanation: "This appears to be a bank account based on the name. Bank accounts are classified as current assets.",
+        confidence: 0.9
+      }
+    },
+    {
+      pattern: /account/i,
+      result: {
+        type: AccountType.ASSET,
+        category: "Cash & Cash Equivalents", 
+        subcategory: "Bank Accounts",
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "CASH_AND_EQUIVALENTS",
+        explanation: "This appears to be a bank account based on the name. Bank accounts are classified as current assets.",
+        confidence: 0.8
+      }
+    }
+  ];
+
+  for (const match of flexibleMatches) {
+    if (match.pattern.test(normalizedName)) {
+      return validateAccountMetadata(match.result);
     }
   }
 
