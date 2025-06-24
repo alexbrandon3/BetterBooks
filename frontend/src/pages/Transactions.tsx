@@ -275,26 +275,26 @@ const Transactions = () => {
           // Determine which entry to populate based on suggested entry type
           let targetEntryIndex = 0; // Default to first entry
           
-          if (suggestion.suggestedEntryType === 'CREDIT' && !secondEntryAccountId) {
-            // If suggested entry type is CREDIT and second entry is empty, use second entry
+          if (suggestion.suggestedEntryType === 'CREDIT') {
+            // For CREDIT suggestions, always use the second entry (index 1)
             targetEntryIndex = 1;
             console.log('✅ Placing CREDIT suggestion in second entry (index 1)');
-          } else if (suggestion.suggestedEntryType === 'DEBIT' && !firstEntryAccountId) {
-            // If suggested entry type is DEBIT and first entry is empty, use first entry
+          } else if (suggestion.suggestedEntryType === 'DEBIT') {
+            // For DEBIT suggestions, always use the first entry (index 0)
             targetEntryIndex = 0;
             console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
-          } else if (!firstEntryAccountId) {
-            // If first entry is empty, use it regardless
-            targetEntryIndex = 0;
-            console.log('✅ Placing suggestion in first entry (index 0) - first entry empty');
-          } else if (!secondEntryAccountId) {
-            // If second entry is empty, use it regardless
-            targetEntryIndex = 1;
-            console.log('✅ Placing suggestion in second entry (index 1) - second entry empty');
           } else {
-            // Both entries have accounts, don't suggest
-            console.log('❌ Both entries have accounts, not suggesting');
-            return;
+            // Fallback logic
+            if (!firstEntryAccountId) {
+              targetEntryIndex = 0;
+              console.log('✅ Placing suggestion in first entry (index 0) - first entry empty');
+            } else if (!secondEntryAccountId) {
+              targetEntryIndex = 1;
+              console.log('✅ Placing suggestion in second entry (index 1) - second entry empty');
+            } else {
+              console.log('❌ Both entries have accounts, not suggesting');
+              return;
+            }
           }
           
           // Don't suggest if the account is already in the target entry
@@ -331,12 +331,9 @@ const Transactions = () => {
             entries: updatedEntries 
           });
           
-          // Set suggestion explanation and confidence
+          // Set suggestion explanation and confidence - keep persistent until user dismissal
           setSuggestionExplanation(suggestion.detailedReason);
           setSuggestionConfidence(suggestion.confidence);
-          
-          // Keep suggestion visible for 5 seconds after form submission
-          // Don't auto-clear here - let it stay visible for user to read
         }
       } catch (error) {
         console.error('Failed to get account suggestion:', error);
@@ -371,6 +368,9 @@ const Transactions = () => {
     setEditingTransactionId(null);
     setEditingRecurringId(null);
     setWarnings([]); // Clear warnings when form is reset
+    // Clear suggestion explanation when form is reset
+    setSuggestionExplanation(null);
+    setSuggestionConfidence(null);
   };
 
   const onSubmit = async (data: TransactionForm) => {
@@ -422,11 +422,7 @@ const Transactions = () => {
         setError(null);
         toast.success("Transaction updated successfully!");
         
-        // Clear suggestion explanation after successful update
-        setTimeout(() => {
-          setSuggestionExplanation(null);
-          setSuggestionConfidence(null);
-        }, 5000);
+        // Don't clear suggestion explanation - let it persist until user dismissal
       } else if (editingRecurringId) {
         // Update recurring transaction
         const recurringData = {
@@ -445,11 +441,7 @@ const Transactions = () => {
         toast.success("Recurring transaction updated successfully!");
         setError(null);
         
-        // Clear suggestion explanation after successful update
-        setTimeout(() => {
-          setSuggestionExplanation(null);
-          setSuggestionConfidence(null);
-        }, 5000);
+        // Don't clear suggestion explanation - let it persist until user dismissal
       } else {
         // Check if this is a recurring transaction
         if (data.isRecurring) {
@@ -469,11 +461,7 @@ const Transactions = () => {
           setSuccessMessage("Recurring transaction created successfully!");
           toast.success("Recurring transaction created successfully!");
           
-          // Clear suggestion explanation after successful creation
-          setTimeout(() => {
-            setSuggestionExplanation(null);
-            setSuggestionConfidence(null);
-          }, 5000);
+          // Don't clear suggestion explanation - let it persist until user dismissal
         } else {
           // Create regular transaction
           const result: TransactionResponse = await createTransaction(backendTransactionData);
@@ -510,11 +498,7 @@ const Transactions = () => {
         }
         setError(null);
         
-        // Clear suggestion explanation after successful submission
-        setTimeout(() => {
-          setSuggestionExplanation(null);
-          setSuggestionConfidence(null);
-        }, 5000); // Keep message visible for 5 seconds
+        // Don't clear suggestion explanation - let it persist until user dismissal
       }
       // Reset form completely after successful submission
       const resetData: TransactionForm = {
@@ -553,6 +537,9 @@ const Transactions = () => {
     if (successMessage) setSuccessMessage(null);
     if (error) setError(null);
     if (warnings.length > 0) setWarnings([]);
+    // Clear suggestion explanation when user makes any changes
+    if (suggestionExplanation) setSuggestionExplanation(null);
+    if (suggestionConfidence) setSuggestionConfidence(null);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -583,6 +570,9 @@ const Transactions = () => {
     });
     setEditingTransactionId(transaction.id);
     setEditingRecurringId(null);
+    // Clear suggestion explanation when editing a transaction
+    setSuggestionExplanation(null);
+    setSuggestionConfidence(null);
   };
 
   const handleEditRecurringTransaction = (recurring: any) => {
@@ -614,6 +604,9 @@ const Transactions = () => {
     });
     setEditingRecurringId(recurring.id);
     setEditingTransactionId(null);
+    // Clear suggestion explanation when editing a recurring transaction
+    setSuggestionExplanation(null);
+    setSuggestionConfidence(null);
   };
 
   const handleDeleteTransaction = async (id: string) => {
