@@ -6,15 +6,15 @@ export const generateEquipmentFundSuggestion = (
   transactions: Transaction[],
   user: User
 ): SuggestedGoal | null => {
-  // Look for equipment-related transactions in the last year
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  // Look for equipment-related transactions in the last 6 months for consistency
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
   // Look for various categories that might indicate equipment or business expenses
   const equipmentCategories = ['EQUIPMENT', 'OFFICE', 'TECHNOLOGY', 'TOOLS', 'MACHINERY'];
   const equipmentTransactions = transactions.filter(t => 
     equipmentCategories.some(cat => t.category.toUpperCase().includes(cat)) && 
-    new Date(t.date) >= oneYearAgo &&
+    new Date(t.date) >= sixMonthsAgo &&
     t.type === 'EXPENSE'
   );
 
@@ -22,7 +22,7 @@ export const generateEquipmentFundSuggestion = (
   if (equipmentTransactions.length === 0) {
     const businessExpenses = transactions.filter(t => 
       t.type === 'EXPENSE' && 
-      new Date(t.date) >= oneYearAgo &&
+      new Date(t.date) >= sixMonthsAgo &&
       ['RENT', 'UTILITIES', 'SUPPLIES'].some(cat => t.category.toUpperCase().includes(cat))
     );
     
@@ -30,7 +30,7 @@ export const generateEquipmentFundSuggestion = (
       // Fallback: Suggest a General Expense Reserve Fund for non-equipment users
       const allExpenses = transactions.filter(t => 
         t.type === 'EXPENSE' && 
-        new Date(t.date) >= oneYearAgo
+        new Date(t.date) >= sixMonthsAgo
       );
       
       if (allExpenses.length === 0) {
@@ -58,17 +58,19 @@ export const generateEquipmentFundSuggestion = (
       
       // Calculate average monthly expenses
       const totalExpense = allExpenses.reduce((sum, t) => sum + t.amount, 0);
-      const averageMonthlyExpense = totalExpense / 12;
+      const averageMonthlyExpense = totalExpense / 6; // 6 months instead of 12
       
       // Suggest 1-2 months of expenses as reserve fund
-      const targetAmount = Math.round(averageMonthlyExpense * 1.5); // 1.5 months default
+      const baseTarget = averageMonthlyExpense * 1.5; // 1.5 months default
       
       // Adjust target based on risk tolerance
-      let adjustedTarget = targetAmount;
+      let adjustedTarget = baseTarget;
       if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
         adjustedTarget = Math.round(averageMonthlyExpense * 2); // 2 months for conservative
       } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
         adjustedTarget = Math.round(averageMonthlyExpense * 1); // 1 month for aggressive
+      } else {
+        adjustedTarget = Math.round(baseTarget); // 1.5 months for moderate
       }
 
       return {

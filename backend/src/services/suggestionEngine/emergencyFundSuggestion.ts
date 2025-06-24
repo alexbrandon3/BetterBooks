@@ -17,18 +17,18 @@ export const generateEmergencyFundSuggestion = (
     )
     .reduce((sum, a) => sum + (a.balance || 0), 0);
 
-  // Calculate average monthly income from last 3 months
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Calculate average monthly income from last 6 months for consistency
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
   const recentIncome = transactions
     .filter(t => 
       t.type === TransactionType.INCOME && 
-      new Date(t.date) >= threeMonthsAgo
+      new Date(t.date) >= sixMonthsAgo
     )
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const averageMonthlyIncome = recentIncome / 3;
+  const averageMonthlyIncome = recentIncome / 6;
 
   // If no income data, use a default target
   if (averageMonthlyIncome <= 0) {

@@ -7,18 +7,18 @@ export const generateIncomeSuggestion = (
   transactions: Transaction[],
   user: User
 ): SuggestedGoal | null => {
-  // Calculate average monthly income from last 3 months
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Calculate average monthly income from last 6 months for better consistency
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
   const recentIncome = transactions
     .filter(t => 
       t.type === TransactionType.INCOME && 
-      new Date(t.date) >= threeMonthsAgo
+      new Date(t.date) >= sixMonthsAgo
     )
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const averageMonthlyIncome = recentIncome / 3;
+  const averageMonthlyIncome = recentIncome / 6;
   
   if (averageMonthlyIncome <= 0) {
     const defaultTarget = 3000; // Default $3,000 savings goal
@@ -42,15 +42,18 @@ export const generateIncomeSuggestion = (
     };
   }
 
+  // For income-based savings, use 1 month of income as the base target
+  const baseTarget = averageMonthlyIncome;
+  
   // Adjust target based on risk tolerance
-  let targetMultiplier = 1;
+  let targetAmount = baseTarget;
   if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
-    targetMultiplier = 0.8;
+    targetAmount = Math.round(baseTarget * 1.2); // 20% more for conservative
   } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
-    targetMultiplier = 1.2;
+    targetAmount = Math.round(baseTarget * 0.8); // 20% less for aggressive
+  } else {
+    targetAmount = Math.round(baseTarget); // Exact 1 month for moderate
   }
-
-  const targetAmount = Math.round(averageMonthlyIncome * targetMultiplier);
 
   return {
     id: 'monthly-income',
