@@ -8,14 +8,18 @@ import { RiskTolerance } from '../types/user';
 interface SmartGoalSuggestionsProps {
   onGoalSelected: (goal: SuggestedGoal) => void;
   userRiskTolerance?: RiskTolerance;
+  dismissedSuggestions?: Set<string>;
+  onDismissSuggestion?: (suggestionId: string) => void;
 }
 
 export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({ 
   onGoalSelected,
-  userRiskTolerance 
+  userRiskTolerance,
+  dismissedSuggestions,
+  onDismissSuggestion
 }) => {
   const [suggestions, setSuggestions] = useState<SuggestedGoal[]>([]);
-  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+  const [dismissedSuggestionsState, setDismissedSuggestionsState] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { showFeedback } = useFeedback();
@@ -63,17 +67,21 @@ export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({
 
   const handleDismissSuggestion = (suggestionId: string) => {
     // Add to dismissed set
-    setDismissedSuggestions(prev => new Set(prev).add(suggestionId));
+    setDismissedSuggestionsState(prev => new Set(prev).add(suggestionId));
     
     // Log analytics event
     logAnalytics('dismiss_goal', { 
       goalId: suggestionId 
     });
+
+    if (onDismissSuggestion) {
+      onDismissSuggestion(suggestionId);
+    }
   };
 
   // Filter out dismissed suggestions
   const visibleSuggestions = suggestions.filter(
-    suggestion => !dismissedSuggestions.has(suggestion.id)
+    suggestion => !(dismissedSuggestions || dismissedSuggestionsState).has(suggestion.id)
   );
 
   // Loading skeleton
@@ -153,7 +161,7 @@ export const SmartGoalSuggestions: React.FC<SmartGoalSuggestionsProps> = ({
           <div
             key={suggestion.id}
             className={`bg-gray-50 rounded-xl p-4 hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200 cursor-pointer border border-gray-100 hover:border-gray-200 relative ${
-              dismissedSuggestions.has(suggestion.id) 
+              (dismissedSuggestions || dismissedSuggestionsState).has(suggestion.id) 
                 ? 'opacity-0 scale-95 pointer-events-none' 
                 : 'opacity-100 scale-100'
             }`}

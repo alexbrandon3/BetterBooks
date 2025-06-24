@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -129,6 +130,10 @@ const Dashboard = () => {
   const handleReload = useCallback(() => window.location.reload(), []);
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
     console.log('🎯 Dashboard - handleGoalSelected called with:', suggestedGoal);
+    
+    // Add to dismissed suggestions to remove it from the list
+    setDismissedSuggestions(prev => new Set(prev).add(suggestedGoal.id));
+    
     // Convert suggested goal to FinancialGoal and add to goals
     const newGoal: FinancialGoal = {
       id: crypto.randomUUID(),
@@ -136,7 +141,9 @@ const Dashboard = () => {
       targetAmount: suggestedGoal.targetAmount,
       targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
-      progress: 0
+      progress: 0,
+      // Store the original title to preserve it
+      title: suggestedGoal.title
     };
     console.log('🎯 Dashboard - Creating new goal:', newGoal);
     setGoals(prev => {
@@ -150,6 +157,11 @@ const Dashboard = () => {
   const handleGoalsChange = useCallback((newGoals: FinancialGoal[]) => {
     console.log('🎯 Dashboard - handleGoalsChange called with:', newGoals);
     setGoals(newGoals);
+  }, []);
+
+  const handleDismissSuggestion = useCallback((suggestionId: string) => {
+    console.log('🎯 Dashboard - Dismissing suggestion:', suggestionId);
+    setDismissedSuggestions(prev => new Set(prev).add(suggestionId));
   }, []);
 
   // Loading skeleton component
@@ -394,7 +406,11 @@ const Dashboard = () => {
 
         {/* Smart Goal Suggestions */}
         <div className="mb-8">
-          <SmartGoalSuggestions onGoalSelected={handleGoalSelected} />
+          <SmartGoalSuggestions 
+            onGoalSelected={handleGoalSelected} 
+            dismissedSuggestions={dismissedSuggestions}
+            onDismissSuggestion={handleDismissSuggestion}
+          />
         </div>
 
         {/* Goal Tracker */}

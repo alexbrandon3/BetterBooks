@@ -125,7 +125,9 @@ const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ accounts, goals, onGo
               <div key={goal.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-gray-800">{formatGoalTitle(goal)}</h3>
+                    <h3 className="font-semibold text-gray-800">
+                      {goal.title || formatGoalTitle(goal)}
+                    </h3>
                     {goal.progress >= 100 && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

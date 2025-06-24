@@ -9,6 +9,7 @@ export interface FinancialGoal {
   progress: number;
   currentAmount?: number;
   daysRemaining?: number;
+  title?: string;
 }
 
 export interface GoalFormData {
