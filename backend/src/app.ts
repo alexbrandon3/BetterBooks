@@ -21,13 +21,9 @@ app.get('/test', (_, res) => {
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - explicitly allow frontend domain
+// CORS configuration - allow all origins for now to debug
 app.use(cors({
-  origin: [
-    'https://betterbooks-frontend.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
@@ -45,6 +41,7 @@ app.use((req, _res, next) => {
   console.log(`📨 ${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
   console.log(`🔍 Request headers:`, req.headers);
   console.log(`🌐 Request IP: ${req.ip}`);
+  console.log(`🚨 CORS DEBUG - Method: ${req.method}, Origin: ${req.headers.origin}, Path: ${req.path}`);
   next();
 });
 
@@ -61,6 +58,9 @@ app.get('/', (_, res) => {
 app.get('/health', (_, res) => {
   res.json({ status: 'OK', message: 'BetterBooks API is running' });
 });
+
+// Handle preflight requests
+app.options('*', cors());
 
 // API routes
 app.use('/api/auth', authRoutes);
