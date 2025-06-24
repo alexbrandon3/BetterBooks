@@ -22,7 +22,7 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Initialize Database Connection
 AppDataSource.initialize()
@@ -30,8 +30,8 @@ AppDataSource.initialize()
     console.log("✅ Database connection established successfully.");
     
     // Start the server only after database connection is established
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
     });
   })
   .catch((error) => {
