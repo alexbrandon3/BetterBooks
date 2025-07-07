@@ -287,6 +287,57 @@ export class TransactionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  async getTransactionTemplates(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const templates = await this.transactionService.getTransactionTemplates();
+      this.sendResponse(res, 200, templates);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async suggestTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { description, entries } = req.body;
+      
+      if (!description || typeof description !== 'string') {
+        this.sendError(res, 400, "Description is required");
+        return;
+      }
+
+      if (!Array.isArray(entries)) {
+        this.sendError(res, 400, "Entries must be an array");
+        return;
+      }
+
+      const template = await this.transactionService.suggestTransactionTemplate(description, entries);
+      this.sendResponse(res, 200, { template });
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async validateTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { transactionType, entries } = req.body;
+      
+      if (!transactionType || !Object.values(TransactionType).includes(transactionType)) {
+        this.sendError(res, 400, "Valid transaction type is required");
+        return;
+      }
+
+      if (!Array.isArray(entries)) {
+        this.sendError(res, 400, "Entries must be an array");
+        return;
+      }
+
+      const validation = await this.transactionService.validateTransactionTemplate(transactionType, entries);
+      this.sendResponse(res, 200, validation);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 }
 
 // Create and export an instance of the controller
@@ -299,4 +350,7 @@ export const {
   deleteTransaction,
   suggestAccount,
   getRecurringTransactions,
+  getTransactionTemplates,
+  suggestTransactionTemplate,
+  validateTransactionTemplate,
 } = transactionController;

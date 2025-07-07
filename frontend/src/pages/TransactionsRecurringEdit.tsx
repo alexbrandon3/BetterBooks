@@ -11,7 +11,7 @@ interface Account {
 interface RecurringTransaction {
   id: string;
   amount: number;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL";
   description: string;
   accountId: string;
   date: string;
@@ -126,11 +126,18 @@ const TransactionsRecurringEdit: React.FC = () => {
                 name="type"
                 required
                 value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value as "INCOME" | "EXPENSE" })}
+                onChange={(e) => setForm({ ...form, type: e.target.value as "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL" })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="INCOME">Income</option>
                 <option value="EXPENSE">Expense</option>
+                <option value="TRANSFER">Transfer</option>
+                <option value="ADJUSTMENT">Adjustment</option>
+                <option value="LOAN_PAYMENT">Loan Payment</option>
+                <option value="ASSET_PURCHASE">Asset Purchase</option>
+                <option value="LIABILITY_SETTLEMENT">Liability Settlement</option>
+                <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
+                <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
               </select>
             </div>
             <div>

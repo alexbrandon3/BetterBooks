@@ -23,10 +23,12 @@ import {
   updateRecurringTransaction,
   deleteRecurringTransaction,
 } from "../services/RecurringTransactionService";
+import { TransactionTemplateSelector } from '../components/transactions/TransactionTemplateSelector';
+import { TransactionTemplate } from '../types/transaction';
 
 interface TransactionForm {
   date: string;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL";
   description: string;
   category: string;
   amount: number;
@@ -45,7 +47,7 @@ interface TransactionForm {
 interface BackendTransactionForm {
   description: string;
   date: string;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL";
   category: string;
   amount: number;
   entries: {
@@ -78,6 +80,7 @@ const Transactions = () => {
   const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -750,6 +753,37 @@ const Transactions = () => {
     }
   };
 
+  // Handler to update entries when a template is selected
+  const handleTemplateSelect = (template: TransactionTemplate) => {
+    setSelectedTemplate(template);
+    // Auto-populate entries based on template
+    const entries = template.requiredAccounts.map((account: any) => {
+      const matchingAccounts = usableAccounts.filter(acc => acc.type.toLowerCase() === account.accountType.toLowerCase());
+      return {
+        accountId: matchingAccounts.length > 0 ? matchingAccounts[0].id.toString() : '',
+        amount: '',
+        type: account.entryType,
+        description: account.description
+      };
+    });
+    if (template.optionalAccounts) {
+      template.optionalAccounts.forEach((account: any) => {
+        const matchingAccounts = usableAccounts.filter(acc => acc.type.toLowerCase() === account.accountType.toLowerCase());
+        entries.push({
+          accountId: matchingAccounts.length > 0 ? matchingAccounts[0].id.toString() : '',
+          amount: '',
+          type: account.entryType,
+          description: account.description
+        });
+      });
+    }
+    setValue('entries', entries);
+  };
+
+  const handleTemplateClear = () => {
+    setSelectedTemplate(null);
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -810,6 +844,14 @@ const Transactions = () => {
       )}
 
       <form key={formKey} onSubmit={handleSubmit(handleFormSubmission)} className="mb-8" onChange={handleAnyInput} onInput={handleAnyInput}>
+        {/* Template Selector */}
+        <TransactionTemplateSelector
+          selectedTemplate={selectedTemplate}
+          onTemplateSelect={handleTemplateSelect}
+          onTemplateClear={handleTemplateClear}
+          accounts={usableAccounts}
+          onEntriesUpdate={(entries) => setValue('entries', entries)}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Date *</label>
@@ -831,6 +873,13 @@ const Transactions = () => {
             >
               <option value="INCOME">Income</option>
               <option value="EXPENSE">Expense</option>
+              <option value="TRANSFER">Transfer</option>
+              <option value="ADJUSTMENT">Adjustment</option>
+              <option value="LOAN_PAYMENT">Loan Payment</option>
+              <option value="ASSET_PURCHASE">Asset Purchase</option>
+              <option value="LIABILITY_SETTLEMENT">Liability Settlement</option>
+              <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
+              <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
             </select>
           </div>
         </div>

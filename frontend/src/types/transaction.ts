@@ -2,7 +2,7 @@ import { JournalEntry } from './journalEntry';
 
 export interface Transaction {
   id: string;
-  type: 'INCOME' | 'EXPENSE';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
   description: string;
   date: string;
   category: string;
@@ -14,7 +14,7 @@ export interface Transaction {
 
 export interface TransactionFormType {
   description: string;
-  type: 'EXPENSE' | 'INCOME';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
   date: string;
   entries: {
     accountId: string;
@@ -25,4 +25,27 @@ export interface TransactionFormType {
   startDate?: string;
   recurrencePattern?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
   terminationDate?: string;
+}
+
+export interface TransactionTemplate {
+  type: string;
+  name: string;
+  description: string;
+  requiredAccounts: {
+    accountType: string;
+    entryType: 'DEBIT' | 'CREDIT';
+    description: string;
+    isDebit: boolean;
+  }[];
+  optionalAccounts?: {
+    accountType: string;
+    entryType: 'DEBIT' | 'CREDIT';
+    description: string;
+    isDebit: boolean;
+  }[];
+}
+
+export interface TransactionValidation {
+  isValid: boolean;
+  errors: string[];
 } 

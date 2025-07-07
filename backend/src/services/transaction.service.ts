@@ -2,9 +2,10 @@ import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
 import { Account, AccountType } from "../entities/Account";
-import { CreateTransactionDTO, UpdateTransactionDTO, EntryType } from "../types/transaction.types";
+import { CreateTransactionDTO, UpdateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { In } from "typeorm";
 import { logInfo, logSuccess, logError } from '../utils/logger';
+import { TransactionTemplateService } from './transactionTemplate.service';
 
 interface BalanceWarning {
   accountId: number;
@@ -17,6 +18,8 @@ interface BalanceWarning {
 interface TransactionResult {
   transaction: Transaction;
   warnings?: BalanceWarning[];
+  suggestedTemplate?: any;
+  suggestedAccounts?: Account[];
 }
 
 export class TransactionService {
@@ -353,12 +356,63 @@ export class TransactionService {
     }
   }
 
-  async suggestAccount(_description: string, _userId: number): Promise<Account | null> {
+  async suggestAccount(description: string, userId: number): Promise<Account | null> {
     try {
-      // Implementation for account suggestion
-      return null;
+      // Enhanced account suggestion based on description and transaction type
+      const accounts = await this.accountRepo.find({
+        where: { user: { id: userId } },
+        order: { balance: 'DESC' }
+      });
+
+      const lowerDescription = description.toLowerCase();
+      
+      // Simple keyword matching
+      if (lowerDescription.includes('cash') || lowerDescription.includes('money')) {
+        const cashAccount = accounts.find(acc => acc.name.toLowerCase().includes('cash') || acc.name.toLowerCase().includes('checking'));
+        if (cashAccount) return cashAccount;
+      }
+      
+      if (lowerDescription.includes('credit') || lowerDescription.includes('card')) {
+        const creditAccount = accounts.find(acc => acc.name.toLowerCase().includes('credit'));
+        if (creditAccount) return creditAccount;
+      }
+      
+      if (lowerDescription.includes('savings')) {
+        const savingsAccount = accounts.find(acc => acc.name.toLowerCase().includes('savings'));
+        if (savingsAccount) return savingsAccount;
+      }
+      
+      // Return the account with highest balance as default
+      return accounts[0] || null;
     } catch (error) {
       logError(`Error in suggestAccount: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
+  }
+
+  async getTransactionTemplates(): Promise<any[]> {
+    try {
+      return TransactionTemplateService.getTemplates();
+    } catch (error) {
+      logError(`Error in getTransactionTemplates: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
+  }
+
+  async suggestTransactionTemplate(description: string, entries: any[]): Promise<any> {
+    try {
+      return TransactionTemplateService.suggestTemplate(description, entries);
+    } catch (error) {
+      logError(`Error in suggestTransactionTemplate: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
+  }
+
+  async validateTransactionTemplate(transactionType: TransactionType, entries: any[]): Promise<{ isValid: boolean; errors: string[] }> {
+    try {
+      return TransactionTemplateService.validateTemplate(transactionType, entries);
+    } catch (error) {
+      logError(`Error in validateTransactionTemplate: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
   }

@@ -13,5 +13,8 @@ router.put("/:id", authenticate, (req, res) => transactionController.updateTrans
 router.delete("/:id", authenticate, (req, res) => transactionController.deleteTransaction(req as AuthenticatedRequest, res));
 router.get("/suggest-account", authenticate, (req, res) => transactionController.suggestAccount(req as AuthenticatedRequest, res));
 router.get("/recurring", authenticate, (req, res) => transactionController.getRecurringTransactions(req as AuthenticatedRequest, res));
+router.get("/templates", authenticate, (req, res) => transactionController.getTransactionTemplates(req as AuthenticatedRequest, res));
+router.post("/suggest-template", authenticate, (req, res) => transactionController.suggestTransactionTemplate(req as AuthenticatedRequest, res));
+router.post("/validate-template", authenticate, (req, res) => transactionController.validateTransactionTemplate(req as AuthenticatedRequest, res));
 
 export default router;

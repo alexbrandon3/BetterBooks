@@ -3,7 +3,7 @@ import { Transaction } from "../types/transaction";
 import { JournalEntry } from "../types/journalEntry";
 
 export interface TransactionForm {
-  type: 'INCOME' | 'EXPENSE';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
   description: string;
   date: string;
   category: string;
@@ -24,7 +24,7 @@ export interface JournalEntryFields {
 
 // Backend API compatible interface
 export interface BackendTransactionForm {
-  type: 'INCOME' | 'EXPENSE';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
   description: string;
   date: string;
   category: string;
@@ -124,5 +124,41 @@ export const getSuggestedAccount = async (description: string): Promise<{
   } catch (error) {
     console.error("Error getting suggested account:", error);
     return null;
+  }
+};
+
+export const getTransactionTemplates = async (): Promise<any[]> => {
+  try {
+    const response = await api.get('/transactions/templates');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching transaction templates:", error);
+    throw error;
+  }
+};
+
+export const suggestTransactionTemplate = async (description: string, entries: any[]): Promise<any> => {
+  try {
+    const response = await api.post('/transactions/suggest-template', {
+      description,
+      entries
+    });
+    return response.data.template;
+  } catch (error) {
+    console.error("Error suggesting transaction template:", error);
+    return null;
+  }
+};
+
+export const validateTransactionTemplate = async (transactionType: string, entries: any[]): Promise<{ isValid: boolean; errors: string[] }> => {
+  try {
+    const response = await api.post('/transactions/validate-template', {
+      transactionType,
+      entries
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error validating transaction template:", error);
+    return { isValid: false, errors: ['Validation failed'] };
   }
 };
