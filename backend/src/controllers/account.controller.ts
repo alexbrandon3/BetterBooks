@@ -177,6 +177,41 @@ export class AccountController extends BaseController {
       console.log(`💰 Saving account with balance: ${balance} (type: ${typeof balance})`);
       await accountRepo.save(account);
       console.log(`✅ Account saved with ID: ${account.id}, balance: ${account.balance}`);
+      
+      // If there's a starting balance, create a journal entry to represent it
+      if (balance !== 0) {
+        try {
+          const journalEntryRepo = AppDataSource.getRepository("JournalEntry");
+          
+          // Determine the journal entry type based on account type and balance
+          let entryType = 'CREDIT';
+          let entryAmount = Math.abs(balance);
+          
+          if (account.type === 'ASSET' || account.type === 'EXPENSE') {
+            // For assets and expenses, positive balance means DEBIT, negative means CREDIT
+            entryType = balance > 0 ? 'DEBIT' : 'CREDIT';
+          } else {
+            // For liabilities, income, and equity, positive balance means CREDIT, negative means DEBIT
+            entryType = balance > 0 ? 'CREDIT' : 'DEBIT';
+          }
+          
+          const journalEntry = journalEntryRepo.create({
+            amount: entryAmount,
+            type: entryType,
+            description: `Starting balance for ${account.name}`,
+            account: { id: account.id },
+            user: { id: req.user.userId },
+            transaction: null // No associated transaction for starting balance
+          });
+          
+          await journalEntryRepo.save(journalEntry);
+          console.log(`📝 Created starting balance journal entry: ${entryType} ${entryAmount} for account ${account.name}`);
+        } catch (journalError) {
+          console.error("⚠️ Failed to create starting balance journal entry:", journalError);
+          // Don't fail the account creation if journal entry fails
+        }
+      }
+      
       this.sendResponse(res, 201, account);
     } catch (error) {
       console.error("Create account error:", error);

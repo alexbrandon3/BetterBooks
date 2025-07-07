@@ -139,12 +139,12 @@ const Accounts = () => {
     // For asset accounts, starting balance should typically be positive (representing cash/investments)
     // For liability accounts, starting balance should typically be negative (representing debt)
     if (form.type === AccountType.EXPENSE && balance > 0) {
-      setError("Expense accounts typically have negative starting balances (representing accumulated expenses). Consider entering a negative value.");
+      setError("Expense accounts should have negative starting balances (representing accumulated expenses). Please enter a negative value (e.g., -100.00).");
       return false;
     }
 
     if (form.type === AccountType.INCOME && balance < 0) {
-      setError("Income accounts typically have positive starting balances (representing accumulated income). Consider entering a positive value.");
+      setError("Income accounts should have positive starting balances (representing accumulated income). Please enter a positive value (e.g., 100.00).");
       return false;
     }
 
