@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TransactionTemplate } from '../../types/transaction';
 import { Account } from '../../types/account';
+import { getTransactionTemplates } from '../../services/TransactionService';
 
 interface TransactionTemplateSelectorProps {
   selectedTemplate: TransactionTemplate | null;
@@ -25,11 +26,8 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
     const fetchTemplates = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/transactions/templates');
-        if (response.ok) {
-          const data = await response.json();
-          setTemplates(data);
-        }
+        const data = await getTransactionTemplates();
+        setTemplates(data);
       } catch (error) {
         console.error('Error fetching templates:', error);
       } finally {
