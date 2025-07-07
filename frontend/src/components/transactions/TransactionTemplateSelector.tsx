@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TransactionTemplate } from '../../types/transaction';
 import { Account } from '../../types/account';
 import { getTransactionTemplates } from '../../services/TransactionService';
@@ -21,6 +21,7 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
   const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -37,6 +38,23 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
 
     fetchTemplates();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowTemplates(false);
+      }
+    };
+
+    if (showTemplates) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showTemplates]);
 
   const handleTemplateSelect = (template: TransactionTemplate) => {
     onTemplateSelect(template);
@@ -99,7 +117,7 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
       </div>
 
       {selectedTemplate ? (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md" ref={dropdownRef}>
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium text-blue-900">{selectedTemplate.name}</h4>
@@ -107,15 +125,31 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
             </div>
             <button
               type="button"
-              onClick={() => setShowTemplates(true)}
+              onClick={() => setShowTemplates(!showTemplates)}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
               Change Template
             </button>
           </div>
+          
+          {showTemplates && (
+            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              {templates.map((template, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleTemplateSelect(template)}
+                  className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-gray-900">{template.name}</div>
+                  <div className="text-sm text-gray-600">{getTemplateDescription(template)}</div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setShowTemplates(!showTemplates)}
