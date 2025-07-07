@@ -851,6 +851,7 @@ const Transactions = () => {
           onTemplateClear={handleTemplateClear}
           accounts={usableAccounts}
           onEntriesUpdate={(entries) => setValue('entries', entries)}
+          onTransactionTypeUpdate={(type) => setValue('type', type as any)}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>

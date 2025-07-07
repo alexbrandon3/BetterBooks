@@ -9,6 +9,7 @@ interface TransactionTemplateSelectorProps {
   onTemplateClear: () => void;
   accounts: Account[];
   onEntriesUpdate: (entries: any[]) => void;
+  onTransactionTypeUpdate?: (type: string) => void;
 }
 
 export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorProps> = ({
@@ -16,7 +17,8 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
   onTemplateSelect,
   onTemplateClear,
   accounts,
-  onEntriesUpdate
+  onEntriesUpdate,
+  onTransactionTypeUpdate
 }) => {
   const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +60,11 @@ export const TransactionTemplateSelector: React.FC<TransactionTemplateSelectorPr
 
   const handleTemplateSelect = (template: TransactionTemplate) => {
     onTemplateSelect(template);
+    
+    // Update transaction type based on template
+    if (onTransactionTypeUpdate) {
+      onTransactionTypeUpdate(template.type);
+    }
     
     // Auto-populate entries based on template
     const entries = template.requiredAccounts.map((account, index) => {
