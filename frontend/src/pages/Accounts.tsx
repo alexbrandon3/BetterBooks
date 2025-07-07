@@ -65,6 +65,7 @@ const Accounts = () => {
   const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
   const [templates, setTemplates] = useState<AccountTemplate[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [balanceWarning, setBalanceWarning] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,17 +135,9 @@ const Accounts = () => {
       return false;
     }
 
-    // For expense accounts, starting balance should typically be negative (representing accumulated expenses)
-    // For income accounts, starting balance should typically be positive (representing accumulated income)
-    // For asset accounts, starting balance should typically be positive (representing cash/investments)
-    // For liability accounts, starting balance should typically be negative (representing debt)
-    if (form.type === AccountType.EXPENSE && balance > 0) {
-      setError("Expense accounts should have negative starting balances (representing accumulated expenses). Please enter a negative value (e.g., -100.00).");
-      return false;
-    }
-
-    if (form.type === AccountType.INCOME && balance < 0) {
-      setError("Income accounts should have positive starting balances (representing accumulated income). Please enter a positive value (e.g., 100.00).");
+    // Starting balances should be positive values
+    if (balance < 0) {
+      setError("Starting balances should be positive values. Please enter a positive amount.");
       return false;
     }
 
@@ -216,6 +209,7 @@ const Accounts = () => {
 
       setForm(initialFormState);
       setEditingAccountId(null);
+      setBalanceWarning(null);
       // Don't clear suggestion explanation immediately - let user read it
       setTimeout(() => {
         setSuggestionExplanation(null);
@@ -302,6 +296,27 @@ const Accounts = () => {
     setSuggestedFields([]);
     setSuggestionExplanation(null);
     setSuggestionConfidence(null);
+    setBalanceWarning(null);
+  };
+
+  const checkBalanceWarning = (balance: string, accountType: AccountType) => {
+    const balanceNum = parseFloat(balance);
+    if (isNaN(balanceNum) || balanceNum === 0) {
+      setBalanceWarning(null);
+      return;
+    }
+
+    const absBalance = Math.abs(balanceNum);
+    const formattedBalance = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(absBalance);
+
+    if (balanceNum !== 0) {
+      setBalanceWarning(`⚠️ Starting balance of ${formattedBalance} will create unbalanced books. You'll need to create offsetting entries to balance your accounts.`);
+    } else {
+      setBalanceWarning(null);
+    }
   };
 
   const handleInputChange = (
@@ -315,13 +330,13 @@ const Accounts = () => {
       let suggestedBalance = '0';
       
       if (newType === AccountType.EXPENSE) {
-        suggestedBalance = '-100.00';
+        suggestedBalance = '100.00';
       } else if (newType === AccountType.INCOME) {
         suggestedBalance = '100.00';
       } else if (newType === AccountType.ASSET) {
         suggestedBalance = '1000.00';
       } else if (newType === AccountType.LIABILITY) {
-        suggestedBalance = '-1000.00';
+        suggestedBalance = '1000.00';
       }
       
       setForm(prev => ({ 
@@ -329,8 +344,18 @@ const Accounts = () => {
         [name]: value as AccountType,
         balance: suggestedBalance
       }));
+      
+      // Check for balance warning with new type
+      checkBalanceWarning(suggestedBalance, newType);
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
+      
+      // Check for balance warning when balance or type changes
+      if (name === 'balance' || name === 'type') {
+        const newBalance = name === 'balance' ? value : form.balance;
+        const newType = name === 'type' ? value as AccountType : form.type;
+        checkBalanceWarning(newBalance, newType);
+      }
     }
     
     setSuggestedFields((prev) => prev.filter((field) => field !== name));
@@ -383,13 +408,13 @@ const Accounts = () => {
     let suggestedBalance = form.balance;
     if (!form.balance || form.balance === '0') {
       if (template.type === AccountType.EXPENSE) {
-        suggestedBalance = '-100.00';
+        suggestedBalance = '100.00';
       } else if (template.type === AccountType.INCOME) {
         suggestedBalance = '100.00';
       } else if (template.type === AccountType.ASSET) {
         suggestedBalance = '1000.00';
       } else if (template.type === AccountType.LIABILITY) {
-        suggestedBalance = '-1000.00';
+        suggestedBalance = '1000.00';
       }
     }
     
@@ -496,16 +521,28 @@ const Accounts = () => {
               value={form.balance}
               onChange={handleInputChange}
               step="0.01"
-              placeholder={form.type === AccountType.EXPENSE ? "-100.00" : "100.00"}
+              placeholder="100.00"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1">
-              {form.type === AccountType.EXPENSE && "Expense accounts typically have negative starting balances (representing accumulated expenses)"}
-              {form.type === AccountType.INCOME && "Income accounts typically have positive starting balances (representing accumulated income)"}
-              {form.type === AccountType.ASSET && "Asset accounts typically have positive starting balances (representing cash/investments)"}
-              {form.type === AccountType.LIABILITY && "Liability accounts typically have negative starting balances (representing debt)"}
-              {form.type === AccountType.EQUITY && "Equity accounts can have positive or negative starting balances depending on the situation"}
+              Enter the starting balance for this account. This represents existing funds, obligations, or accumulated amounts.
             </p>
+            
+            {/* Balance Warning */}
+            {balanceWarning && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-800">{balanceWarning}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Templates Section */}

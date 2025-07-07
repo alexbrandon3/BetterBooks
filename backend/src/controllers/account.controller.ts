@@ -197,16 +197,26 @@ export class AccountController extends BaseController {
           const savedTransaction = await transactionRepo.save(startingBalanceTransaction);
           console.log(`📋 Created starting balance transaction: ${savedTransaction.id}`);
           
-          // Determine the journal entry type based on account type and balance
+          // Determine the journal entry type based on account type
+          // Since we only allow positive starting balances, we need to determine the appropriate entry type
           let entryType = 'CREDIT';
           let entryAmount = Math.abs(balance);
           
-          if (account.type === 'ASSET' || account.type === 'EXPENSE') {
-            // For assets and expenses, positive balance means DEBIT, negative means CREDIT
-            entryType = balance > 0 ? 'DEBIT' : 'CREDIT';
-          } else {
-            // For liabilities, income, and equity, positive balance means CREDIT, negative means DEBIT
-            entryType = balance > 0 ? 'CREDIT' : 'DEBIT';
+          if (account.type === 'ASSET') {
+            // Assets increase with DEBIT entries
+            entryType = 'DEBIT';
+          } else if (account.type === 'EXPENSE') {
+            // Expenses increase with DEBIT entries
+            entryType = 'DEBIT';
+          } else if (account.type === 'LIABILITY') {
+            // Liabilities increase with CREDIT entries
+            entryType = 'CREDIT';
+          } else if (account.type === 'INCOME') {
+            // Income increases with CREDIT entries
+            entryType = 'CREDIT';
+          } else if (account.type === 'EQUITY') {
+            // Equity increases with CREDIT entries
+            entryType = 'CREDIT';
           }
           
           const journalEntry = journalEntryRepo.create({
