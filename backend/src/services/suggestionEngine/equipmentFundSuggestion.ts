@@ -35,21 +35,21 @@ export const generateEquipmentFundSuggestion = (
       
       if (allExpenses.length === 0) {
         // No expense data available, suggest a default reserve fund
-        const defaultTarget = 2000; // Default $2,000 reserve fund
+        const defaultTarget = 5000; // Default $5,000 business reserve fund
         
         // Adjust target based on risk tolerance
         let adjustedTarget = defaultTarget;
         if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
-          adjustedTarget = 3000; // $3,000 for conservative
+          adjustedTarget = 7500; // $7,500 for conservative
         } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
-          adjustedTarget = 1000; // $1,000 for aggressive
+          adjustedTarget = 3000; // $3,000 for aggressive
         }
 
         return {
-          id: 'general-reserve-fund',
-          title: 'General Expense Reserve Fund',
+          id: 'business-reserve-fund',
+          title: 'Business Reserve Fund',
           targetAmount: adjustedTarget,
-          reason: `Build a $${adjustedTarget.toLocaleString()} reserve fund for unexpected expenses${
+          reason: `Build a $${adjustedTarget.toLocaleString()} business reserve fund for unexpected expenses${
             user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
           }`,
           action: 'goals'
@@ -78,7 +78,7 @@ export const generateEquipmentFundSuggestion = (
         title: 'Business Safety Net',
         targetAmount: adjustedTarget,
         reason: `Save ${user.riskTolerance === RiskTolerance.CONSERVATIVE ? '2' : 
-                 user.riskTolerance === RiskTolerance.AGGRESSIVE ? '1' : '1.5'} months of expenses ($${adjustedTarget.toLocaleString()})${
+                 user.riskTolerance === RiskTolerance.AGGRESSIVE ? '1' : '1.5'} months of business expenses ($${adjustedTarget.toLocaleString()})${
           user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
         }`,
         action: 'goals'

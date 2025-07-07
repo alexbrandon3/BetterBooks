@@ -7,43 +7,43 @@ export const generateIncomeSuggestion = (
   transactions: Transaction[],
   user: User
 ): SuggestedGoal | null => {
-  // Calculate average monthly income from last 6 months for better consistency
+  // Calculate average monthly revenue from last 6 months for better consistency
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
-  const recentIncome = transactions
+  const recentRevenue = transactions
     .filter(t => 
       t.type === TransactionType.INCOME && 
       new Date(t.date) >= sixMonthsAgo
     )
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const averageMonthlyIncome = recentIncome / 6;
+  const averageMonthlyRevenue = recentRevenue / 6;
   
-  if (averageMonthlyIncome <= 0) {
-    const defaultTarget = 3000; // Default $3,000 savings goal
+  if (averageMonthlyRevenue <= 0) {
+    const defaultTarget = 10000; // Default $10,000 business savings goal
     
     // Adjust target based on risk tolerance
     let targetAmount = defaultTarget;
     if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
-      targetAmount = 5000; // Higher for conservative
+      targetAmount = 15000; // Higher for conservative
     } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
-      targetAmount = 2000; // Lower for aggressive
+      targetAmount = 7000; // Lower for aggressive
     }
 
     return {
-      id: 'savings-goal',
-      title: 'Build Your Savings',
+      id: 'business-savings-goal',
+      title: 'Build Business Savings',
       targetAmount,
-      reason: `Start building your savings with a $${targetAmount.toLocaleString()} goal${
+      reason: `Start building your business savings with a $${targetAmount.toLocaleString()} goal${
         user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
       }`,
       action: 'goals'
     };
   }
 
-  // For income-based savings, use 1 month of income as the base target
-  const baseTarget = averageMonthlyIncome;
+  // For revenue-based savings, use 1 month of revenue as the base target
+  const baseTarget = averageMonthlyRevenue;
   
   // Adjust target based on risk tolerance
   let targetAmount = baseTarget;
@@ -56,10 +56,10 @@ export const generateIncomeSuggestion = (
   }
 
   return {
-    id: 'monthly-income',
-    title: 'Save 1 Month of Income',
+    id: 'monthly-revenue',
+    title: 'Save 1 Month of Revenue',
     targetAmount,
-    reason: `Save one month's income ($${targetAmount.toLocaleString()}) as a financial buffer${
+    reason: `Save one month's revenue ($${targetAmount.toLocaleString()}) as a business buffer${
       user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
     }`,
     action: 'goals'

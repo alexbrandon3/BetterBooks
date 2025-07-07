@@ -17,29 +17,29 @@ export const generateEmergencyFundSuggestion = (
     )
     .reduce((sum, a) => sum + (a.balance || 0), 0);
 
-  // Calculate average monthly income from last 6 months for consistency
+  // Calculate average monthly revenue from last 6 months for consistency
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
-  const recentIncome = transactions
+  const recentRevenue = transactions
     .filter(t => 
       t.type === TransactionType.INCOME && 
       new Date(t.date) >= sixMonthsAgo
     )
     .reduce((sum, t) => sum + t.amount, 0);
     
-  const averageMonthlyIncome = recentIncome / 6;
+  const averageMonthlyRevenue = recentRevenue / 6;
 
-  // If no income data, use a default target
-  if (averageMonthlyIncome <= 0) {
-    const defaultTarget = 5000; // Default $5,000 emergency fund
+  // If no revenue data, use a default target
+  if (averageMonthlyRevenue <= 0) {
+    const defaultTarget = 15000; // Default $15,000 business emergency fund
     
     // Adjust target based on risk tolerance
     let adjustedTarget = defaultTarget;
     if (user.riskTolerance === RiskTolerance.CONSERVATIVE) {
-      adjustedTarget *= 1.5; // $7,500 for conservative
+      adjustedTarget *= 1.5; // $22,500 for conservative
     } else if (user.riskTolerance === RiskTolerance.AGGRESSIVE) {
-      adjustedTarget *= 0.6; // $3,000 for aggressive
+      adjustedTarget *= 0.6; // $9,000 for aggressive
     }
 
     // Only suggest if current savings are less than target
@@ -48,20 +48,20 @@ export const generateEmergencyFundSuggestion = (
     }
 
     return {
-      id: 'emergency-fund',
-      title: 'Emergency Fund',
+      id: 'business-emergency-fund',
+      title: 'Business Emergency Fund',
       targetAmount: Math.round(adjustedTarget),
-      reason: `Build an emergency fund of $${adjustedTarget.toLocaleString()}${
+      reason: `Build a business emergency fund of $${adjustedTarget.toLocaleString()}${
         user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
       }`,
       action: 'goals'
     };
   }
 
-  // Target is 3 months of expenses or 30% of annual income, whichever is higher
+  // Target is 3 months of revenue or 25% of annual revenue, whichever is higher
   const targetAmount = Math.max(
-    averageMonthlyIncome * 3,
-    averageMonthlyIncome * 12 * 0.3
+    averageMonthlyRevenue * 3,
+    averageMonthlyRevenue * 12 * 0.25
   );
 
   // Adjust target based on risk tolerance
@@ -78,13 +78,13 @@ export const generateEmergencyFundSuggestion = (
   }
 
   return {
-    id: 'emergency-fund',
-    title: 'Emergency Fund',
+    id: 'business-emergency-fund',
+    title: 'Business Emergency Fund',
     targetAmount: Math.round(adjustedTarget),
-    reason: `Build an emergency fund covering ${
+    reason: `Build a business emergency fund covering ${
       user.riskTolerance === RiskTolerance.CONSERVATIVE ? '3.6' : 
       user.riskTolerance === RiskTolerance.AGGRESSIVE ? '2.4' : '3'
-    } months of expenses${
+    } months of revenue${
       user.riskTolerance ? ` based on your ${user.riskTolerance} risk tolerance` : ''
     }`,
     action: 'goals'
