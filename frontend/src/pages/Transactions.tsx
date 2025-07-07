@@ -81,6 +81,7 @@ const Transactions = () => {
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
+  const [smartSuggestionsEnabled, setSmartSuggestionsEnabled] = useState(true);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -269,7 +270,7 @@ const Transactions = () => {
   };
 
   const handleDescriptionChange = async (desc: string) => {
-    if (desc && getSuggestedAccount) {
+    if (desc && getSuggestedAccount && smartSuggestionsEnabled) {
       try {
         const suggestion = await getSuggestedAccount(desc);
         if (suggestion?.suggestedAccountId) {
@@ -617,9 +618,9 @@ const Transactions = () => {
     if (successMessage) setSuccessMessage(null);
     if (error) setError(null);
     if (warnings.length > 0) setWarnings([]);
-    // Clear suggestion explanation when user makes any changes
-    if (suggestionExplanation) setSuggestionExplanation(null);
-    if (suggestionConfidence) setSuggestionConfidence(null);
+    // Clear suggestion explanation when user makes any changes or disables smart suggestions
+    if (suggestionExplanation && !smartSuggestionsEnabled) setSuggestionExplanation(null);
+    if (suggestionConfidence && !smartSuggestionsEnabled) setSuggestionConfidence(null);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -788,6 +789,14 @@ const Transactions = () => {
     fetchData();
   }, []);
 
+  // Clear suggestions when smart suggestions are disabled
+  useEffect(() => {
+    if (!smartSuggestionsEnabled) {
+      setSuggestionExplanation(null);
+      setSuggestionConfidence(null);
+    }
+  }, [smartSuggestionsEnabled]);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Transactions</h1>
@@ -896,8 +905,29 @@ const Transactions = () => {
           />
         </div>
 
+        {/* Smart Suggestions Toggle */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="smart-suggestions-toggle"
+                checked={smartSuggestionsEnabled}
+                onChange={(e) => setSmartSuggestionsEnabled(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="smart-suggestions-toggle" className="ml-2 block text-sm text-gray-900">
+                Enable Smart Suggestions
+              </label>
+            </div>
+            {smartSuggestionsEnabled && (
+              <span className="text-xs text-gray-500">Auto-populates accounts based on description</span>
+            )}
+          </div>
+        </div>
+
         {/* Smart Suggestion Display */}
-        {suggestionExplanation && (
+        {suggestionExplanation && smartSuggestionsEnabled && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div className="flex items-start justify-between">
               <div className="flex-1">
