@@ -27,38 +27,38 @@ async function seed() {
     await AppDataSource.synchronize();
     console.log('🔄 Database schema synchronized');
 
-    // Create test user
+    // Create test user for small business
     const user = new User();
-    user.email = 'example@example.com';
+    user.email = 'demo@smallbusiness.com';
     user.password = await hashPassword('password123');
     user.riskTolerance = RiskTolerance.MODERATE;
     await AppDataSource.manager.save(user);
-    console.log('👤 Test user created');
+    console.log('👤 Test business user created');
 
-    // Create sample accounts
+    // Create sample accounts for small business
     const accounts = [
       {
-        name: 'Cash Account',
+        name: 'Business Checking',
         type: 'ASSET',
-        balance: 2500,
+        balance: 15000,
         isLiquid: true,
         financialCategory: FinancialCategory.CURRENT_ASSET,
         user
       },
       {
-        name: 'Equipment Fund',
+        name: 'Accounts Receivable',
         type: 'ASSET',
-        balance: 5000,
-        isLiquid: true,
-        financialCategory: FinancialCategory.FIXED_ASSET,
+        balance: 8500,
+        isLiquid: false,
+        financialCategory: FinancialCategory.CURRENT_ASSET,
         user
       },
       {
-        name: 'Marketing Budget',
+        name: 'Equipment',
         type: 'ASSET',
-        balance: 2000,
-        isLiquid: true,
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        balance: 25000,
+        isLiquid: false,
+        financialCategory: FinancialCategory.FIXED_ASSET,
         user
       }
     ];
@@ -70,30 +70,30 @@ async function seed() {
     }
     console.log('💰 Sample accounts created');
 
-    // Create sample transactions
+    // Create sample transactions for small business
     const transactions = [
       {
         date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        amount: 5000,
+        amount: 25000,
         type: TransactionType.INCOME,
-        category: 'SALARY',
-        description: 'Monthly salary',
+        category: 'SALES',
+        description: 'Monthly service revenue',
         user
       },
       {
         date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-        amount: -2000,
+        amount: -8000,
         type: TransactionType.EXPENSE,
-        category: 'EQUIPMENT',
-        description: 'New camera equipment',
+        category: 'PAYROLL',
+        description: 'Employee payroll',
         user
       },
       {
         date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-        amount: -500,
+        amount: -2500,
         type: TransactionType.EXPENSE,
-        category: 'MARKETING',
-        description: 'Social media ads',
+        category: 'RENT',
+        description: 'Office rent payment',
         user
       }
     ];
@@ -105,11 +105,11 @@ async function seed() {
     }
     console.log('💸 Sample transactions created');
 
-    // Create sample goals
+    // Create sample goals for small business
     const goals = [
       {
         type: GoalType.INCREASE_ASSETS,
-        targetAmount: 15000,
+        targetAmount: 50000,
         targetDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days from now
         progress: 0.4,
         user

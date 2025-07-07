@@ -195,6 +195,50 @@ export const getDefaultAccounts = (userId: number) => {
       isLiquid: false,
       user: { id: userId }
     },
+    {
+      name: "Insurance Expense",
+      type: AccountType.EXPENSE,
+      category: "Insurance",
+      subcategory: "Business Insurance",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "INSURANCE_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Professional Services",
+      type: AccountType.EXPENSE,
+      category: "Professional",
+      subcategory: "Legal & Accounting",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "LEGAL_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Inventory",
+      type: AccountType.ASSET,
+      category: "Inventory",
+      subcategory: "Product Inventory",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "INVENTORY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Prepaid Expenses",
+      type: AccountType.ASSET,
+      category: "Prepaid",
+      subcategory: "Prepaid Expenses",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "PREPAID_EXPENSES",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
     // Equity
     {
       name: "Owner's Equity",
@@ -228,7 +272,7 @@ export const seedDefaultAccounts = async () => {
   const accountRepo = AppDataSource.getRepository(Account);
   const userRepo = AppDataSource.getRepository(User);
 
-  const user = await userRepo.findOne({ where: { email: "example@example.com" } });
+  const user = await userRepo.findOne({ where: { email: "demo@smallbusiness.com" } });
   if (!user) {
     console.error("No user found to assign default accounts to.");
     return;
