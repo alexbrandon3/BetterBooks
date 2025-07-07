@@ -129,8 +129,22 @@ const Accounts = () => {
     }
 
     const balance = parseFloat(form.balance);
-    if (isNaN(balance) || balance < 0) {
-      setError("Balance must be a positive number");
+    if (isNaN(balance)) {
+      setError("Balance must be a valid number");
+      return false;
+    }
+
+    // For expense accounts, starting balance should typically be negative (representing accumulated expenses)
+    // For income accounts, starting balance should typically be positive (representing accumulated income)
+    // For asset accounts, starting balance should typically be positive (representing cash/investments)
+    // For liability accounts, starting balance should typically be negative (representing debt)
+    if (form.type === AccountType.EXPENSE && balance > 0) {
+      setError("Expense accounts typically have negative starting balances (representing accumulated expenses). Consider entering a negative value.");
+      return false;
+    }
+
+    if (form.type === AccountType.INCOME && balance < 0) {
+      setError("Income accounts typically have positive starting balances (representing accumulated income). Consider entering a positive value.");
       return false;
     }
 
@@ -285,7 +299,31 @@ const Accounts = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    // If account type is changing, suggest appropriate starting balance
+    if (name === 'type' && (!form.balance || form.balance === '0')) {
+      const newType = value as AccountType;
+      let suggestedBalance = '0';
+      
+      if (newType === AccountType.EXPENSE) {
+        suggestedBalance = '-100.00';
+      } else if (newType === AccountType.INCOME) {
+        suggestedBalance = '100.00';
+      } else if (newType === AccountType.ASSET) {
+        suggestedBalance = '1000.00';
+      } else if (newType === AccountType.LIABILITY) {
+        suggestedBalance = '-1000.00';
+      }
+      
+      setForm(prev => ({ 
+        ...prev, 
+        [name]: value as AccountType,
+        balance: suggestedBalance
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
+    
     setSuggestedFields((prev) => prev.filter((field) => field !== name));
     
     // Clear suggestion explanation when user manually changes fields
@@ -332,6 +370,20 @@ const Accounts = () => {
   };
 
   const handleTemplateSelect = (template: AccountTemplate) => {
+    // Suggest appropriate starting balance based on template type
+    let suggestedBalance = form.balance;
+    if (!form.balance || form.balance === '0') {
+      if (template.type === AccountType.EXPENSE) {
+        suggestedBalance = '-100.00';
+      } else if (template.type === AccountType.INCOME) {
+        suggestedBalance = '100.00';
+      } else if (template.type === AccountType.ASSET) {
+        suggestedBalance = '1000.00';
+      } else if (template.type === AccountType.LIABILITY) {
+        suggestedBalance = '-1000.00';
+      }
+    }
+    
     setForm({
       name: form.name, // Keep the name the user typed
       type: template.type as AccountType,
@@ -339,7 +391,7 @@ const Accounts = () => {
       subcategory: template.subcategory,
       financialCategory: template.financialCategory as FinancialCategory,
       financialSubcategory: template.financialSubcategory,
-      balance: form.balance
+      balance: suggestedBalance
     });
     setSuggestedFields(['type', 'category', 'subcategory', 'financialCategory', 'financialSubcategory']);
     setSuggestionExplanation(`Applied template: ${template.description}`);
@@ -427,15 +479,24 @@ const Accounts = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Initial Balance
+              Starting Balance
             </label>
             <input
               type="number"
               name="balance"
               value={form.balance}
               onChange={handleInputChange}
+              step="0.01"
+              placeholder={form.type === AccountType.EXPENSE ? "-100.00" : "100.00"}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {form.type === AccountType.EXPENSE && "Expense accounts typically have negative starting balances (representing accumulated expenses)"}
+              {form.type === AccountType.INCOME && "Income accounts typically have positive starting balances (representing accumulated income)"}
+              {form.type === AccountType.ASSET && "Asset accounts typically have positive starting balances (representing cash/investments)"}
+              {form.type === AccountType.LIABILITY && "Liability accounts typically have negative starting balances (representing debt)"}
+              {form.type === AccountType.EQUITY && "Equity accounts can have positive or negative starting balances depending on the situation"}
+            </p>
           </div>
 
           {/* Quick Templates Section */}

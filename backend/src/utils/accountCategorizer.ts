@@ -535,6 +535,18 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         explanation: "This appears to be a fitness expense account. Fitness expenses are operating expenses.",
         confidence: 0.75
       },
+    },
+    {
+      keywords: ["interest expense", "interest cost", "loan interest", "credit card interest", "mortgage interest"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Interest",
+        subcategory: "Interest Expenses",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "INTEREST_EXPENSE",
+        explanation: "This appears to be an interest expense account. Interest expenses are operating expenses.",
+        confidence: 0.9
+      },
     }
   ];
 
