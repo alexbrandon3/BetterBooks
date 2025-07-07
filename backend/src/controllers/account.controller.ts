@@ -178,10 +178,24 @@ export class AccountController extends BaseController {
       await accountRepo.save(account);
       console.log(`✅ Account saved with ID: ${account.id}, balance: ${account.balance}`);
       
-      // If there's a starting balance, create a journal entry to represent it
+      // If there's a starting balance, create a transaction and journal entry to represent it
       if (balance !== 0) {
         try {
+          const transactionRepo = AppDataSource.getRepository("Transaction");
           const journalEntryRepo = AppDataSource.getRepository("JournalEntry");
+          
+          // Create a "Starting Balance" transaction
+          const startingBalanceTransaction = transactionRepo.create({
+            description: `Starting balance for ${account.name}`,
+            date: new Date(),
+            type: 'ADJUSTMENT',
+            category: 'Starting Balance',
+            amount: Math.abs(balance),
+            user: { id: req.user.userId }
+          });
+          
+          const savedTransaction = await transactionRepo.save(startingBalanceTransaction);
+          console.log(`📋 Created starting balance transaction: ${savedTransaction.id}`);
           
           // Determine the journal entry type based on account type and balance
           let entryType = 'CREDIT';
@@ -201,7 +215,7 @@ export class AccountController extends BaseController {
             description: `Starting balance for ${account.name}`,
             account: { id: account.id },
             user: { id: req.user.userId },
-            transaction: null // No associated transaction for starting balance
+            transaction: savedTransaction
           });
           
           await journalEntryRepo.save(journalEntry);
