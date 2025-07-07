@@ -295,7 +295,20 @@ export class AccountController extends BaseController {
         return;
       }
 
+      // First, delete all related journal entries
+      const journalEntryRepo = AppDataSource.getRepository("JournalEntry");
+      const relatedEntries = await journalEntryRepo.find({
+        where: { account: { id: Number(id) } }
+      });
+
+      if (relatedEntries.length > 0) {
+        console.log(`🗑️ Deleting ${relatedEntries.length} journal entries for account ${account.name}`);
+        await journalEntryRepo.remove(relatedEntries);
+      }
+
+      // Then delete the account
       await accountRepo.remove(account);
+      console.log(`✅ Successfully deleted account: ${account.name}`);
       this.sendResponse(res, 200, { message: "Account deleted successfully" });
     } catch (error) {
       console.error("Delete account error:", error);
