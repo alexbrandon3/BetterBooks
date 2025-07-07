@@ -124,6 +124,8 @@ export class AccountController extends BaseController {
       console.log(`📥 Creating account with data:`, {
         name,
         type,
+        balance,
+        balanceType: typeof balance,
         category,
         financialCategory,
         hasType: !!type,
@@ -172,7 +174,9 @@ export class AccountController extends BaseController {
         user: { id: req.user.userId },
       });
 
+      console.log(`💰 Saving account with balance: ${balance} (type: ${typeof balance})`);
       await accountRepo.save(account);
+      console.log(`✅ Account saved with ID: ${account.id}, balance: ${account.balance}`);
       this.sendResponse(res, 201, account);
     } catch (error) {
       console.error("Create account error:", error);

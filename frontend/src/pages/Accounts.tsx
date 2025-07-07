@@ -185,6 +185,15 @@ const Accounts = () => {
     setSuccessMessage(null);
 
     try {
+      const balance = parseFloat(form.balance);
+      console.log(`📤 Sending account payload:`, {
+        name: form.name.trim(),
+        type: form.type,
+        balance,
+        balanceType: typeof balance,
+        formBalance: form.balance
+      });
+      
       const payload = {
         name: form.name.trim(),
         type: form.type,
@@ -192,7 +201,7 @@ const Accounts = () => {
         subcategory: form.subcategory?.trim() || undefined,
         financialCategory: form.financialCategory,
         financialSubcategory: form.financialSubcategory?.trim() || undefined,
-        balance: parseFloat(form.balance)
+        balance
       };
 
       if (editingAccountId) {
