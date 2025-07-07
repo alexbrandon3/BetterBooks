@@ -41,9 +41,9 @@ const AppContent = () => {
   // console.log("App component rendering");
   
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className={`overflow-auto ${isAuthenticated && !isLoading ? 'flex-1 lg:ml-0' : 'w-full'}`}>
+      <div className={`overflow-auto ${isAuthenticated && !isLoading ? 'lg:ml-64' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

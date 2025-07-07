@@ -48,9 +48,9 @@ const Navigation = () => {
 
   return (
     <>
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Top Bar */}
       <div className="lg:hidden">
-        {/* Mobile Header */}
+        {/* Mobile Top Header */}
         <div className="bg-gray-800 text-white px-4 py-3 flex items-center justify-between shadow-lg">
           <div 
             className="text-xl font-bold cursor-pointer hover:text-gray-300 transition-colors duration-200"
@@ -100,63 +100,39 @@ const Navigation = () => {
           </button>
         </div>
 
-        {/* Mobile Menu Overlay */}
+        {/* Mobile Dropdown Menu */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50">
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-            
-            {/* Menu Panel */}
-            <div 
-              className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation menu"
-            >
-              <div className="flex flex-col h-full">
-                {/* Mobile Menu Header */}
-                <div className="p-6 border-b border-gray-700 bg-gray-900">
-                  <div className="text-2xl font-bold text-white">BetterBooks</div>
-                  <div className="text-sm text-gray-400 mt-1">Business Finance Manager</div>
-                </div>
-
-                {/* Mobile Menu Links */}
-                <div className="flex-grow p-4 space-y-2">
-                  {navLinks.map((link) => (
-                    <NavLink
-                      key={link.to}
-                      to={link.to}
-                      onClick={handleNavLinkClick}
-                      className={({ isActive }) =>
-                        `flex items-center px-4 py-4 rounded-lg transition-all duration-200 font-medium text-lg ${
-                          isActive
-                            ? "bg-indigo-600 text-white shadow-md"
-                            : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                        }`
-                      }
-                    >
-                      <span className="mr-3 text-xl">{link.icon}</span>
-                      {link.label}
-                    </NavLink>
-                  ))}
-                </div>
-
-                {/* Mobile Logout Button */}
-                <div className="p-4 border-t border-gray-700">
-                  <button
-                    onClick={() => {
-                      logout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-4 rounded-lg transition-all duration-200 font-medium text-lg text-gray-300 hover:bg-red-600 hover:text-white"
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              </div>
+          <div className="bg-gray-800 border-t border-gray-700 shadow-lg">
+            <div className="px-4 py-2 space-y-1">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  onClick={handleNavLinkClick}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`
+                  }
+                >
+                  <span className="mr-3">{link.icon}</span>
+                  {link.label}
+                </NavLink>
+              ))}
+              
+              {/* Mobile Logout Button */}
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 font-medium text-gray-300 hover:bg-red-600 hover:text-white"
+              >
+                <span className="mr-3">🚪</span>
+                Logout
+              </button>
             </div>
           </div>
         )}
