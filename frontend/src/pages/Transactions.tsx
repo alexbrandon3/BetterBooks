@@ -724,7 +724,13 @@ const Transactions = () => {
         isArray: Array.isArray(recurringData)
       });
       
-      setTransactions(transactionsData.transactions);
+      // Safety check for transactions data
+      if (transactionsData && transactionsData.transactions) {
+        setTransactions(transactionsData.transactions);
+      } else {
+        console.warn('⚠️ No transactions data found, setting empty array');
+        setTransactions([]);
+      }
       setAccounts(accountsData);
       // Ensure recurringTransactions is always an array
       setRecurringTransactions(Array.isArray(recurringData) ? recurringData : []);
@@ -1065,6 +1071,7 @@ const Transactions = () => {
         </div>
       ) : (
         <>
+          {console.log('🔍 Debug - transactions state:', transactions, 'type:', typeof transactions, 'isArray:', Array.isArray(transactions))}
           <TransactionList
             transactions={transactions}
             accounts={accounts}

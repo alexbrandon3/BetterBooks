@@ -38,6 +38,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     );
   }
 
+  // Safety check for undefined transactions
+  if (!transactions || !Array.isArray(transactions)) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8">
+          <div className="text-gray-500">No transactions found</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4" data-testid="transaction-list">
       {transactions.map((transaction) => (
