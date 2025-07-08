@@ -324,29 +324,15 @@ const Accounts = () => {
   ) => {
     const { name, value } = e.target;
     
-    // If account type is changing, suggest appropriate starting balance
-    if (name === 'type' && (!form.balance || form.balance === '0')) {
-      const newType = value as AccountType;
-      let suggestedBalance = '0';
-      
-      if (newType === AccountType.EXPENSE) {
-        suggestedBalance = '100.00';
-      } else if (newType === AccountType.INCOME) {
-        suggestedBalance = '100.00';
-      } else if (newType === AccountType.ASSET) {
-        suggestedBalance = '1000.00';
-      } else if (newType === AccountType.LIABILITY) {
-        suggestedBalance = '1000.00';
-      }
-      
+    // If account type is changing, keep balance at 0
+    if (name === 'type') {
       setForm(prev => ({ 
         ...prev, 
-        [name]: value as AccountType,
-        balance: suggestedBalance
+        [name]: value as AccountType
       }));
       
       // Check for balance warning with new type
-      checkBalanceWarning(suggestedBalance, newType);
+      checkBalanceWarning(form.balance, value as AccountType);
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
       
@@ -404,20 +390,6 @@ const Accounts = () => {
   };
 
   const handleTemplateSelect = (template: AccountTemplate) => {
-    // Suggest appropriate starting balance based on template type
-    let suggestedBalance = form.balance;
-    if (!form.balance || form.balance === '0') {
-      if (template.type === AccountType.EXPENSE) {
-        suggestedBalance = '100.00';
-      } else if (template.type === AccountType.INCOME) {
-        suggestedBalance = '100.00';
-      } else if (template.type === AccountType.ASSET) {
-        suggestedBalance = '1000.00';
-      } else if (template.type === AccountType.LIABILITY) {
-        suggestedBalance = '1000.00';
-      }
-    }
-    
     setForm({
       name: form.name, // Keep the name the user typed
       type: template.type as AccountType,
@@ -425,7 +397,7 @@ const Accounts = () => {
       subcategory: template.subcategory,
       financialCategory: template.financialCategory as FinancialCategory,
       financialSubcategory: template.financialSubcategory,
-      balance: suggestedBalance
+      balance: form.balance // Keep existing balance, don't auto-populate
     });
     setSuggestedFields(['type', 'category', 'subcategory', 'financialCategory', 'financialSubcategory']);
     setSuggestionExplanation(`Applied template: ${template.description}`);
@@ -521,7 +493,7 @@ const Accounts = () => {
               value={form.balance}
               onChange={handleInputChange}
               step="0.01"
-              placeholder="100.00"
+              placeholder="0.00"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1">
