@@ -58,11 +58,22 @@ export interface CashFlow {
   netCashFlow: number;
 }
 
-export const fetchBalanceSheet = async (): Promise<BalanceSheet> => {
-  const accountRepository = AppDataSource.getRepository(Account);
-  const accounts = await accountRepository.find({
-    relations: ['journalEntries']
-  });
+export const fetchBalanceSheet = async (userId: string): Promise<BalanceSheet> => {
+  // Use optimized query to get account balances in one query
+  const accountBalances = await AppDataSource.manager
+    .createQueryBuilder(Account, 'account')
+    .leftJoin('account.journalEntries', 'entry')
+    .select('account.id', 'id')
+    .addSelect('account.name', 'name')
+    .addSelect('account.type', 'type')
+    .addSelect('account.financialCategory', 'financialCategory')
+    .addSelect('SUM(CASE WHEN entry.type = :debit THEN entry.amount ELSE -entry.amount END)', 'balance')
+    .where('account.user.id = :userId', { userId: Number(userId) })
+    .groupBy('account.id')
+    .addGroupBy('account.name')
+    .addGroupBy('account.type')
+    .addGroupBy('account.financialCategory')
+    .getRawMany();
 
   const assets = {
     current: { subcategories: {} as Record<string, number>, total: 0 },
@@ -81,62 +92,71 @@ export const fetchBalanceSheet = async (): Promise<BalanceSheet> => {
     total: 0
   };
 
-  accounts.forEach(account => {
-    const balance = account.journalEntries.reduce((sum, entry) => {
-      return sum + (entry.type === 'DEBIT' ? entry.amount : -entry.amount);
-    }, 0);
+  accountBalances.forEach(({ name, type, financialCategory, balance }) => {
+    const accountBalance = Number(balance) || 0;
 
-    if (account.type === AccountType.ASSET) {
-      if (account.financialCategory === FinancialCategory.CURRENT_ASSET) {
-        assets.current.subcategories[account.name] = balance;
-        assets.current.total += balance;
-      } else if (account.financialCategory === FinancialCategory.FIXED_ASSET) {
-        assets.longTerm.subcategories[account.name] = balance;
-        assets.longTerm.total += balance;
+    if (type === AccountType.ASSET) {
+      if (financialCategory === FinancialCategory.CURRENT_ASSET) {
+        assets.current.subcategories[name] = accountBalance;
+        assets.current.total += accountBalance;
+      } else if (financialCategory === FinancialCategory.FIXED_ASSET) {
+        assets.longTerm.subcategories[name] = accountBalance;
+        assets.longTerm.total += accountBalance;
       }
-      assets.total += balance;
-    } else if (account.type === AccountType.LIABILITY) {
-      if (account.financialCategory === FinancialCategory.CURRENT_LIABILITY) {
-        liabilities.current.subcategories[account.name] = balance;
-        liabilities.current.total += balance;
-      } else if (account.financialCategory === FinancialCategory.LONG_TERM_LIABILITY) {
-        liabilities.longTerm.subcategories[account.name] = balance;
-        liabilities.longTerm.total += balance;
+      assets.total += accountBalance;
+    } else if (type === AccountType.LIABILITY) {
+      if (financialCategory === FinancialCategory.CURRENT_LIABILITY) {
+        liabilities.current.subcategories[name] = accountBalance;
+        liabilities.current.total += accountBalance;
+      } else if (financialCategory === FinancialCategory.LONG_TERM_LIABILITY) {
+        liabilities.longTerm.subcategories[name] = accountBalance;
+        liabilities.longTerm.total += accountBalance;
       }
-      liabilities.total += balance;
-    } else if (account.type === AccountType.EQUITY) {
-      equity.subcategories[account.name] = balance;
-      equity.total += balance;
+      liabilities.total += accountBalance;
+    } else if (type === AccountType.EQUITY) {
+      equity.subcategories[name] = accountBalance;
+      equity.total += accountBalance;
     }
   });
 
   return { assets, liabilities, equity };
 };
 
-export const fetchIncomeStatement = async (): Promise<IncomeStatement> => {
-  const accountRepository = AppDataSource.getRepository(Account);
-  const accounts = await accountRepository.find({
-    relations: ['journalEntries'],
-    where: [
-      { type: AccountType.INCOME },
-      { type: AccountType.EXPENSE }
-    ]
-  });
+export const fetchIncomeStatement = async (userId: string, startDate?: string, endDate?: string): Promise<IncomeStatement> => {
+  const queryBuilder = AppDataSource.manager
+    .createQueryBuilder(Account, 'account')
+    .leftJoin('account.journalEntries', 'entry')
+    .select('account.id', 'id')
+    .addSelect('account.name', 'name')
+    .addSelect('account.type', 'type')
+    .addSelect('SUM(CASE WHEN entry.type = :debit THEN entry.amount ELSE -entry.amount END)', 'balance')
+    .where('account.user.id = :userId', { userId: Number(userId) })
+    .andWhere('account.type IN (:...types)', { types: [AccountType.INCOME, AccountType.EXPENSE] })
+    .andWhere('entry.debit = :debit', { debit: 'DEBIT' })
+    .groupBy('account.id')
+    .addGroupBy('account.name')
+    .addGroupBy('account.type');
+
+  // Add date range filter if provided
+  if (startDate && endDate) {
+    queryBuilder.andWhere('entry.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+  }
+
+  const accountBalances = await queryBuilder
+    .getRawMany();
 
   const revenue = { subcategories: {} as Record<string, number>, total: 0 };
   const expenses = { subcategories: {} as Record<string, number>, total: 0 };
 
-  accounts.forEach(account => {
-    const balance = account.journalEntries.reduce((sum, entry) => {
-      return sum + (entry.type === 'DEBIT' ? entry.amount : -entry.amount);
-    }, 0);
+  accountBalances.forEach(({ name, type, balance }) => {
+    const accountBalance = Number(balance) || 0;
 
-    if (account.type === AccountType.INCOME) {
-      revenue.subcategories[account.name] = balance;
-      revenue.total += balance;
-    } else if (account.type === AccountType.EXPENSE) {
-      expenses.subcategories[account.name] = balance;
-      expenses.total += balance;
+    if (type === AccountType.INCOME) {
+      revenue.subcategories[name] = accountBalance;
+      revenue.total += accountBalance;
+    } else if (type === AccountType.EXPENSE) {
+      expenses.subcategories[name] = accountBalance;
+      expenses.total += accountBalance;
     }
   });
 
@@ -147,33 +167,45 @@ export const fetchIncomeStatement = async (): Promise<IncomeStatement> => {
   };
 };
 
-export const fetchCashFlowStatement = async (): Promise<CashFlow> => {
-  const accountRepository = AppDataSource.getRepository(Account);
-  const accounts = await accountRepository.find({
-    relations: ['journalEntries'],
-    where: [
-      { financialCategory: FinancialCategory.CURRENT_ASSET }
-    ]
-  });
+export const fetchCashFlowStatement = async (userId: string, startDate?: string, endDate?: string): Promise<CashFlow> => {
+  const queryBuilder = AppDataSource.manager
+    .createQueryBuilder(Account, 'account')
+    .leftJoin('account.journalEntries', 'entry')
+    .select('account.id', 'id')
+    .addSelect('account.name', 'name')
+    .addSelect('account.financialSubcategory', 'financialSubcategory')
+    .addSelect('SUM(CASE WHEN entry.type = :debit THEN entry.amount ELSE -entry.amount END)', 'balance')
+    .where('account.user.id = :userId', { userId: Number(userId) })
+    .andWhere('account.financialCategory = :category', { category: FinancialCategory.CURRENT_ASSET })
+    .andWhere('entry.debit = :debit', { debit: 'DEBIT' })
+    .groupBy('account.id')
+    .addGroupBy('account.name')
+    .addGroupBy('account.financialSubcategory');
+
+  // Add date range filter if provided
+  if (startDate && endDate) {
+    queryBuilder.andWhere('entry.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+  }
+
+  const accountBalances = await queryBuilder
+    .getRawMany();
 
   const operating = { subcategories: {} as Record<string, number>, total: 0 };
   const investing = { subcategories: {} as Record<string, number>, total: 0 };
   const financing = { subcategories: {} as Record<string, number>, total: 0 };
 
-  accounts.forEach(account => {
-    const balance = account.journalEntries.reduce((sum, entry) => {
-      return sum + (entry.type === 'DEBIT' ? entry.amount : -entry.amount);
-    }, 0);
+  accountBalances.forEach(({ name, financialSubcategory, balance }) => {
+    const accountBalance = Number(balance) || 0;
 
-    if (account.financialSubcategory.includes('Operating')) {
-      operating.subcategories[account.name] = balance;
-      operating.total += balance;
-    } else if (account.financialSubcategory.includes('Investing')) {
-      investing.subcategories[account.name] = balance;
-      investing.total += balance;
-    } else if (account.financialSubcategory.includes('Financing')) {
-      financing.subcategories[account.name] = balance;
-      financing.total += balance;
+    if (financialSubcategory.includes('Operating')) {
+      operating.subcategories[name] = accountBalance;
+      operating.total += accountBalance;
+    } else if (financialSubcategory.includes('Investing')) {
+      investing.subcategories[name] = accountBalance;
+      investing.total += accountBalance;
+    } else if (financialSubcategory.includes('Financing')) {
+      financing.subcategories[name] = accountBalance;
+      financing.total += accountBalance;
     }
   });
 

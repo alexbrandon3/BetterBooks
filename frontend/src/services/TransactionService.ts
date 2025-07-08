@@ -1,6 +1,7 @@
 import api from "../utils/axios";
 import { Transaction } from "../types/transaction";
 import { JournalEntry } from "../types/journalEntry";
+import { cache, CACHE_KEYS, withCache, invalidateTransactions } from "../utils/cache";
 
 export interface TransactionForm {
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
@@ -54,20 +55,69 @@ export interface TransactionResponse {
   warnings?: BalanceWarning[];
 }
 
-export const fetchTransactions = async (): Promise<Transaction[]> => {
-  try {
-    const response = await api.get("/transactions");
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching transactions:", error);
-    throw error;
-  }
+export interface TransactionQueryOptions {
+  page?: number;
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
+  type?: string;
+  accountId?: number;
+  search?: string;
+}
+
+export interface PaginatedTransactions {
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+// Cached fetch transactions with pagination
+export const fetchTransactions = async (options: TransactionQueryOptions = {}): Promise<PaginatedTransactions> => {
+  const cacheKey = `${CACHE_KEYS.TRANSACTIONS}_${JSON.stringify(options)}`;
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const params = new URLSearchParams();
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.startDate) params.append('startDate', options.startDate);
+      if (options.endDate) params.append('endDate', options.endDate);
+      if (options.type) params.append('type', options.type);
+      if (options.accountId) params.append('accountId', options.accountId.toString());
+      if (options.search) params.append('search', options.search);
+
+      const response = await api.get(`/transactions?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      throw error;
+    }
+  }, { ttl: 2 * 60 * 1000 }); // 2 minute cache
+};
+
+// Cached fetch recent transactions for dashboard
+export const fetchRecentTransactions = async (limit: number = 10): Promise<Transaction[]> => {
+  const cacheKey = `${CACHE_KEYS.RECENT_TRANSACTIONS}_${limit}`;
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const response = await api.get(`/transactions/recent?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching recent transactions:", error);
+      throw error;
+    }
+  }, { ttl: 1 * 60 * 1000 }); // 1 minute cache
 };
 
 export const createTransaction = async (transaction: BackendTransactionForm): Promise<TransactionResponse> => {
   try {
     console.log('📤 Sending transaction data:', JSON.stringify(transaction, null, 2));
     const response = await api.post("/transactions", transaction);
+    
+    // Invalidate relevant caches
+    invalidateTransactions();
     
     // Check if the response contains warnings
     const warnings = response.data.warnings;
@@ -90,6 +140,10 @@ export const createTransaction = async (transaction: BackendTransactionForm): Pr
 export const updateTransaction = async (id: string, transaction: BackendTransactionForm): Promise<Transaction> => {
   try {
     const response = await api.put(`/transactions/${id}`, transaction);
+    
+    // Invalidate relevant caches
+    invalidateTransactions();
+    
     return response.data;
   } catch (error) {
     console.error("Error updating transaction:", error);
@@ -101,6 +155,9 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   try {
     await api.delete(`/transactions/${id}`);
     console.log("Transaction deleted successfully");
+    
+    // Invalidate relevant caches
+    invalidateTransactions();
   } catch (error) {
     console.error("Error deleting transaction:", error);
     throw error;
@@ -116,25 +173,33 @@ export const getSuggestedAccount = async (description: string): Promise<{
   suggestedEntryType: 'DEBIT' | 'CREDIT';
   detailedReason: string;
 } | null> => {
-  try {
-    const response = await api.post('/suggestions/suggest-account', {
-      description: description.trim()
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error getting suggested account:", error);
-    return null;
-  }
+  const cacheKey = `${CACHE_KEYS.SUGGESTIONS}_${description.trim()}`;
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const response = await api.post('/suggestions/suggest-account', {
+        description: description.trim()
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error getting suggested account:", error);
+      return null;
+    }
+  }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
 };
 
 export const getTransactionTemplates = async (): Promise<any[]> => {
-  try {
-    const response = await api.get('/transactions/templates');
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching transaction templates:", error);
-    throw error;
-  }
+  const cacheKey = 'transaction_templates';
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const response = await api.get('/transactions/templates');
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching transaction templates:", error);
+      throw error;
+    }
+  }, { ttl: 30 * 60 * 1000 }); // 30 minute cache for templates
 };
 
 export const suggestTransactionTemplate = async (description: string, entries: any[]): Promise<any> => {

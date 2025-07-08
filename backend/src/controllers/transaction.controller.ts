@@ -3,10 +3,11 @@
 import { Request, Response } from "express";
 import { getUser } from "../utils/getUser";
 import { TransactionService } from "../services/transaction.service";
-import { CreateTransactionDTO, UpdateTransactionDTO, TransactionType, EntryType } from "../types/transaction.types";
+import { CreateTransactionDTO, TransactionType, EntryType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { AuthenticatedRequest } from "../types/express";
 import { BaseController } from "./base.controller";
+import { Transaction } from "../entities/Transaction";
 
 export class TransactionController extends BaseController {
   private transactionService: TransactionService;
@@ -24,27 +25,74 @@ export class TransactionController extends BaseController {
         return;
       }
 
-      // Use validatedQuery if available (for recurring transactions), otherwise use user.id
-      const userId = (req as any).validatedQuery?.userId || user.id;
-      const transactions = await this.transactionService.getTransactions(userId);
+      // For now, use the simple getTransactions method
+      const transactions = await this.transactionService.getTransactions(user.id);
       
-      console.log('📤 Sending transactions response:', JSON.stringify(transactions.map(t => ({
-        id: t.id,
-        description: t.description,
-        entryCount: t.entries?.length,
-        entries: t.entries?.map(e => ({
-          id: e.id,
-          amount: e.amount,
-          type: e.type,
-          accountId: e.account?.id
+      console.log('📤 Sending transactions response:', JSON.stringify({
+        transactions: transactions.map((t: Transaction) => ({
+          id: t.id,
+          description: t.description,
+          entryCount: t.entries?.length,
+          entries: t.entries?.map((e: any) => ({
+            id: e.id,
+            amount: e.amount,
+            type: e.type,
+            accountId: e.account?.id
+          }))
         }))
-      })), null, 2));
+      }, null, 2));
 
       res.json(transactions);
     } catch (error) {
       console.error("❌ Error in getTransactions controller:", error);
       res.status(500).json({ 
         error: "Failed to fetch transactions",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  };
+
+  getRecentTransactions = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const limit = parseInt(req.query.limit as string) || 10;
+      // For now, get all transactions and slice them
+      const allTransactions = await this.transactionService.getTransactions(user.id);
+      const recentTransactions = allTransactions
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit);
+      
+      res.json(recentTransactions);
+    } catch (error) {
+      console.error("❌ Error in getRecentTransactions controller:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch recent transactions",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  };
+
+  getAccountBalances = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      // For now, return empty balances - we'll implement this properly later
+      const balanceArray: Array<{accountId: number, balance: number}> = [];
+      
+      res.json(balanceArray);
+    } catch (error) {
+      console.error("❌ Error in getAccountBalances controller:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch account balances",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -198,37 +246,15 @@ export class TransactionController extends BaseController {
         return;
       }
 
-      const id = req.params.id;
-      if (!id) {
-        res.status(400).json({ error: "Invalid transaction ID" });
-        return;
-      }
-
-      const transactionData: UpdateTransactionDTO = {
-        ...req.body,
-        userId: user.id,
-      };
-
-      const transaction = await this.transactionService.updateTransaction(id, transactionData);
-      if (!transaction) {
-        res.status(404).json({ error: "Transaction not found" });
-        return;
-      }
-
+      const { id } = req.params;
+      const transaction = await this.transactionService.updateTransaction(id, req.body);
       res.json(transaction);
     } catch (error) {
-      console.error("Error in updateTransaction controller:", error);
-      if (error instanceof Error && error.message.includes("not found")) {
-        res.status(404).json({ 
-          error: "Resource not found",
-          details: error.message
-        });
-      } else {
-        res.status(500).json({ 
-          error: "Failed to update transaction",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
+      console.error("Error updating transaction:", error);
+      res.status(500).json({ 
+        error: "Failed to update transaction",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   };
 
@@ -240,102 +266,83 @@ export class TransactionController extends BaseController {
         return;
       }
 
-      const id = req.params.id;
-      if (!id) {
-        res.status(400).json({ error: "Invalid transaction ID" });
-        return;
-      }
-
+      const { id } = req.params;
       await this.transactionService.deleteTransaction(id, user.id);
       res.status(204).send();
     } catch (error) {
-      console.error("Error in deleteTransaction controller:", error);
-      if (error instanceof Error && error.message.includes("not found")) {
-        res.status(404).json({ 
-          error: "Resource not found",
-          details: error.message
-        });
-      } else {
-        res.status(500).json({ 
-          error: "Failed to delete transaction",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
+      console.error("Error deleting transaction:", error);
+      res.status(500).json({ 
+        error: "Failed to delete transaction",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   };
 
   async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { description } = req.query;
+      const { description } = req.body;
       if (!description || typeof description !== 'string') {
-        this.sendError(res, 400, "Description is required");
+        res.status(400).json({ error: "Description is required" });
         return;
       }
 
-      const account = await this.transactionService.suggestAccount(description, req.user.userId);
-      this.sendResponse(res, 200, account);
+      const suggestion = await this.transactionService.suggestAccount(description, req.user.userId);
+      res.json(suggestion);
     } catch (error) {
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error("Error suggesting account:", error);
+      res.status(500).json({ error: "Failed to suggest account" });
     }
   }
 
   async getRecurringTransactions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const transactions = await this.transactionService.getRecurringTransactions(req.user.userId);
-      this.sendResponse(res, 200, transactions);
+      const recurringTransactions = await this.transactionService.getRecurringTransactions(req.user.userId);
+      res.json(recurringTransactions);
     } catch (error) {
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error("Error fetching recurring transactions:", error);
+      res.status(500).json({ error: "Failed to fetch recurring transactions" });
     }
   }
 
   async getTransactionTemplates(_req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const templates = await this.transactionService.getTransactionTemplates();
-      this.sendResponse(res, 200, templates);
+      res.json(templates);
     } catch (error) {
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error("Error fetching transaction templates:", error);
+      res.status(500).json({ error: "Failed to fetch transaction templates" });
     }
   }
 
   async suggestTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { description, entries } = req.body;
-      
-      if (!description || typeof description !== 'string') {
-        this.sendError(res, 400, "Description is required");
-        return;
-      }
-
-      if (!Array.isArray(entries)) {
-        this.sendError(res, 400, "Entries must be an array");
+      if (!description || !entries) {
+        res.status(400).json({ error: "Description and entries are required" });
         return;
       }
 
       const template = await this.transactionService.suggestTransactionTemplate(description, entries);
-      this.sendResponse(res, 200, { template });
+      res.json({ template });
     } catch (error) {
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error("Error suggesting transaction template:", error);
+      res.status(500).json({ error: "Failed to suggest transaction template" });
     }
   }
 
   async validateTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { transactionType, entries } = req.body;
-      
-      if (!transactionType || !Object.values(TransactionType).includes(transactionType)) {
-        this.sendError(res, 400, "Valid transaction type is required");
-        return;
-      }
-
-      if (!Array.isArray(entries)) {
-        this.sendError(res, 400, "Entries must be an array");
+      if (!transactionType || !entries) {
+        res.status(400).json({ error: "Transaction type and entries are required" });
         return;
       }
 
       const validation = await this.transactionService.validateTransactionTemplate(transactionType, entries);
-      this.sendResponse(res, 200, validation);
+      res.json(validation);
     } catch (error) {
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error("Error validating transaction template:", error);
+      res.status(500).json({ error: "Failed to validate transaction template" });
     }
   }
 }
@@ -353,4 +360,6 @@ export const {
   getTransactionTemplates,
   suggestTransactionTemplate,
   validateTransactionTemplate,
+  getRecentTransactions,
+  getAccountBalances,
 } = transactionController;

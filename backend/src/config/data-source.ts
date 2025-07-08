@@ -30,7 +30,7 @@ export const AppDataSource = new DataSource({
   type: "postgres",
   url: connectionUrl,
   synchronize: true,
-  logging: true,
+  logging: process.env.NODE_ENV === 'development' ? ["error", "warn", "query"] : ["error"],
   entities: [
     User,
     Account,
@@ -42,4 +42,12 @@ export const AppDataSource = new DataSource({
   ],
   migrations: [__dirname + "/../migrations/*.ts"],
   subscribers: [],
+  // Performance optimizations - connection pooling
+  extra: {
+    // Connection pooling
+    max: 20, // Maximum number of connections in the pool
+    min: 5,  // Minimum number of connections in the pool
+    acquire: 30000, // Maximum time (ms) to acquire a connection
+    idle: 10000, // Maximum time (ms) a connection can be idle
+  },
 });

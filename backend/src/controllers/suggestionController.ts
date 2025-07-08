@@ -40,7 +40,8 @@ export const getSmartGoalSuggestions = async (req: Request, res: Response): Prom
 
     // Get user's financial data
     const accounts = await AccountService.getAccounts(userId.toString());
-    const transactions = await TransactionService.fetchTransactions(userId.toString());
+    const transactionResult = await TransactionService.fetchTransactions(userId.toString());
+    const transactions = transactionResult.transactions; // Extract the transactions array
 
     console.log('📊 Found accounts:', accounts.length);
     console.log('📊 Found transactions:', transactions.length);
