@@ -2,6 +2,7 @@ import React from 'react';
 import { UseFormRegister, FieldErrors, FieldArrayWithId } from 'react-hook-form';
 import { Account } from '../../types/account';
 import { useFormContext } from 'react-hook-form';
+import { saveUserPreference } from '../../services/TransactionService';
 
 interface JournalEntryFieldsProps {
   entries: FieldArrayWithId[];
@@ -12,6 +13,7 @@ interface JournalEntryFieldsProps {
   onRemove: (index: number) => void;
   onDescriptionChange?: (index: number, value: string) => void;
   showDescriptionFields?: boolean;
+  transactionDescription?: string; // Add transaction description for preference saving
 }
 
 export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
@@ -22,8 +24,21 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   onAdd,
   onRemove,
   onDescriptionChange,
-  showDescriptionFields = false
+  showDescriptionFields = false,
+  transactionDescription
 }) => {
+  // Handler for account selection to save user preference
+  const handleAccountSelection = async (accountId: string, description: string) => {
+    if (accountId && description && transactionDescription) {
+      try {
+        await saveUserPreference(transactionDescription, parseInt(accountId));
+      } catch (error) {
+        console.error('Error saving user preference:', error);
+        // Don't show error to user - this is not critical
+      }
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="journal-entries">
       {entries.map((entry, idx) => (
@@ -36,6 +51,12 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
               <select
                 id={`account-${idx}`}
                 {...register(`entries.${idx}.accountId`)}
+                onChange={(e) => {
+                  // Call the original register onChange
+                  register(`entries.${idx}.accountId`).onChange(e);
+                  // Save user preference when account is selected
+                  handleAccountSelection(e.target.value, transactionDescription || '');
+                }}
                 aria-label="Account *"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2"
                 data-testid={`account-select-${idx}`}

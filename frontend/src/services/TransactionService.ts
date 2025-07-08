@@ -188,6 +188,19 @@ export const getSuggestedAccount = async (description: string): Promise<{
   }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
 };
 
+export const saveUserPreference = async (description: string, accountId: number): Promise<void> => {
+  try {
+    await api.post('/suggestions/save-preference', {
+      description: description.trim(),
+      accountId
+    });
+    console.log('💾 User preference saved successfully');
+  } catch (error) {
+    console.error("Error saving user preference:", error);
+    // Don't throw error - this is not critical for transaction flow
+  }
+};
+
 export const getTransactionTemplates = async (): Promise<any[]> => {
   const cacheKey = 'transaction_templates';
   

@@ -1,11 +1,13 @@
 import { AppDataSource } from "../config/data-source";
 import { Suggestion } from "../entities/Suggestion";
 import { Account } from "../entities/Account";
+import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
 
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
   private accountRepo = AppDataSource.getRepository(Account);
+  private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -92,6 +94,182 @@ export class SuggestionService {
       
       console.log('📝 Normalized description:', normalizedDescription);
       
+      // Step 1: Check user preferences first (highest priority)
+      const userPreference = await this.findUserPreference(normalizedDescription, userId);
+      if (userPreference) {
+        console.log('✅ Found user preference for:', normalizedDescription);
+        return await this.createSuggestionFromPreference(userPreference);
+      }
+
+      // Step 2: Use keyword matching (current logic)
+      return await this.findKeywordSuggestion(normalizedDescription, userId);
+    } catch (error) {
+      logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
+  async saveUserPreference(description: string, accountId: number, userId: number): Promise<void> {
+    try {
+      const normalizedDescription = this.normalizeDescription(description);
+      
+      // Find existing preference or create new one
+      let preference = await this.userPreferenceRepo.findOne({
+        where: { userId, description: normalizedDescription }
+      });
+
+      if (preference) {
+        // Update existing preference
+        preference.accountId = accountId;
+        preference.usageCount += 1;
+        preference.lastUsed = new Date();
+      } else {
+        // Create new preference
+        const account = await this.accountRepo.findOne({ where: { id: accountId } });
+        preference = this.userPreferenceRepo.create({
+          userId,
+          description: normalizedDescription,
+          accountId,
+          accountName: account?.name || 'Unknown',
+          usageCount: 1,
+          lastUsed: new Date()
+        });
+      }
+
+      await this.userPreferenceRepo.save(preference);
+      console.log('💾 Saved user preference:', normalizedDescription, '->', accountId);
+    } catch (error) {
+      logError(`Failed to save user preference: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+    }
+  }
+
+  private async findUserPreference(description: string, userId: number): Promise<UserSuggestionPreference | null> {
+    try {
+      const normalizedDescription = this.normalizeDescription(description);
+      
+      // Find exact match first
+      let preference = await this.userPreferenceRepo.findOne({
+        where: { userId, description: normalizedDescription }
+      });
+
+      if (!preference) {
+        // Find partial matches (fuzzy matching for user preferences)
+        const preferences = await this.userPreferenceRepo.find({
+          where: { userId }
+        });
+
+        // Find the best partial match
+        preference = this.findBestPartialMatch(normalizedDescription, preferences);
+      }
+
+      return preference;
+    } catch (error) {
+      logError(`Failed to find user preference: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
+  private findBestPartialMatch(description: string, preferences: UserSuggestionPreference[]): UserSuggestionPreference | null {
+    // Simple partial matching - can be enhanced with fuzzy matching later
+    const words = description.split(' ');
+    
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const preference of preferences) {
+      const prefWords = preference.description.split(' ');
+      let score = 0;
+
+      // Count matching words
+      for (const word of words) {
+        if (prefWords.some(prefWord => prefWord.includes(word) || word.includes(prefWord))) {
+          score += 1;
+        }
+      }
+
+      // Weight by usage count and recency
+      const daysSinceLastUse = (Date.now() - new Date(preference.lastUsed).getTime()) / (1000 * 60 * 60 * 24);
+      const recencyBonus = Math.max(0, 30 - daysSinceLastUse) / 30; // Bonus for recent usage
+      const usageBonus = Math.min(preference.usageCount / 10, 1); // Bonus for frequent usage
+
+      const totalScore = score + recencyBonus + usageBonus;
+
+      if (totalScore > bestScore) {
+        bestScore = totalScore;
+        bestMatch = preference;
+      }
+    }
+
+    return bestScore > 0.5 ? bestMatch : null; // Only return if score is reasonable
+  }
+
+  private async createSuggestionFromPreference(preference: UserSuggestionPreference): Promise<{
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    reason: string;
+    accountType: string;
+    confidence: number;
+    suggestedEntryType: 'DEBIT' | 'CREDIT';
+    detailedReason: string;
+  }> {
+    // Get account details
+    const account = await this.accountRepo.findOne({ where: { id: preference.accountId } });
+    if (!account) {
+      throw new Error('Account not found for preference');
+    }
+
+    // Determine entry type based on account type
+    let suggestedEntryType: 'DEBIT' | 'CREDIT';
+    switch (account.type) {
+      case 'EXPENSE':
+        suggestedEntryType = 'DEBIT';
+        break;
+      case 'INCOME':
+        suggestedEntryType = 'CREDIT';
+        break;
+      case 'ASSET':
+        suggestedEntryType = 'DEBIT';
+        break;
+      case 'LIABILITY':
+        suggestedEntryType = 'CREDIT';
+        break;
+      case 'EQUITY':
+        suggestedEntryType = 'CREDIT';
+        break;
+      default:
+        suggestedEntryType = 'DEBIT';
+    }
+
+    const confidence = Math.min(95, 70 + (preference.usageCount * 2)); // Higher confidence for frequently used preferences
+
+    return {
+      suggestedAccountId: preference.accountId,
+      suggestedAccountName: preference.accountName,
+      reason: `Based on your previous choice for "${preference.description}"`,
+      accountType: account.type,
+      confidence: confidence,
+      suggestedEntryType: suggestedEntryType,
+      detailedReason: `You previously used ${preference.accountName} for similar transactions (used ${preference.usageCount} times)`
+    };
+  }
+
+  private normalizeDescription(description: string): string {
+    return description.toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+  }
+
+  private async findKeywordSuggestion(normalizedDescription: string, userId: number): Promise<{
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    reason: string;
+    accountType: string;
+    confidence: number;
+    suggestedEntryType: 'DEBIT' | 'CREDIT';
+    detailedReason: string;
+  } | null> {
+    try {
       // Get user's accounts
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: userId } },
@@ -132,9 +310,9 @@ export class SuggestionService {
           priority: 1
         },
         {
-          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'interest', 'principal', 'line of credit', 'business loan', 'bank loan'],
+          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'principal', 'line of credit', 'business loan', 'bank loan'],
           accountTypes: ['LIABILITY', 'EXPENSE'],
-          categories: ['Loan', 'Credit', 'Loan Payable', 'Interest Expense'],
+          categories: ['Loan', 'Credit', 'Loan Payable'],
           reason: 'Loan and credit related transaction',
           priority: 1
         },
@@ -305,11 +483,28 @@ export class SuggestionService {
           reason: 'Maintenance related transaction',
           priority: 4
         },
+        // Interest Income (when you earn interest)
         {
-          keywords: ['interest', 'dividend', 'investment', 'return', 'yield', 'earnings', 'capital gains'],
+          keywords: ['interest income', 'interest earned', 'bank interest', 'savings interest', 'investment interest', 'dividend', 'investment return', 'yield', 'earnings', 'capital gains'],
+          accountTypes: ['INCOME'],
+          categories: ['Interest', 'Interest Income', 'Investment Income'],
+          reason: 'Interest income transaction',
+          priority: 2
+        },
+        // Interest Expense (when you pay interest)
+        {
+          keywords: ['interest expense', 'loan interest', 'credit card interest', 'mortgage interest', 'interest payment', 'interest charge'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Interest', 'Interest Expense'],
+          reason: 'Interest expense transaction',
+          priority: 2
+        },
+        // General investment terms (lower priority for ambiguous cases)
+        {
+          keywords: ['interest', 'investment', 'return', 'yield'],
           accountTypes: ['INCOME'],
           categories: ['Interest', 'Interest Income'],
-          reason: 'Interest and investment income transaction',
+          reason: 'Investment income transaction (ambiguous term)',
           priority: 4
         }
       ];
@@ -457,7 +652,7 @@ export class SuggestionService {
       };
 
     } catch (error) {
-      logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      logError(`Failed to find keyword suggestion: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       return null;
     }
   }
@@ -501,4 +696,4 @@ export class SuggestionService {
 
     return `${baseExplanation}${entryExplanation}${confidenceText}`;
   }
-}
+} 

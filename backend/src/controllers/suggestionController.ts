@@ -145,6 +145,41 @@ export class SuggestionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  async saveUserPreference(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('💾 Save user preference request:', {
+        body: req.body,
+        userId: req.user.userId
+      });
+      
+      const { description, accountId } = req.body;
+      
+      if (!description || typeof description !== 'string') {
+        console.log('❌ Invalid description:', description);
+        this.sendError(res, 400, 'Description is required and must be a string');
+        return;
+      }
+
+      if (!accountId || typeof accountId !== 'number') {
+        console.log('❌ Invalid accountId:', accountId);
+        this.sendError(res, 400, 'AccountId is required and must be a number');
+        return;
+      }
+
+      const userId = req.user.userId;
+      console.log('💾 Saving preference for description:', description, 'accountId:', accountId, 'userId:', userId);
+      
+      await this.suggestionService.saveUserPreference(description, accountId, userId);
+      
+      console.log('✅ Preference saved successfully');
+      
+      this.sendResponse(res, 200, { message: 'Preference saved successfully' });
+    } catch (error) {
+      console.error('❌ Error in saveUserPreference:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 }
 
 export const getSuggestions = async (req: Request, res: Response) => {

@@ -724,7 +724,7 @@ const Transactions = () => {
         isArray: Array.isArray(recurringData)
       });
       
-      setTransactions(transactionsData);
+      setTransactions(transactionsData.transactions);
       setAccounts(accountsData);
       // Ensure recurringTransactions is always an array
       setRecurringTransactions(Array.isArray(recurringData) ? recurringData : []);
@@ -1022,6 +1022,7 @@ const Transactions = () => {
             errors={errors}
             onAdd={() => append({ accountId: '', amount: '', type: 'DEBIT' })}
             onRemove={remove}
+            transactionDescription={watch('description')}
           />
         </div>
 

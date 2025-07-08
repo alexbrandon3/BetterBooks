@@ -12,4 +12,7 @@ router.get('/', authenticate, getSmartGoalSuggestions);
 // Add the new suggest-account route
 router.post('/suggest-account', authenticate, suggestionController.suggestAccount.bind(suggestionController));
 
+// Add the save preference route
+router.post('/save-preference', authenticate, suggestionController.saveUserPreference.bind(suggestionController));
+
 export default router; 
