@@ -100,195 +100,235 @@ export class SuggestionService {
 
       console.log('📊 Found user accounts:', userAccounts.length, userAccounts.map(acc => acc.name));
       
-      // Enhanced keyword mapping for account types with personal finance terms
+      // Enhanced keyword mapping for SMALL BUSINESS accounting (reoriented from personal finance)
       const keywordMap = [
+        // PRIORITY 1: Core Business Revenue
         {
-          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'starbucks', 'mcdonalds', 'subway', 'doordash', 'ubereats', 'grubhub'],
+          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client'],
+          accountTypes: ['INCOME', 'REVENUE'],
+          categories: ['Sales', 'Revenue', 'Service Income', 'Product Sales'],
+          reason: 'Business revenue transaction',
+          priority: 1
+        },
+        {
+          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase'],
+          accountTypes: ['EXPENSE', 'ASSET'],
+          categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold'],
+          reason: 'Business purchase transaction',
+          priority: 1
+        },
+        {
+          keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck', 'w2', 'withholding', 'payroll tax', 'employee payroll'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Payroll', 'Payroll Expense', 'Employee Benefits'],
+          reason: 'Payroll and employee compensation transaction',
+          priority: 1
+        },
+        {
+          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax', 'business tax'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Taxes', 'Tax Expense', 'Tax Liability'],
+          reason: 'Tax related transaction',
+          priority: 1
+        },
+        {
+          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'interest', 'principal', 'line of credit', 'business loan', 'bank loan'],
+          accountTypes: ['LIABILITY', 'EXPENSE'],
+          categories: ['Loan', 'Credit', 'Loan Payable', 'Interest Expense'],
+          reason: 'Loan and credit related transaction',
+          priority: 1
+        },
+
+        // PRIORITY 2: Business Operations
+        {
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Marketing', 'Marketing Expense', 'Advertising'],
+          reason: 'Marketing and advertising transaction',
+          priority: 2
+        },
+        {
+          keywords: ['accounting', 'bookkeeping', 'cpa', 'attorney', 'lawyer', 'legal', 'consulting', 'professional services', 'contractor', 'freelancer', 'professional fee'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Professional Services', 'Legal', 'Accounting'],
+          reason: 'Professional services transaction',
+          priority: 2
+        },
+        {
+          keywords: ['business travel', 'conference', 'trade show', 'meeting', 'client visit', 'business trip', 'mileage', 'travel expense', 'business lunch', 'client lunch', 'meals entertainment'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Travel', 'Business Travel', 'Travel Expense', 'Meals & Entertainment'],
+          reason: 'Business travel transaction',
+          priority: 2
+        },
+        {
+          keywords: ['draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend', 'capital contribution', 'investment', 'owner draw'],
+          accountTypes: ['EXPENSE', 'EQUITY'],
+          categories: ['Drawings', 'Owner Equity', 'Capital'],
+          reason: 'Owner equity transaction',
+          priority: 2
+        },
+
+        // PRIORITY 3: Business Infrastructure
+        {
+          keywords: ['utility', 'utilities', 'electric', 'water', 'gas', 'internet', 'phone', 'cable', 'wifi', 'electricity', 'power', 'sewer', 'trash', 'garbage', 'office utilities'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Utilities', 'Bills', 'Office Utilities'],
+          reason: 'Business utility transaction',
+          priority: 3
+        },
+        {
+          keywords: ['rent', 'lease', 'rental', 'landlord', 'property', 'real estate', 'office space', 'warehouse', 'storage', 'office rent'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Rent', 'Rent Expense', 'Office Rent'],
+          reason: 'Business rent transaction',
+          priority: 3
+        },
+        {
+          keywords: ['equipment', 'machinery', 'computer', 'furniture', 'office equipment', 'tools', 'machinery purchase'],
+          accountTypes: ['EXPENSE', 'ASSET'],
+          categories: ['Equipment', 'Fixed Assets', 'Equipment Purchase'],
+          reason: 'Business equipment transaction',
+          priority: 3
+        },
+
+        // PRIORITY 4: General Business Expenses (deprioritized personal finance)
+        {
+          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal'],
           accountTypes: ['EXPENSE'],
           categories: ['Food', 'Dining', 'Meals & Entertainment'],
-          reason: 'Food and dining related transaction'
+          reason: 'Food and dining related transaction',
+          priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'sam club gas'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel'],
           accountTypes: ['EXPENSE'],
           categories: ['Transportation', 'Auto', 'Fuel'],
-          reason: 'Fuel and gas related transaction'
+          reason: 'Fuel and gas related transaction',
+          priority: 4
         },
         {
-          keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare'],
+          keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport'],
           accountTypes: ['EXPENSE'],
           categories: ['Transportation', 'Auto', 'Public Transport'],
-          reason: 'Transportation related transaction'
+          reason: 'Transportation related transaction',
+          priority: 4
         },
         {
-          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans'],
+          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies'],
           accountTypes: ['EXPENSE'],
-          categories: ['Food', 'Groceries'],
-          reason: 'Grocery shopping transaction'
+          categories: ['Food', 'Groceries', 'Office Supplies'],
+          reason: 'Grocery and supplies transaction',
+          priority: 4
         },
         {
-          keywords: ['amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy'],
+          keywords: ['amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy', 'business purchase'],
           accountTypes: ['EXPENSE'],
           categories: ['Shopping', 'Retail', 'Online Shopping'],
-          reason: 'Shopping and retail transaction'
+          reason: 'Shopping and retail transaction',
+          priority: 4
         },
         {
-          keywords: ['salary', 'payroll', 'income', 'wage', 'commission', 'bonus', 'payment', 'deposit', 'paycheck', 'direct deposit'],
-          accountTypes: ['INCOME'],
-          categories: ['Income', 'Salary', 'Revenue'],
-          reason: 'Income related transaction'
-        },
-        {
-          keywords: ['rent', 'mortgage', 'housing', 'apartment', 'lease', 'landlord', 'property management'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Housing', 'Rent', 'Mortgage'],
-          reason: 'Housing related transaction'
-        },
-        {
-          keywords: ['utility', 'electric', 'water', 'gas', 'internet', 'phone', 'cable', 'wifi', 'electricity', 'power', 'sewer', 'trash', 'garbage'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Utilities', 'Bills'],
-          reason: 'Utility bill transaction'
-        },
-        {
-          keywords: ['medical', 'doctor', 'pharmacy', 'cvs', 'walgreens', 'health', 'dental', 'vision', 'hospital', 'clinic', 'urgent care', 'emergency room', 'er', 'prescription', 'medication'],
+          keywords: ['medical', 'doctor', 'pharmacy', 'cvs', 'walgreens', 'health', 'dental', 'vision', 'hospital', 'clinic', 'urgent care', 'emergency room', 'er', 'prescription', 'medication', 'health insurance'],
           accountTypes: ['EXPENSE'],
           categories: ['Healthcare', 'Medical'],
-          reason: 'Healthcare related transaction'
+          reason: 'Healthcare related transaction',
+          priority: 4
         },
         {
           keywords: ['entertainment', 'movie', 'netflix', 'spotify', 'hulu', 'disney', 'game', 'concert', 'theater', 'youtube', 'apple music', 'amazon prime', 'hbo', 'peacock', 'paramount'],
           accountTypes: ['EXPENSE'],
           categories: ['Entertainment', 'Recreation'],
-          reason: 'Entertainment related transaction'
+          reason: 'Entertainment related transaction',
+          priority: 4
         },
         {
           keywords: ['gym', 'fitness', 'workout', 'planet fitness', 'la fitness', '24 hour fitness', 'ymca', 'personal trainer', 'yoga', 'pilates'],
           accountTypes: ['EXPENSE'],
           categories: ['Healthcare', 'Fitness', 'Wellness'],
-          reason: 'Fitness and wellness related transaction'
+          reason: 'Fitness and wellness related transaction',
+          priority: 4
         },
         {
-          keywords: ['school', 'tuition', 'books', 'education', 'college', 'university', 'textbook', 'course', 'class', 'training', 'workshop', 'seminar'],
+          keywords: ['school', 'tuition', 'books', 'education', 'college', 'university', 'textbook', 'course', 'class', 'training', 'workshop', 'seminar', 'business training'],
           accountTypes: ['EXPENSE'],
           categories: ['Education', 'Training'],
-          reason: 'Education related transaction'
+          reason: 'Education related transaction',
+          priority: 4
         },
         {
           keywords: ['vacation', 'airbnb', 'hotel', 'travel', 'flight', 'airline', 'delta', 'united', 'american', 'southwest', 'jetblue', 'booking', 'expedia', 'trip', 'resort'],
           accountTypes: ['EXPENSE'],
           categories: ['Travel', 'Vacation'],
-          reason: 'Travel and vacation related transaction'
+          reason: 'Travel and vacation related transaction',
+          priority: 4
         },
         {
           keywords: ['childcare', 'babysitter', 'daycare', 'nanny', 'preschool', 'after school', 'summer camp', 'child care'],
           accountTypes: ['EXPENSE'],
           categories: ['Family', 'Childcare'],
-          reason: 'Childcare related transaction'
+          reason: 'Childcare related transaction',
+          priority: 4
         },
         {
           keywords: ['atm', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank'],
           accountTypes: ['ASSET', 'EXPENSE'],
           categories: ['Cash', 'Banking'],
-          reason: 'Cash and banking related transaction'
+          reason: 'Cash and banking related transaction',
+          priority: 4
         },
         {
-          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers'],
+          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance'],
           accountTypes: ['EXPENSE'],
           categories: ['Insurance'],
-          reason: 'Insurance related transaction'
+          reason: 'Insurance related transaction',
+          priority: 4
         },
         {
-          keywords: ['car', 'auto', 'automotive', 'dealership', 'ford', 'toyota', 'honda', 'bmw', 'mercedes', 'audi', 'volkswagen', 'nissan', 'hyundai', 'kia'],
+          keywords: ['car', 'auto', 'automotive', 'dealership', 'ford', 'toyota', 'honda', 'bmw', 'mercedes', 'audi', 'volkswagen', 'nissan', 'hyundai', 'kia', 'business vehicle'],
           accountTypes: ['EXPENSE', 'ASSET'],
           categories: ['Transportation', 'Auto'],
-          reason: 'Automotive related transaction'
+          reason: 'Automotive related transaction',
+          priority: 4
         },
         {
           keywords: ['pet', 'veterinary', 'vet', 'petco', 'petsmart', 'dog', 'cat', 'animal', 'pet food', 'pet supplies'],
           accountTypes: ['EXPENSE'],
           categories: ['Pets', 'Veterinary'],
-          reason: 'Pet related transaction'
+          reason: 'Pet related transaction',
+          priority: 4
         },
         {
-          keywords: ['home', 'house', 'maintenance', 'repair', 'home depot', 'lowes', 'ace hardware', 'true value', 'plumber', 'electrician', 'contractor'],
+          keywords: ['home', 'house', 'maintenance', 'repair', 'home depot', 'lowes', 'ace hardware', 'true value', 'plumber', 'electrician', 'contractor', 'office maintenance'],
           accountTypes: ['EXPENSE'],
           categories: ['Housing', 'Home Maintenance'],
-          reason: 'Home maintenance related transaction'
-        },
-        // Business and sales related keywords
-        {
-          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods'],
-          accountTypes: ['INCOME', 'REVENUE'],
-          categories: ['Income', 'Sales', 'Revenue', 'Service Income'],
-          reason: 'Sales and revenue related transaction'
-        },
-        {
-          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials'],
-          accountTypes: ['EXPENSE', 'ASSET'],
-          categories: ['Supplies', 'Equipment', 'Inventory', 'Equipment Purchase'],
-          reason: 'Purchase and procurement transaction'
-        },
-        {
-          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Taxes', 'Expenses'],
-          reason: 'Tax related transaction'
-        },
-        {
-          keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Payroll', 'Expenses'],
-          reason: 'Payroll and employee compensation transaction'
-        },
-        {
-          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Marketing', 'Marketing Expense'],
-          reason: 'Marketing and advertising transaction'
-        },
-        {
-          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'interest', 'principal'],
-          accountTypes: ['LIABILITY', 'EXPENSE'],
-          categories: ['Loan', 'Credit', 'Loan Payable'],
-          reason: 'Loan and credit related transaction'
-        },
-        {
-          keywords: ['draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend'],
-          accountTypes: ['EXPENSE', 'EQUITY'],
-          categories: ['Drawings', 'Owner Equity'],
-          reason: 'Owner withdrawal or distribution transaction'
-        },
-        {
-          keywords: ['utility', 'utilities', 'electric', 'water', 'gas', 'internet', 'phone', 'cable', 'wifi', 'electricity', 'power', 'sewer', 'trash', 'garbage'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Utilities', 'Bills'],
-          reason: 'Utility bill transaction'
-        },
-        {
-          keywords: ['rent', 'lease', 'rental', 'landlord', 'property', 'real estate', 'office space', 'warehouse'],
-          accountTypes: ['EXPENSE'],
-          categories: ['Rent', 'Rent Expense'],
-          reason: 'Rent and lease transaction'
+          reason: 'Maintenance related transaction',
+          priority: 4
         },
         {
           keywords: ['interest', 'dividend', 'investment', 'return', 'yield', 'earnings', 'capital gains'],
           accountTypes: ['INCOME'],
           categories: ['Interest', 'Interest Income'],
-          reason: 'Interest and investment income transaction'
+          reason: 'Interest and investment income transaction',
+          priority: 4
         }
       ];
 
-      // Find matching keyword category
+      // Find matching keyword category with priority-based selection
       let matchedCategory = null;
       let matchedKeyword = null;
+      let bestPriority = 999; // Start with high number (lower is better)
+      
       for (const mapping of keywordMap) {
         const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
         if (foundKeyword) {
-          matchedCategory = mapping;
-          matchedKeyword = foundKeyword;
-          console.log('✅ Found keyword match:', foundKeyword, 'Category:', mapping.categories[0]);
-          break;
+          // Prioritize by priority number (lower number = higher priority)
+          if (mapping.priority < bestPriority) {
+            matchedCategory = mapping;
+            matchedKeyword = foundKeyword;
+            bestPriority = mapping.priority;
+            console.log('✅ Found keyword match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+          }
         }
       }
 
@@ -319,6 +359,12 @@ export class SuggestionService {
         if (exactKeywordMatch) {
           score += 50; // Higher priority for exact keyword matches
           reasoning.push('exact keyword match in account name');
+        }
+        
+        // Bonus for high priority categories (business-focused)
+        if (matchedCategory!.priority <= 2) {
+          score += 20;
+          reasoning.push('high priority business category');
         }
         
         // Check name match (higher priority)
@@ -371,7 +417,7 @@ export class SuggestionService {
       console.log('✅ Best match found:', bestMatch.name, 'with score:', bestScore);
 
       // Calculate confidence score (0-100)
-      const maxPossibleScore = 110; // 50 + 30 + 15 + 10 + 5
+      const maxPossibleScore = 130; // 50 + 20 + 30 + 15 + 10 + 5 (added priority bonus)
       const confidence = Math.min(100, Math.round((bestScore / maxPossibleScore) * 100));
 
       // Determine optimal entry type based on account type
@@ -455,4 +501,4 @@ export class SuggestionService {
 
     return `${baseExplanation}${entryExplanation}${confidenceText}`;
   }
-} 
+}
