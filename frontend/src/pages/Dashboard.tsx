@@ -433,16 +433,17 @@ const Dashboard = () => {
                       
                       return (
                         <div key={account.id} className={`flex items-center justify-between p-2 rounded-lg ${
-                          isBalanceSheet && isPositiveBalance ? 'bg-blue-50 border border-blue-100' : ''
+                          isBalanceSheet && isPositiveBalance 
+                            ? account.type === 'ASSET' 
+                              ? 'bg-green-50 border border-green-100' 
+                              : account.type === 'LIABILITY' 
+                                ? 'bg-red-50 border border-red-100' 
+                                : 'bg-purple-50 border border-purple-100'
+                            : ''
                         }`}>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">
                               {account.name}
-                              {isBalanceSheet && isPositiveBalance && (
-                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  Balance Sheet
-                                </span>
-                              )}
                             </p>
                             <p className="text-xs text-gray-500 capitalize">
                               {account.type.toLowerCase()}
