@@ -400,28 +400,65 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {accounts.slice(0, 5).map((account) => {
-                    const balance = accountBalances.get(account.id) ?? Number(account.balance);
-                    return (
-                      <div key={account.id} className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {account.name}
-                          </p>
-                          <p className="text-xs text-gray-500 capitalize">
-                            {account.type.toLowerCase()}
-                          </p>
+                  {(() => {
+                    // Prioritize balance sheet accounts with positive balances
+                    const balanceSheetAccounts = accounts.filter(account => {
+                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
+                      return (
+                        (account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY') &&
+                        balance > 0
+                      );
+                    }).sort((a, b) => {
+                      const balanceA = accountBalances.get(a.id) ?? Number(a.balance);
+                      const balanceB = accountBalances.get(b.id) ?? Number(b.balance);
+                      return balanceB - balanceA; // Sort by highest balance first
+                    });
+
+                    // Get other accounts (non-balance sheet or zero/negative balance)
+                    const otherAccounts = accounts.filter(account => {
+                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
+                      return !(
+                        (account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY') &&
+                        balance > 0
+                      );
+                    });
+
+                    // Combine prioritized accounts first, then others
+                    const displayAccounts = [...balanceSheetAccounts, ...otherAccounts].slice(0, 5);
+
+                    return displayAccounts.map((account) => {
+                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
+                      const isBalanceSheet = account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY';
+                      const isPositiveBalance = balance > 0;
+                      
+                      return (
+                        <div key={account.id} className={`flex items-center justify-between p-2 rounded-lg ${
+                          isBalanceSheet && isPositiveBalance ? 'bg-blue-50 border border-blue-100' : ''
+                        }`}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {account.name}
+                              {isBalanceSheet && isPositiveBalance && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Balance Sheet
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500 capitalize">
+                              {account.type.toLowerCase()}
+                            </p>
+                          </div>
+                          <div className="ml-4 flex-shrink-0">
+                            <span className={`text-sm font-semibold ${
+                              isBalanceNegative(balance) ? 'text-red-600' : 'text-gray-900'
+                            }`}>
+                              {formatAccountBalance(balance)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="ml-4 flex-shrink-0">
-                          <span className={`text-sm font-semibold ${
-                            isBalanceNegative(balance) ? 'text-red-600' : 'text-gray-900'
-                          }`}>
-                            {formatAccountBalance(balance)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                   
                   {accounts.length > 5 && (
                     <div className="pt-3 border-t border-gray-200">
