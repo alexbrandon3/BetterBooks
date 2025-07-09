@@ -7,7 +7,7 @@ interface AccountMetadata {
   financialCategory: FinancialCategory;
   financialSubcategory: string;
   explanation?: string;
-  confidence?: number;
+  confidence?: "high" | "medium" | "low";
 }
 
 // Valid financial subcategory names to prevent display issues
@@ -55,6 +55,8 @@ const VALID_FINANCIAL_SUBCATEGORIES = [
   'DIVIDEND_INCOME',
   'GAIN_ON_SALE',
   'LOSS_ON_SALE',
+  'DELIVERY_EXPENSE',
+  'OTHER_EXPENSE',
   'UNCATEGORIZED'
 ] as const;
 
@@ -123,6 +125,8 @@ export const validateAndCleanFinancialSubcategory = (subcategory: string): strin
     'dividend income': 'DIVIDEND_INCOME',
     'gain on sale': 'GAIN_ON_SALE',
     'loss on sale': 'LOSS_ON_SALE',
+    'delivery expense': 'DELIVERY_EXPENSE',
+    'other expense': 'OTHER_EXPENSE',
     'uncategorized': 'UNCATEGORIZED'
   };
   
@@ -164,11 +168,20 @@ export const validateAccountMetadata = (metadata: Partial<AccountMetadata>): Acc
     financialCategory: metadata.financialCategory || FinancialCategory.CURRENT_ASSET,
     financialSubcategory: validateAndCleanFinancialSubcategory(metadata.financialSubcategory || ''),
     explanation: metadata.explanation,
-    confidence: metadata.confidence || 0.5,
+    confidence: metadata.confidence || "medium",
   };
   
   return validated;
 };
+
+// Personal keywords that should be demoted for business accounting
+const PERSONAL_KEYWORDS_DEMOTE_LIST = [
+  "netflix", "spotify", "hulu", "disney", "apple music", "youtube", "amazon prime",
+  "concert", "theater", "pets", "veterinary", "babysitter", "nanny", "childcare",
+  "preschool", "summer camp", "mortgage", "rent (if not commercial)", "gym", "fitness",
+  "yoga", "pilates", "doctor", "hospital", "clinic", "pharmacy", "prescription",
+  "shopping", "clothing", "electronics", "retail", "personal care"
+];
 
 /**
  * Enhanced account metadata suggestion with explanations and confidence levels
@@ -183,6 +196,11 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
     .trim();
 
   console.log(`📝 Normalized name: "${normalizedName}"`);
+
+  // Check for personal keywords and demote confidence
+  const hasPersonalKeywords = PERSONAL_KEYWORDS_DEMOTE_LIST.some(keyword => 
+    normalizedName.includes(keyword.toLowerCase())
+  );
 
   // Enhanced alias map for common variations and synonyms
   const aliasMap: Record<string, string> = {
@@ -255,14 +273,6 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
     'stockholders equity': 'equity',
     'shareholders equity': 'equity',
     
-    // Supply aliases
-    'office supplies': 'supplies',
-    'materials': 'supplies',
-    'inventory': 'supplies',
-    'stock': 'supplies',
-    'merchandise': 'supplies',
-    'goods': 'supplies',
-    
     // Equipment aliases
     'equipment': 'fixed asset',
     'machinery': 'fixed asset',
@@ -272,14 +282,6 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
     'building': 'fixed asset',
     'land': 'fixed asset',
     'property': 'fixed asset',
-    
-    // Expense aliases
-    'expense': 'operating expense',
-    'cost': 'operating expense',
-    'bill': 'operating expense',
-    'payment': 'operating expense',
-    'fee': 'operating expense',
-    'charge': 'operating expense'
   };
 
   // Apply aliases to normalized name
@@ -293,8 +295,129 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
 
   console.log(`🔧 Final processed name: "${processedName}"`);
 
-  // Enhanced keyword map with explanations and confidence levels
-  const keywordMap = [
+  // Comprehensive business-focused keyword mappings
+  const BUSINESS_ACCOUNT_KEYWORD_MAPPINGS = [
+    {
+      keywords: ["cost of goods", "cogs", "raw materials", "direct materials", "production costs", "manufacturing supplies"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Cost of Goods Sold",
+        subcategory: "COGS",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "COST_OF_GOODS_SOLD",
+        explanation: "Direct costs related to producing goods or services.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["contractor", "freelancer", "independent contractor", "1099", "gig worker"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Contract Labor",
+        subcategory: "Freelancers & Gig Workers",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "SALARY_EXPENSE",
+        explanation: "External workers hired on a contract basis.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["processing fee", "transaction fee", "stripe fee", "paypal fee", "credit card processing", "merchant fee"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Bank & Merchant Fees",
+        subcategory: "Payment Processing",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "BANK_FEES",
+        explanation: "Fees from processors like Stripe, Square, or PayPal.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["shipping", "freight", "delivery", "courier", "usps", "ups", "fedex", "logistics"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Shipping",
+        subcategory: "Shipping & Delivery",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "DELIVERY_EXPENSE",
+        explanation: "Shipping or freight expenses related to customers or vendors.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["depreciation", "amortization", "asset write-off", "accumulated depreciation"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Depreciation",
+        subcategory: "Asset Depreciation",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "DEPRECIATION_EXPENSE",
+        explanation: "The periodic expense of asset value loss.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["license", "permit", "compliance fee", "regulatory fee", "business license", "license renewal"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Licenses & Permits",
+        subcategory: "Legal & Regulatory",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "LEGAL_EXPENSE",
+        explanation: "Fees for staying in compliance with industry laws.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["membership", "dues", "trade group", "association", "business subscription", "chamber of commerce"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Dues & Subscriptions",
+        subcategory: "Industry Associations",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TECHNOLOGY_EXPENSE",
+        explanation: "Recurring membership fees for professional groups.",
+        confidence: "medium" as const
+      }
+    },
+    {
+      keywords: ["bad debt", "write-off", "uncollectible", "default", "customer nonpayment"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Bad Debt",
+        subcategory: "Unpaid Receivables",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "OTHER_EXPENSE",
+        explanation: "Debts that can't be collected from customers.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["alarm", "security", "surveillance", "monitoring service", "security company"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Security",
+        subcategory: "Security Services",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "MAINTENANCE_EXPENSE",
+        explanation: "Building or service-based security expenses.",
+        confidence: "high" as const
+      }
+    },
+    {
+      keywords: ["reimbursement", "expense report", "employee reimbursement", "staff reimbursement"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Reimbursements",
+        subcategory: "Employee Expenses",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "OTHER_EXPENSE",
+        explanation: "Reimbursements for employee-incurred business expenses.",
+        confidence: "medium" as const
+      }
+    },
+    // Core business account types
     {
       keywords: ["cash", "petty", "bank", "checking", "savings", "money market", "acount", "acct", "account", "business checking", "business savings", "merchant account"],
       result: {
@@ -304,7 +427,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
         explanation: "This appears to be a cash or bank account based on the name. Bank accounts are classified as current assets for business accounting.",
-        confidence: 0.95
+        confidence: "high" as const
       },
     },
     {
@@ -316,7 +439,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: "SHORT_TERM_DEBT",
         explanation: "This appears to be a credit card or loan account. Credit cards and short-term loans are classified as current liabilities in business accounting.",
-        confidence: 0.9
+        confidence: "high" as const
       },
     },
     {
@@ -328,7 +451,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_REVENUE,
         financialSubcategory: "SALES_REVENUE",
         explanation: "This appears to be an income or revenue account. Business income accounts are classified as operating revenue.",
-        confidence: 0.9
+        confidence: "high" as const
       },
     },
     {
@@ -340,7 +463,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "ACCOUNTS_RECEIVABLE",
         explanation: "This appears to be money owed to your business by customers. Accounts receivable are classified as current assets in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -352,7 +475,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: "ACCOUNTS_PAYABLE",
         explanation: "This appears to be money your business owes to vendors or suppliers. Accounts payable are classified as current liabilities in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -364,7 +487,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.EQUITY,
         financialSubcategory: "RETAINED_EARNINGS",
         explanation: "This appears to be an equity account representing owner investment or retained earnings. Equity accounts show the owner's stake in the business.",
-        confidence: 0.8
+        confidence: "high" as const
       },
     },
     {
@@ -376,7 +499,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.FIXED_ASSET,
         financialSubcategory: "FIXED_ASSETS",
         explanation: "This appears to be a fixed asset like equipment, vehicles, or property. Fixed assets are long-term assets used in business operations.",
-        confidence: 0.8
+        confidence: "high" as const
       },
     },
     {
@@ -388,7 +511,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "INVENTORY",
         explanation: "This appears to be inventory or supplies. These are typically classified as current assets in business accounting.",
-        confidence: 0.75
+        confidence: "medium" as const
       },
     },
     // Business-specific expense categories
@@ -401,7 +524,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "SALARY_EXPENSE",
         explanation: "This appears to be a payroll or employee compensation expense account. Payroll expenses are operating expenses in business accounting.",
-        confidence: 0.9
+        confidence: "high" as const
       },
     },
     {
@@ -413,7 +536,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "ADVERTISING_EXPENSE",
         explanation: "This appears to be a marketing or advertising expense account. Marketing expenses are operating expenses in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -425,7 +548,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "LEGAL_EXPENSE",
         explanation: "This appears to be a professional services expense account. Professional services are operating expenses in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -437,7 +560,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "INSURANCE_EXPENSE",
         explanation: "This appears to be a business insurance expense account. Insurance premiums are operating expenses in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -449,7 +572,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "UTILITIES_EXPENSE",
         explanation: "This appears to be a utility expense account. Utility expenses are operating expenses in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -461,7 +584,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "RENT_EXPENSE",
         explanation: "This appears to be a rent expense account. Rent expenses are operating expenses in business accounting.",
-        confidence: 0.85
+        confidence: "high" as const
       },
     },
     {
@@ -473,7 +596,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "TECHNOLOGY_EXPENSE",
         explanation: "This appears to be a software or subscription expense account. Software expenses are operating expenses in business accounting.",
-        confidence: 0.8
+        confidence: "high" as const
       },
     },
     {
@@ -485,7 +608,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "MAINTENANCE_EXPENSE",
         explanation: "This appears to be a maintenance expense account. Maintenance expenses are operating expenses in business accounting.",
-        confidence: 0.8
+        confidence: "high" as const
       },
     },
     {
@@ -497,7 +620,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "TRAVEL_EXPENSE",
         explanation: "This appears to be a business travel expense account. Travel expenses are operating expenses in business accounting.",
-        confidence: 0.8
+        confidence: "high" as const
       },
     },
     {
@@ -509,7 +632,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "MEAL_EXPENSE",
         explanation: "This appears to be a food or dining expense account. Business meal expenses are operating expenses in business accounting.",
-        confidence: 0.8
+        confidence: "medium" as const
       },
     },
     {
@@ -521,7 +644,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "TRAVEL_EXPENSE",
         explanation: "This appears to be a transportation expense account. Transportation costs are operating expenses in business accounting.",
-        confidence: 0.8
+        confidence: "medium" as const
       },
     },
     {
@@ -533,7 +656,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "TAX_EXPENSE",
         explanation: "This appears to be a tax expense account. Tax expenses are operating expenses in business accounting.",
-        confidence: 0.9
+        confidence: "high" as const
       },
     },
     {
@@ -545,104 +668,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.EQUITY,
         financialSubcategory: "DRAWINGS",
         explanation: "This appears to be an owner draw or withdrawal account. Drawings reduce owner equity in business accounting.",
-        confidence: 0.85
-      },
-    },
-    // Personal finance categories (lower priority for business context)
-    {
-      keywords: ["entertainment", "netflix", "spotify", "hulu", "disney", "game", "concert", "theater", "youtube", "apple music", "amazon prime", "hbo", "peacock", "paramount"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Entertainment",
-        subcategory: "Streaming & Media",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "ADVERTISING_EXPENSE",
-        explanation: "This appears to be an entertainment expense account. Entertainment costs are operating expenses.",
-        confidence: 0.75
-      },
-    },
-    {
-      keywords: ["healthcare", "medical", "doctor", "pharmacy", "dental", "vision", "hospital", "clinic", "urgent care", "emergency room", "er", "prescription", "medication", "health insurance"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Healthcare",
-        subcategory: "Medical Expenses",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "INSURANCE_EXPENSE",
-        explanation: "This appears to be a healthcare expense account. Medical expenses are operating expenses.",
-        confidence: 0.75
-      },
-    },
-    {
-      keywords: ["housing", "rent", "mortgage", "utilities", "electric", "water", "internet"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Housing",
-        subcategory: "Rent & Utilities",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "RENT_EXPENSE",
-        explanation: "This appears to be a housing expense account. Housing costs are operating expenses.",
-        confidence: 0.75
-      },
-    },
-    {
-      keywords: ["education", "tuition", "school", "books", "training", "course", "college", "university", "textbook", "class", "workshop", "seminar", "business training", "employee training", "professional development"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Education",
-        subcategory: "Tuition & Training",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "ADVERTISING_EXPENSE",
-        explanation: "This appears to be an education expense account. Education costs are operating expenses.",
-        confidence: 0.75
-      },
-    },
-    {
-      keywords: ["childcare", "daycare", "babysitter", "nanny", "preschool", "after school", "summer camp", "child care", "dependent care"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Family",
-        subcategory: "Childcare",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "SALARY_EXPENSE",
-        explanation: "This appears to be a childcare expense account. Childcare costs are operating expenses.",
-        confidence: 0.75
-      },
-    },
-    {
-      keywords: ["pets", "veterinary", "vet", "pet food", "pet supplies"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Pets",
-        subcategory: "Veterinary & Supplies",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "MAINTENANCE_EXPENSE",
-        explanation: "This appears to be a pet-related expense account. Pet expenses are operating expenses.",
-        confidence: 0.7
-      },
-    },
-    {
-      keywords: ["shopping", "clothing", "electronics", "amazon", "retail"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Shopping",
-        subcategory: "Retail Purchases",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "ADVERTISING_EXPENSE",
-        explanation: "This appears to be a shopping expense account. Shopping expenses are operating expenses.",
-        confidence: 0.7
-      },
-    },
-    {
-      keywords: ["fitness", "gym", "workout", "yoga", "pilates"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Fitness",
-        subcategory: "Gym & Wellness",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "MAINTENANCE_EXPENSE",
-        explanation: "This appears to be a fitness expense account. Fitness expenses are operating expenses.",
-        confidence: 0.7
+        confidence: "high" as const
       },
     },
     {
@@ -654,26 +680,195 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "INTEREST_EXPENSE",
         explanation: "This appears to be an interest expense account. Interest expenses are operating expenses.",
-        confidence: 0.9
+        confidence: "high" as const
+      },
+    },
+    {
+      keywords: ["printer", "toner", "paper", "office equipment", "desk", "chair", "supplies", "office supplies", "stationery", "filing"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Office Expenses",
+        subcategory: "Office Supplies",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "OFFICE_SUPPLIES",
+        explanation: "This appears to be an office expense account. Office expenses are operating expenses in business accounting.",
+        confidence: "high" as const
+      },
+    },
+    {
+      keywords: ["business training", "employee training", "professional development", "staff training", "skills development", "certification", "workshop", "seminar", "conference"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Education & Training",
+        subcategory: "Business Development",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "ADVERTISING_EXPENSE",
+        explanation: "This appears to be a business training or professional development expense account. Training costs are operating expenses in business accounting.",
+        confidence: "medium" as const
       },
     }
   ];
 
+  // Edge case rules function
+  const applyEdgeCaseRules = (name: string, baseResult: AccountMetadata): AccountMetadata => {
+    const lowerName = name.toLowerCase();
+    
+    // Training rules
+    if (lowerName.includes("employee") || lowerName.includes("professional development") || lowerName.includes("staff")) {
+      return {
+        ...baseResult,
+        category: "Education & Training",
+        subcategory: "Business Development",
+        financialSubcategory: "ADVERTISING_EXPENSE",
+        explanation: "Business training or professional development expense.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("school") || lowerName.includes("college") || lowerName.includes("university")) {
+      return {
+        ...baseResult,
+        confidence: "low" as const,
+        explanation: "Personal education expense - may not be business related."
+      };
+    }
+    
+    // Fuel/Gas rules
+    if (lowerName.includes("delivery") || lowerName.includes("fleet") || lowerName.includes("company car")) {
+      return {
+        ...baseResult,
+        category: "Transportation",
+        subcategory: "Business Fuel",
+        financialSubcategory: "TRAVEL_EXPENSE",
+        explanation: "Business transportation fuel expense.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("gas station") || lowerName.includes("fuel")) {
+      return {
+        ...baseResult,
+        category: "Transportation",
+        subcategory: "Fuel & Vehicle",
+        financialSubcategory: "TRAVEL_EXPENSE",
+        explanation: "Fuel expense - may be business or personal.",
+        confidence: "medium" as const
+      };
+    }
+    
+    // Supplies rules
+    if (lowerName.includes("raw materials")) {
+      return {
+        ...baseResult,
+        category: "Cost of Goods Sold",
+        subcategory: "COGS",
+        financialSubcategory: "COST_OF_GOODS_SOLD",
+        explanation: "Raw materials for production.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("office supplies")) {
+      return {
+        ...baseResult,
+        category: "Office Expenses",
+        subcategory: "Office Supplies",
+        financialSubcategory: "OFFICE_SUPPLIES",
+        explanation: "Office supplies expense.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("cleaning supplies")) {
+      return {
+        ...baseResult,
+        category: "Maintenance",
+        subcategory: "Building & Equipment",
+        financialSubcategory: "MAINTENANCE_EXPENSE",
+        explanation: "Cleaning supplies for business maintenance.",
+        confidence: "high" as const
+      };
+    }
+    
+    // Rent rules
+    if (lowerName.includes("office") || lowerName.includes("warehouse") || lowerName.includes("commercial")) {
+      return {
+        ...baseResult,
+        category: "Rent",
+        subcategory: "Office & Warehouse Rent",
+        financialSubcategory: "RENT_EXPENSE",
+        explanation: "Commercial rent expense.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("apartment") || lowerName.includes("mortgage")) {
+      return {
+        ...baseResult,
+        confidence: "low" as const,
+        explanation: "Personal housing expense - may not be business related."
+      };
+    }
+    
+    // Software/Subscriptions rules
+    if (lowerName.includes("quickbooks") || lowerName.includes("salesforce") || lowerName.includes("stripe") || lowerName.includes("adobe")) {
+      return {
+        ...baseResult,
+        category: "Software",
+        subcategory: "Subscriptions & SaaS",
+        financialSubcategory: "TECHNOLOGY_EXPENSE",
+        explanation: "Business software subscription.",
+        confidence: "high" as const
+      };
+    }
+    
+    // Meals rules
+    if (lowerName.includes("client") || lowerName.includes("business lunch") || lowerName.includes("meeting")) {
+      return {
+        ...baseResult,
+        category: "Food & Dining",
+        subcategory: "Business Meals",
+        financialSubcategory: "MEAL_EXPENSE",
+        explanation: "Business meal expense.",
+        confidence: "high" as const
+      };
+    }
+    
+    if (lowerName.includes("dinner") || lowerName.includes("cafe") || lowerName.includes("takeout")) {
+      return {
+        ...baseResult,
+        category: "Food & Dining",
+        subcategory: "Business Meals",
+        financialSubcategory: "MEAL_EXPENSE",
+        explanation: "Meal expense - may be business or personal.",
+        confidence: "medium" as const
+      };
+    }
+    
+    return baseResult;
+  };
+
   // Check both original normalized name and processed name (with aliases applied)
-  for (const entry of keywordMap) {
+  for (const entry of BUSINESS_ACCOUNT_KEYWORD_MAPPINGS) {
     console.log(`🔍 Checking keywords: [${entry.keywords.join(', ')}] against "${processedName}" and "${normalizedName}"`);
     
     // Check if any keyword matches in the processed name
     if (entry.keywords.some(kw => processedName.includes(kw)) || 
         entry.keywords.some(kw => normalizedName.includes(kw))) {
       console.log(`✅ Found match! Categorizing as: ${entry.result.category}`);
-      return validateAccountMetadata(entry.result);
-    }
-    
-    // Also check if the processed name contains any keyword (for better matching)
-    if (entry.keywords.some(kw => processedName.includes(kw))) {
-      console.log(`✅ Found match in processed name! Categorizing as: ${entry.result.category}`);
-      return validateAccountMetadata(entry.result);
+      
+      let result = validateAccountMetadata(entry.result);
+      
+      // Apply edge case rules
+      result = applyEdgeCaseRules(name, result);
+      
+      // Demote confidence if personal keywords found
+      if (hasPersonalKeywords) {
+        result.confidence = "low";
+        result.explanation = `${result.explanation} Note: Contains personal keywords that may not be business-related.`;
+      }
+      
+      return result;
     }
   }
 
@@ -688,7 +883,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
         explanation: "This appears to be a bank account based on the name. Bank accounts are classified as current assets.",
-        confidence: 0.9
+        confidence: "high" as const
       }
     },
     {
@@ -700,7 +895,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
         explanation: "This appears to be a bank account based on the name. Bank accounts are classified as current assets.",
-        confidence: 0.8
+        confidence: "medium" as const
       }
     }
   ];
@@ -709,20 +904,39 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
     console.log(`🔍 Checking pattern: ${match.pattern} against "${normalizedName}"`);
     if (match.pattern.test(normalizedName)) {
       console.log(`✅ Pattern match found! Categorizing as: ${match.result.category}`);
-      return validateAccountMetadata(match.result);
+      
+      let result = validateAccountMetadata(match.result);
+      result = applyEdgeCaseRules(name, result);
+      
+      if (hasPersonalKeywords) {
+        result.confidence = "low";
+        result.explanation = `${result.explanation} Note: Contains personal keywords that may not be business-related.`;
+      }
+      
+      return result;
     }
   }
 
   console.log(`❌ No matches found, using default categorization`);
 
   // If no specific match found, provide a reasonable default with low confidence
-  return validateAccountMetadata({
+  let defaultResult = validateAccountMetadata({
     type: AccountType.ASSET,
     category: "Uncategorized",
     subcategory: "",
     financialCategory: FinancialCategory.CURRENT_ASSET,
     financialSubcategory: "UNCATEGORIZED",
     explanation: "No specific category match found. This account has been classified as a current asset by default. You may want to adjust the classification based on the account's purpose.",
-    confidence: 0.3
+    confidence: "low" as const
   });
+  
+  // Apply edge case rules to default result
+  defaultResult = applyEdgeCaseRules(name, defaultResult);
+  
+  if (hasPersonalKeywords) {
+    defaultResult.confidence = "low";
+    defaultResult.explanation = `${defaultResult.explanation} Note: Contains personal keywords that may not be business-related.`;
+  }
+  
+  return defaultResult;
 }; 

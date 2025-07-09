@@ -19,10 +19,13 @@ import { Suggestion } from "../entities/Suggestion";
 
 const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`;
 
-// Add connection parameters to help with DNS resolution
-const connectionUrl = databaseUrl.includes('?') 
-  ? `${databaseUrl}&sslmode=no-verify&connect_timeout=10`
-  : `${databaseUrl}?sslmode=no-verify&connect_timeout=10`;
+// Only add SSL params if DB_SSL is set
+let connectionUrl = databaseUrl;
+if (process.env.DB_SSL === 'true') {
+  connectionUrl = databaseUrl.includes('?') 
+    ? `${databaseUrl}&sslmode=no-verify&connect_timeout=10`
+    : `${databaseUrl}?sslmode=no-verify&connect_timeout=10`;
+}
 
 console.log("🔗 Database URL being used:", connectionUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
 
