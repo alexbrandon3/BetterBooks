@@ -37,7 +37,6 @@ export class TransactionService {
       .leftJoinAndSelect('transaction.user', 'user')
       .where('user.id = :userId', { userId })
       .orderBy('transaction.date', 'DESC')
-      .take(5)
       .getMany();
 
     logSuccess(`Retrieved ${transactions.length} transactions for user ${userId}`, 'TransactionService');

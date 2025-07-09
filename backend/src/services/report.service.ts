@@ -459,6 +459,8 @@ export class ReportService {
       .leftJoinAndSelect('entry.transaction', 'transaction')
       .leftJoinAndSelect('entry.account', 'account')
       .where('transaction.user.id = :userId', { userId });
+    
+    console.log('🔍 Base query built for user:', userId);
 
     // Add date range filter if provided
     if (startDate && endDate) {
@@ -489,6 +491,9 @@ export class ReportService {
 
     // Order by date descending (most recent first)
     queryBuilder.orderBy('transaction.date', 'DESC');
+
+    console.log('🔍 Final query SQL:', queryBuilder.getSql());
+    console.log('🔍 Query parameters:', queryBuilder.getParameters());
 
     const entries = await queryBuilder.getMany();
 
