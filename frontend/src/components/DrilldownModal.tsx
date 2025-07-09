@@ -263,16 +263,40 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
                             <div className="space-y-1">
-                              {transaction.entries.map((entry, index) => (
-                                <div key={index} className="flex justify-between items-center text-xs">
-                                  <span className="text-gray-600">{entry.accountName}</span>
-                                  <span className={`font-medium ${
-                                    entry.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
-                                  }`}>
-                                    {entry.type === 'CREDIT' ? '+' : '-'}{formatCurrency(entry.amount)}
-                                  </span>
-                                </div>
-                              ))}
+                              {transaction.entries.map((entry, index) => {
+                                // Calculate the impact on the account balance
+                                let impact = 0;
+                                let isPositive = false;
+                                
+                                if (entry.type === 'DEBIT') {
+                                  // For asset accounts, debits increase balance (positive impact)
+                                  if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
+                                    impact = entry.amount;
+                                    isPositive = true;
+                                  } else {
+                                    impact = entry.amount;
+                                    isPositive = true;
+                                  }
+                                } else {
+                                  // For asset accounts, credits decrease balance (negative impact)
+                                  if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
+                                    impact = -entry.amount;
+                                    isPositive = false;
+                                  } else {
+                                    impact = -entry.amount;
+                                    isPositive = false;
+                                  }
+                                }
+                                
+                                return (
+                                  <div key={index} className="flex justify-between items-center text-xs">
+                                    <span className="text-gray-600">{entry.accountName}</span>
+                                    <span className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                      {isPositive ? '+' : ''}{formatCurrency(impact)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </td>
                         </tr>
