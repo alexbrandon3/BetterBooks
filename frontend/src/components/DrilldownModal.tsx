@@ -89,23 +89,28 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
     }
 
     // Amount range filters
-    if (filters.minAmount && transaction.amount < parseFloat(filters.minAmount)) {
+    if (filters.minAmount && transaction.netAmount < parseFloat(filters.minAmount)) {
       return false;
     }
-    if (filters.maxAmount && transaction.amount > parseFloat(filters.maxAmount)) {
+    if (filters.maxAmount && transaction.netAmount > parseFloat(filters.maxAmount)) {
       return false;
     }
 
-    // Account filter
-    if (filters.accountFilter && !transaction.accountName.toLowerCase().includes(filters.accountFilter.toLowerCase())) {
-      return false;
+    // Account filter - check if any entry matches
+    if (filters.accountFilter) {
+      const hasMatchingAccount = transaction.entries.some(entry => 
+        entry.accountName.toLowerCase().includes(filters.accountFilter.toLowerCase())
+      );
+      if (!hasMatchingAccount) {
+        return false;
+      }
     }
 
     return true;
   });
 
   const totalAmount = filteredTransactions.reduce((sum, transaction) => {
-    return sum + (transaction.type === 'CREDIT' ? transaction.amount : -transaction.amount);
+    return sum + transaction.netAmount;
   }, 0);
 
   if (!isOpen) return null;
@@ -228,10 +233,10 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Account
+                        Net Amount
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Entries
                       </th>
                     </tr>
                   </thead>
@@ -251,13 +256,24 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
                           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                             {transaction.description}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {transaction.accountName}
-                          </td>
                           <td className={`px-6 py-4 text-sm text-right font-medium ${
-                            transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
+                            transaction.netAmount >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {transaction.type === 'CREDIT' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                            {transaction.netAmount >= 0 ? '+' : ''}{formatCurrency(transaction.netAmount)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div className="space-y-1">
+                              {transaction.entries.map((entry, index) => (
+                                <div key={index} className="flex justify-between items-center text-xs">
+                                  <span className="text-gray-600">{entry.accountName}</span>
+                                  <span className={`font-medium ${
+                                    entry.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {entry.type === 'CREDIT' ? '+' : '-'}{formatCurrency(entry.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </td>
                         </tr>
                       ))

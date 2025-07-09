@@ -9,12 +9,15 @@ export interface DrillDownTransaction {
   id: number;
   date: string;
   description: string;
-  amount: number;
-  type: 'DEBIT' | 'CREDIT';
-  accountName: string;
-  accountType: string;
-  financialCategory: string;
-  financialSubcategory: string;
+  netAmount: number;
+  entries: {
+    accountName: string;
+    amount: number;
+    type: 'DEBIT' | 'CREDIT';
+    accountType: string;
+    financialCategory: string;
+    financialSubcategory: string;
+  }[];
 }
 
 export const fetchBalanceSheet = async (): Promise<BalanceSheet> => {

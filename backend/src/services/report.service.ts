@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
-import { Account, FinancialCategory } from "../entities/Account";
+import { Account, AccountType, FinancialCategory } from "../entities/Account";
 import { Between } from "typeorm";
 import { EntryType } from "../types/transaction.types";
 
@@ -85,12 +85,15 @@ export interface DrillDownTransaction {
   id: number;
   date: string;
   description: string;
-  amount: number;
-  type: 'DEBIT' | 'CREDIT';
-  accountName: string;
-  accountType: string;
-  financialCategory: string;
-  financialSubcategory: string;
+  netAmount: number;
+  entries: {
+    accountName: string;
+    amount: number;
+    type: 'DEBIT' | 'CREDIT';
+    accountType: string;
+    financialCategory: string;
+    financialSubcategory: string;
+  }[];
 }
 
 export class ReportService {
@@ -511,18 +514,53 @@ export class ReportService {
       endDate: endDate?.toISOString()
     });
 
-    // Transform to DrillDownTransaction format
-    const transactions: DrillDownTransaction[] = entries.map(entry => ({
-      id: Number(entry.transaction.id),
-      date: entry.transaction.date.toISOString().split('T')[0],
-      description: entry.transaction.description || 'No description',
-      amount: entry.amount,
-      type: entry.type as 'DEBIT' | 'CREDIT',
-      accountName: entry.account.name,
-      accountType: entry.account.type,
-      financialCategory: entry.account.financialCategory,
-      financialSubcategory: entry.account.financialSubcategory
-    }));
+    // Group entries by transaction
+    const transactionMap = new Map<number, DrillDownTransaction>();
+    
+    entries.forEach(entry => {
+      const transactionId = Number(entry.transaction.id);
+      
+      if (!transactionMap.has(transactionId)) {
+        transactionMap.set(transactionId, {
+          id: transactionId,
+          date: entry.transaction.date.toISOString().split('T')[0],
+          description: entry.transaction.description || 'No description',
+          netAmount: 0,
+          entries: []
+        });
+      }
+      
+      const transaction = transactionMap.get(transactionId)!;
+      transaction.entries.push({
+        accountName: entry.account.name,
+        amount: entry.amount,
+        type: entry.type as 'DEBIT' | 'CREDIT',
+        accountType: entry.account.type,
+        financialCategory: entry.account.financialCategory,
+        financialSubcategory: entry.account.financialSubcategory
+      });
+    });
+    
+    // Calculate net amount for each transaction
+    const transactions: DrillDownTransaction[] = Array.from(transactionMap.values()).map(transaction => {
+      // Calculate net amount based on the account types involved
+      let netAmount = 0;
+      
+      transaction.entries.forEach(entry => {
+        if (entry.accountType === AccountType.ASSET || entry.accountType === AccountType.EXPENSE) {
+          // For assets and expenses: debits increase, credits decrease
+          netAmount += entry.type === 'DEBIT' ? entry.amount : -entry.amount;
+        } else {
+          // For liabilities, income, and equity: credits increase, debits decrease
+          netAmount += entry.type === 'CREDIT' ? entry.amount : -entry.amount;
+        }
+      });
+      
+      return {
+        ...transaction,
+        netAmount
+      };
+    });
 
     return transactions;
   }
