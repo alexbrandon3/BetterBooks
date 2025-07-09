@@ -453,7 +453,7 @@ export class ReportService {
       endDate: endDate?.toISOString()
     });
 
-    // Build the base query
+    // Build the base query to get all transactions that have entries for the target account/subcategory
     const queryBuilder = this.journalEntryRepo
       .createQueryBuilder('entry')
       .leftJoinAndSelect('entry.transaction', 'transaction')
@@ -489,10 +489,6 @@ export class ReportService {
       });
     }
     
-    // For debugging, let's also log what we're filtering by
-    console.log('🔍 Drill-down filters:', { accountId, subcategory, type });
-    
-    // For debugging, let's also log what we're filtering by
     console.log('🔍 Drill-down filters:', { accountId, subcategory, type });
 
     // Order by date descending (most recent first)
@@ -504,14 +500,6 @@ export class ReportService {
     const entries = await queryBuilder.getMany();
 
     console.log('📊 Found entries for drill-down:', entries.length);
-    console.log('🔍 Query parameters:', {
-      userId,
-      type,
-      accountId,
-      subcategory,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString()
-    });
     
     // Debug: Log the first few entries to see what we're getting
     if (entries.length > 0) {
@@ -530,7 +518,7 @@ export class ReportService {
       console.log('🔍 Unique transactions:', uniqueTransactionIds.length);
     }
 
-    // Group entries by transaction
+    // Group entries by transaction and filter to only show relevant entries
     const transactionMap = new Map<string, DrillDownTransaction>();
     
     console.log('🔍 Starting to group entries by transaction...');
@@ -538,7 +526,23 @@ export class ReportService {
     entries.forEach((entry, index) => {
       const transactionId = entry.transaction.id; // Use as string!
       
-      console.log(`🔍 Entry ${index + 1}: Transaction ID ${transactionId}, Description: "${entry.transaction.description}", Account: ${entry.account.name}, Amount: ${entry.amount}, Type: ${entry.type}`);
+      // Check if this entry is relevant to our drill-down target
+      let isRelevantEntry = false;
+      if (accountId) {
+        // For account drill-down, only show entries for this specific account
+        isRelevantEntry = entry.account.id === accountId;
+      } else if (subcategory) {
+        // For subcategory drill-down, only show entries for accounts in this subcategory
+        isRelevantEntry = entry.account.financialSubcategory === subcategory;
+      }
+      
+      // Skip entries that aren't relevant to our drill-down target
+      if (!isRelevantEntry) {
+        console.log(`🔍 Skipping irrelevant entry: ${entry.account.name} (not in target account/subcategory)`);
+        return;
+      }
+      
+      console.log(`🔍 Processing relevant entry ${index + 1}: Transaction ID ${transactionId}, Description: "${entry.transaction.description}", Account: ${entry.account.name}, Amount: ${entry.amount}, Type: ${entry.type}`);
       
       if (!transactionMap.has(transactionId)) {
         console.log(`🔍 Creating new transaction group for ID ${transactionId}`);
@@ -562,24 +566,21 @@ export class ReportService {
       });
     });
     
-    console.log(`🔍 Created ${transactionMap.size} transaction groups`);
+    console.log(`🔍 Created ${transactionMap.size} transaction groups with relevant entries only`);
     
-    // Calculate net amount for each transaction
+    // Calculate net amount for each transaction based on the relevant entries only
     const transactions: DrillDownTransaction[] = Array.from(transactionMap.values()).map(transaction => {
-      // For drill-down, we'll calculate a simple net amount based on debits vs credits
-      let totalDebits = 0;
-      let totalCredits = 0;
+      // Calculate net amount based on the impact on the target account/subcategory
+      let netAmount = 0;
       
       transaction.entries.forEach(entry => {
+        // For the target account/subcategory, calculate the balance change
         if (entry.type === 'DEBIT') {
-          totalDebits += entry.amount;
+          netAmount += entry.amount;
         } else {
-          totalCredits += entry.amount;
+          netAmount -= entry.amount;
         }
       });
-      
-      // Net amount is the difference (positive if more debits, negative if more credits)
-      const netAmount = totalDebits - totalCredits;
       
       return {
         ...transaction,
@@ -587,10 +588,11 @@ export class ReportService {
       };
     });
 
-    console.log('🔍 Grouped transactions:', transactions.map(t => ({
+    console.log('🔍 Grouped transactions with relevant entries:', transactions.map(t => ({
       id: t.id,
       description: t.description,
       entryCount: t.entries.length,
+      netAmount: t.netAmount,
       entries: t.entries.map(e => `${e.accountName}: ${e.type} ${e.amount}`)
     })));
 
