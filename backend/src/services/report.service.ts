@@ -574,9 +574,15 @@ export class ReportService {
         console.log(`🔍 Processing transaction ${transaction.id} with ${transaction.entries.length} entries`);
         
         transaction.entries.forEach((entry, index) => {
+          // Only calculate net amount based on RELEVANT entries (the ones that match our drill-down target)
+          if (!entry.isRelevant) {
+            console.log(`🔍 Skipping non-relevant entry for net calculation: ${entry.accountName}`);
+            return;
+          }
+          
           // For the target account/subcategory, calculate the balance change
           const amount = Number(entry.amount);
-          console.log(`🔍 Entry ${index + 1}: ${entry.accountName} - ${entry.type} ${amount} (${typeof amount})`);
+          console.log(`🔍 Entry ${index + 1}: ${entry.accountName} - ${entry.type} ${amount} (${typeof amount}) - RELEVANT`);
           
           // Validate that amount is a valid number
           if (isNaN(amount)) {
