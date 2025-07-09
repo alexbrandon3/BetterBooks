@@ -588,21 +588,64 @@ export class ReportService {
           }
           
           // For drill-down, we want to show the impact on the account balance
-          // For asset accounts (like Cash, Savings), debits increase the balance (positive)
-          // For liability/equity accounts, debits increase the balance (positive)
+          // Following proper accounting normal balance rules
           if (entry.type === 'DEBIT') {
-            // For asset accounts, debits increase balance (positive impact)
+            // ASSETS: Debits increase balance (positive impact)
             if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
-              netAmount += amount; // Debit increases asset balance
-            } else {
-              netAmount += amount; // Debit increases liability/equity balance
+              netAmount += amount;
+            }
+            // EXPENSES: Debits increase balance (positive impact)
+            else if (entry.financialCategory === 'OPERATING_EXPENSE' || entry.financialCategory === 'NON_OPERATING_EXPENSE') {
+              netAmount += amount;
+            }
+            // LIABILITIES: Debits decrease balance (negative impact)
+            else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
+              netAmount -= amount;
+            }
+            // EQUITY: Debits decrease balance (negative impact)
+            else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS') {
+              netAmount -= amount;
+            }
+            // REVENUE: Debits decrease balance (negative impact)
+            else if (entry.financialCategory === 'OPERATING_REVENUE' || entry.financialCategory === 'NON_OPERATING_REVENUE') {
+              netAmount -= amount;
+            }
+            // DRAWINGS: Debits increase balance (positive impact) - contra equity
+            else if (entry.financialCategory === 'DRAWINGS') {
+              netAmount += amount;
+            }
+            else {
+              // Default: assume debit increases
+              netAmount += amount;
             }
           } else {
-            // For asset accounts, credits decrease balance (negative impact)
+            // ASSETS: Credits decrease balance (negative impact)
             if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
-              netAmount -= amount; // Credit decreases asset balance
-            } else {
-              netAmount -= amount; // Credit decreases liability/equity balance
+              netAmount -= amount;
+            }
+            // EXPENSES: Credits decrease balance (negative impact)
+            else if (entry.financialCategory === 'OPERATING_EXPENSE' || entry.financialCategory === 'NON_OPERATING_EXPENSE') {
+              netAmount -= amount;
+            }
+            // LIABILITIES: Credits increase balance (positive impact)
+            else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
+              netAmount += amount;
+            }
+            // EQUITY: Credits increase balance (positive impact)
+            else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS') {
+              netAmount += amount;
+            }
+            // REVENUE: Credits increase balance (positive impact)
+            else if (entry.financialCategory === 'OPERATING_REVENUE' || entry.financialCategory === 'NON_OPERATING_REVENUE') {
+              netAmount += amount;
+            }
+            // DRAWINGS: Credits decrease balance (negative impact) - contra equity
+            else if (entry.financialCategory === 'DRAWINGS') {
+              netAmount -= amount;
+            }
+            else {
+              // Default: assume credit decreases
+              netAmount -= amount;
             }
           }
         });
