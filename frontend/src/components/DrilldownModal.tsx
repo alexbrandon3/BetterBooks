@@ -269,38 +269,74 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
                                 let isPositive = false;
                                 
                                 if (entry.type === 'DEBIT') {
-                                  // For asset accounts, debits increase balance (positive impact)
+                                  // ASSETS: Debits increase balance (positive impact)
                                   if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
                                     impact = entry.amount;
                                     isPositive = true;
-                                  } else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
-                                    // For liability accounts, debits increase balance (positive impact)
+                                  } 
+                                  // EXPENSES: Debits increase balance (positive impact)
+                                  else if (entry.financialCategory === 'OPERATING_EXPENSE' || entry.financialCategory === 'NON_OPERATING_EXPENSE') {
                                     impact = entry.amount;
                                     isPositive = true;
-                                  } else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS' || entry.financialCategory === 'DRAWINGS') {
-                                    // For equity accounts, debits increase balance (positive impact)
+                                  }
+                                  // LIABILITIES: Debits decrease balance (negative impact)
+                                  else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
+                                    impact = -entry.amount;
+                                    isPositive = false;
+                                  }
+                                  // EQUITY: Debits decrease balance (negative impact)
+                                  else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS') {
+                                    impact = -entry.amount;
+                                    isPositive = false;
+                                  }
+                                  // REVENUE: Debits decrease balance (negative impact)
+                                  else if (entry.financialCategory === 'OPERATING_REVENUE' || entry.financialCategory === 'NON_OPERATING_REVENUE') {
+                                    impact = -entry.amount;
+                                    isPositive = false;
+                                  }
+                                  // DRAWINGS: Debits increase balance (positive impact) - contra equity
+                                  else if (entry.financialCategory === 'DRAWINGS') {
                                     impact = entry.amount;
                                     isPositive = true;
-                                  } else {
-                                    // Default: debits increase balance
+                                  }
+                                  else {
+                                    // Default: assume debit increases
                                     impact = entry.amount;
                                     isPositive = true;
                                   }
                                 } else {
-                                  // For asset accounts, credits decrease balance (negative impact)
+                                  // ASSETS: Credits decrease balance (negative impact)
                                   if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
                                     impact = -entry.amount;
                                     isPositive = false;
-                                  } else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
-                                    // For liability accounts, credits decrease balance (negative impact)
+                                  }
+                                  // EXPENSES: Credits decrease balance (negative impact)
+                                  else if (entry.financialCategory === 'OPERATING_EXPENSE' || entry.financialCategory === 'NON_OPERATING_EXPENSE') {
                                     impact = -entry.amount;
                                     isPositive = false;
-                                  } else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS' || entry.financialCategory === 'DRAWINGS') {
-                                    // For equity accounts, credits decrease balance (negative impact)
+                                  }
+                                  // LIABILITIES: Credits increase balance (positive impact)
+                                  else if (entry.financialCategory === 'CURRENT_LIABILITY' || entry.financialCategory === 'LONG_TERM_LIABILITY') {
+                                    impact = entry.amount;
+                                    isPositive = true;
+                                  }
+                                  // EQUITY: Credits increase balance (positive impact)
+                                  else if (entry.financialCategory === 'EQUITY' || entry.financialCategory === 'RETAINED_EARNINGS') {
+                                    impact = entry.amount;
+                                    isPositive = true;
+                                  }
+                                  // REVENUE: Credits increase balance (positive impact)
+                                  else if (entry.financialCategory === 'OPERATING_REVENUE' || entry.financialCategory === 'NON_OPERATING_REVENUE') {
+                                    impact = entry.amount;
+                                    isPositive = true;
+                                  }
+                                  // DRAWINGS: Credits decrease balance (negative impact) - contra equity
+                                  else if (entry.financialCategory === 'DRAWINGS') {
                                     impact = -entry.amount;
                                     isPositive = false;
-                                  } else {
-                                    // Default: credits decrease balance
+                                  }
+                                  else {
+                                    // Default: assume credit decreases
                                     impact = -entry.amount;
                                     isPositive = false;
                                   }
