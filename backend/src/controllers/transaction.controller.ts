@@ -25,13 +25,27 @@ export class TransactionController extends BaseController {
         return;
       }
 
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = (page - 1) * limit;
+
       // For now, use the simple getTransactions method
-      const transactions = await this.transactionService.getTransactions(user.id);
+      const allTransactions = await this.transactionService.getTransactions(user.id);
+      
+      // Apply pagination
+      const total = allTransactions.length;
+      const totalPages = Math.ceil(total / limit);
+      const transactions = allTransactions.slice(offset, offset + limit);
       
       console.log('📤 Sending transactions response:', JSON.stringify({
         transactions: transactions.map((t: Transaction) => ({
           id: t.id,
           description: t.description,
+          type: t.type,
+          category: t.category,
+          date: t.date,
+          amount: t.amount,
           entryCount: t.entries?.length,
           entries: t.entries?.map((e: any) => ({
             id: e.id,
@@ -39,10 +53,18 @@ export class TransactionController extends BaseController {
             type: e.type,
             accountId: e.account?.id
           }))
-        }))
+        })),
+        total,
+        page,
+        totalPages
       }, null, 2));
 
-      res.json(transactions);
+      res.json({
+        transactions,
+        total,
+        page,
+        totalPages
+      });
     } catch (error) {
       console.error("❌ Error in getTransactions controller:", error);
       res.status(500).json({ 
