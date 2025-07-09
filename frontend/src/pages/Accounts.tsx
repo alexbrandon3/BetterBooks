@@ -62,7 +62,7 @@ const Accounts = () => {
   const [suggestedFields, setSuggestedFields] = useState<string[]>([]);
   const [editingAccountId, setEditingAccountId] = useState<number | null>(null);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
-  const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
+  const [suggestionConfidence, setSuggestionConfidence] = useState<number | string | null>(null);
   const [templates, setTemplates] = useState<AccountTemplate[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [balanceWarning, setBalanceWarning] = useState<string | null>(null);
@@ -406,16 +406,26 @@ const Accounts = () => {
     setShowTemplates(false);
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600';
-    if (confidence >= 0.6) return 'text-yellow-600';
+  const getConfidenceColor = (confidence: number | string) => {
+    const numConfidence = typeof confidence === 'string' ? 
+      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
+    if (numConfidence >= 0.8) return 'text-green-600';
+    if (numConfidence >= 0.6) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getConfidenceText = (confidence: number) => {
-    if (confidence >= 0.8) return "High Confidence";
-    if (confidence >= 0.6) return "Medium Confidence";
+  const getConfidenceText = (confidence: number | string) => {
+    const numConfidence = typeof confidence === 'string' ? 
+      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
+    if (numConfidence >= 0.8) return "High Confidence";
+    if (numConfidence >= 0.6) return "Medium Confidence";
     return "Low Confidence";
+  };
+
+  const getConfidencePercentage = (confidence: number | string) => {
+    const numConfidence = typeof confidence === 'string' ? 
+      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
+    return Math.round(numConfidence * 100);
   };
 
   // Helper function to get color-coded styling for account types
@@ -562,7 +572,7 @@ const Accounts = () => {
                   <p className="text-sm text-blue-800">{suggestionExplanation}</p>
                   {suggestionConfidence !== null && (
                     <p className={`text-xs mt-1 ${getConfidenceColor(suggestionConfidence)}`}>
-                      {getConfidenceText(suggestionConfidence)} ({Math.round(suggestionConfidence * 100)}%)
+                      {getConfidenceText(suggestionConfidence)} ({getConfidencePercentage(suggestionConfidence)}%)
                     </p>
                   )}
                 </div>
