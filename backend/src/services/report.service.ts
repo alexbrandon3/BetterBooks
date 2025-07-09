@@ -558,7 +558,7 @@ export class ReportService {
       const transaction = transactionMap.get(transactionId)!;
       transaction.entries.push({
         accountName: entry.account.name,
-        amount: entry.amount,
+        amount: Number(entry.amount),
         type: entry.type as 'DEBIT' | 'CREDIT',
         accountType: entry.account.type,
         financialCategory: entry.account.financialCategory,
@@ -575,10 +575,11 @@ export class ReportService {
       
       transaction.entries.forEach(entry => {
         // For the target account/subcategory, calculate the balance change
+        const amount = Number(entry.amount);
         if (entry.type === 'DEBIT') {
-          netAmount += entry.amount;
+          netAmount += amount;
         } else {
-          netAmount -= entry.amount;
+          netAmount -= amount;
         }
       });
       
