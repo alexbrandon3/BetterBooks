@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
-import { Account, AccountType, FinancialCategory } from "../entities/Account";
+import { Account, FinancialCategory } from "../entities/Account";
 import { Between } from "typeorm";
 import { EntryType } from "../types/transaction.types";
 
@@ -543,22 +543,24 @@ export class ReportService {
     
     // Calculate net amount for each transaction
     const transactions: DrillDownTransaction[] = Array.from(transactionMap.values()).map(transaction => {
-      // Calculate net amount based on the account types involved
-      let netAmount = 0;
+      // For drill-down, we'll calculate a simple net amount based on debits vs credits
+      let totalDebits = 0;
+      let totalCredits = 0;
       
       transaction.entries.forEach(entry => {
-        if (entry.accountType === AccountType.ASSET || entry.accountType === AccountType.EXPENSE) {
-          // For assets and expenses: debits increase, credits decrease
-          netAmount += entry.type === 'DEBIT' ? entry.amount : -entry.amount;
+        if (entry.type === 'DEBIT') {
+          totalDebits += entry.amount;
         } else {
-          // For liabilities, income, and equity: credits increase, debits decrease
-          netAmount += entry.type === 'CREDIT' ? entry.amount : -entry.amount;
+          totalCredits += entry.amount;
         }
       });
       
+      // Net amount is the difference (positive if more debits, negative if more credits)
+      const netAmount = totalDebits - totalCredits;
+      
       return {
         ...transaction,
-        netAmount
+        netAmount: Number(netAmount.toFixed(2)) // Ensure we get a proper number
       };
     });
 
