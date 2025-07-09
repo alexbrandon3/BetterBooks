@@ -366,7 +366,8 @@ const Accounts = () => {
         if (!form.category) updates.category = suggestion.category;
         if (!form.subcategory) updates.subcategory = suggestion.subcategory;
         
-        if (!form.financialCategory || form.financialCategory === FinancialCategory.OPERATING_EXPENSE) {
+        // Always apply the suggested financial category if we have a valid suggestion
+        if (suggestion.financialCategory) {
           updates.financialCategory = suggestion.financialCategory as FinancialCategory;
         }
         if (!form.financialSubcategory || form.financialSubcategory === "Uncategorized") {
