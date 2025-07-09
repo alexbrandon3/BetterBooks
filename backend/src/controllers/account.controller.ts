@@ -1,18 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/data-source";
-import { Account, AccountType, FinancialCategory } from "../entities/Account";
+import { Account } from "../entities/Account";
 import { getUser } from "../utils/getUser";
 import { AuthenticationError, NotFoundError } from "../utils/errors";
 import { AuthenticatedRequest } from "../types/express";
-import { getSuggestedMetadata, validateAccountMetadata } from "../utils/accountCategorizer";
+import { getSuggestedMetadata } from "../utils/accountCategorizer";
 import { BaseController } from "./base.controller";
 import { AccountTemplateService } from "../services/accountTemplate.service";
 import { JournalEntry } from '../entities/JournalEntry';
-import { AccountService } from '../services/AccountService';
+
 
 const accountRepo = AppDataSource.getRepository(Account);
 const journalEntryRepo = AppDataSource.getRepository(JournalEntry);
-const accountService = new AccountService();
 
 
 export class AccountController extends BaseController {
