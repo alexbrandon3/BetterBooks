@@ -26,7 +26,17 @@ export interface IncomeStatement {
 }
 
 export interface CashFlow {
-  totalIncome: number;
-  totalExpenses: number;
+  operating: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  investing: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  financing: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
   netCashFlow: number;
 } 

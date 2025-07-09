@@ -296,128 +296,261 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   // Enhanced keyword map with explanations and confidence levels
   const keywordMap = [
     {
-      keywords: ["cash", "petty", "bank", "checking", "savings", "money market", "acount", "acct", "account"],
+      keywords: ["cash", "petty", "bank", "checking", "savings", "money market", "acount", "acct", "account", "business checking", "business savings", "merchant account"],
       result: {
         type: AccountType.ASSET,
         category: "Bank",
         subcategory: "Bank Accounts",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "CASH_AND_EQUIVALENTS",
-        explanation: "This appears to be a cash or bank account based on the name. Bank accounts are classified as current assets.",
+        explanation: "This appears to be a cash or bank account based on the name. Bank accounts are classified as current assets for business accounting.",
         confidence: 0.95
       },
     },
     {
-      keywords: ["credit card", "loan", "debt", "credit", "mortgage", "car loan", "student loan"],
+      keywords: ["credit card", "loan", "debt", "credit", "mortgage", "car loan", "student loan", "business loan", "line of credit", "sba loan", "equipment financing"],
       result: {
         type: AccountType.LIABILITY,
         category: "Loans & Credit",
         subcategory: "Credit Cards & Loans",
         financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: "SHORT_TERM_DEBT",
-        explanation: "This appears to be a credit card or loan account. Credit cards and short-term loans are classified as current liabilities.",
+        explanation: "This appears to be a credit card or loan account. Credit cards and short-term loans are classified as current liabilities in business accounting.",
         confidence: 0.9
       },
     },
     {
-      keywords: ["salary", "income", "revenue", "sales", "commission", "bonus", "paycheck"],
+      keywords: ["salary", "income", "revenue", "sales", "commission", "bonus", "paycheck", "service income", "product sales", "consulting revenue", "retail sales", "wholesale sales"],
       result: {
         type: AccountType.INCOME,
         category: "Income",
         subcategory: "Salary & Revenue",
         financialCategory: FinancialCategory.OPERATING_REVENUE,
         financialSubcategory: "SALES_REVENUE",
-        explanation: "This appears to be an income or revenue account. Income accounts are classified as operating revenue.",
+        explanation: "This appears to be an income or revenue account. Business income accounts are classified as operating revenue.",
         confidence: 0.9
       },
     },
     {
-      keywords: ["receivable", "invoice", "billing", "customer payment", "client payment"],
+      keywords: ["receivable", "invoice", "billing", "customer payment", "client payment", "accounts receivable", "outstanding invoices", "money owed"],
       result: {
         type: AccountType.ASSET,
         category: "Accounts Receivable",
         subcategory: "Customer Invoices",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "ACCOUNTS_RECEIVABLE",
-        explanation: "This appears to be money owed to you by customers. Accounts receivable are classified as current assets.",
+        explanation: "This appears to be money owed to your business by customers. Accounts receivable are classified as current assets in business accounting.",
         confidence: 0.85
       },
     },
     {
-      keywords: ["payable", "bills", "creditors", "vendor", "supplier"],
+      keywords: ["payable", "bills", "creditors", "vendor", "supplier", "accounts payable", "vendor bills", "money owed to", "supplier invoices"],
       result: {
         type: AccountType.LIABILITY,
         category: "Accounts Payable",
         subcategory: "Vendor Bills",
         financialCategory: FinancialCategory.CURRENT_LIABILITY,
         financialSubcategory: "ACCOUNTS_PAYABLE",
-        explanation: "This appears to be money you owe to vendors or suppliers. Accounts payable are classified as current liabilities.",
+        explanation: "This appears to be money your business owes to vendors or suppliers. Accounts payable are classified as current liabilities in business accounting.",
         confidence: 0.85
       },
     },
     {
-      keywords: ["equity", "owner", "capital", "investment", "retained earnings"],
+      keywords: ["equity", "owner", "capital", "investment", "retained earnings", "owner equity", "partner equity", "member equity", "stockholder equity"],
       result: {
         type: AccountType.EQUITY,
         category: "Owner's Equity",
         subcategory: "Capital & Retained Earnings",
         financialCategory: FinancialCategory.EQUITY,
         financialSubcategory: "RETAINED_EARNINGS",
-        explanation: "This appears to be an equity account representing owner investment or retained earnings.",
+        explanation: "This appears to be an equity account representing owner investment or retained earnings. Equity accounts show the owner's stake in the business.",
         confidence: 0.8
       },
     },
     {
-      keywords: ["equipment", "machinery", "vehicle", "computer", "furniture", "building", "land", "property"],
+      keywords: ["equipment", "machinery", "vehicle", "computer", "furniture", "building", "land", "property", "office equipment", "production equipment", "manufacturing equipment"],
       result: {
         type: AccountType.ASSET,
         category: "Fixed Assets",
         subcategory: "Equipment & Property",
         financialCategory: FinancialCategory.FIXED_ASSET,
         financialSubcategory: "FIXED_ASSETS",
-        explanation: "This appears to be a fixed asset like equipment, vehicles, or property. Fixed assets are long-term assets.",
+        explanation: "This appears to be a fixed asset like equipment, vehicles, or property. Fixed assets are long-term assets used in business operations.",
         confidence: 0.8
       },
     },
     {
-      keywords: ["supplies", "office", "materials", "inventory", "stock", "merchandise"],
+      keywords: ["supplies", "office", "materials", "inventory", "stock", "merchandise", "raw materials", "office supplies", "business supplies", "production materials"],
       result: {
         type: AccountType.ASSET,
         category: "Inventory & Supplies",
         subcategory: "Office Supplies & Inventory",
         financialCategory: FinancialCategory.CURRENT_ASSET,
         financialSubcategory: "INVENTORY",
-        explanation: "This appears to be inventory or supplies. These are typically classified as current assets.",
+        explanation: "This appears to be inventory or supplies. These are typically classified as current assets in business accounting.",
         confidence: 0.75
       },
     },
-    // Personal finance categories
+    // Business-specific expense categories
     {
-      keywords: ["food", "dining", "restaurant", "grocery", "meal", "lunch", "dinner"],
+      keywords: ["payroll", "salary expense", "wage expense", "employee expense", "payroll tax", "employee benefits", "workers comp", "payroll processing"],
       result: {
         type: AccountType.EXPENSE,
-        category: "Food & Dining",
-        subcategory: "Meals & Groceries",
+        category: "Payroll",
+        subcategory: "Employee Compensation",
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "MEAL_EXPENSE",
-        explanation: "This appears to be a food or dining expense account. Food expenses are operating expenses.",
+        financialSubcategory: "SALARY_EXPENSE",
+        explanation: "This appears to be a payroll or employee compensation expense account. Payroll expenses are operating expenses in business accounting.",
+        confidence: 0.9
+      },
+    },
+    {
+      keywords: ["marketing", "advertising", "promotion", "campaign", "social media", "google ads", "facebook ads", "seo", "branding", "website", "digital marketing"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Marketing",
+        subcategory: "Advertising & Promotion",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "ADVERTISING_EXPENSE",
+        explanation: "This appears to be a marketing or advertising expense account. Marketing expenses are operating expenses in business accounting.",
         confidence: 0.85
       },
     },
     {
-      keywords: ["transportation", "gas", "fuel", "uber", "lyft", "parking", "toll"],
+      keywords: ["professional services", "legal", "accounting", "consulting", "cpa", "attorney", "lawyer", "audit", "tax preparation", "business consulting"],
       result: {
         type: AccountType.EXPENSE,
-        category: "Transportation",
-        subcategory: "Fuel & Transit",
+        category: "Professional Services",
+        subcategory: "Legal & Accounting",
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "TRAVEL_EXPENSE",
-        explanation: "This appears to be a transportation expense account. Transportation costs are operating expenses.",
+        financialSubcategory: "LEGAL_EXPENSE",
+        explanation: "This appears to be a professional services expense account. Professional services are operating expenses in business accounting.",
+        confidence: 0.85
+      },
+    },
+    {
+      keywords: ["insurance", "business insurance", "liability insurance", "property insurance", "workers compensation", "professional liability", "general liability"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Insurance",
+        subcategory: "Business Insurance",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "INSURANCE_EXPENSE",
+        explanation: "This appears to be a business insurance expense account. Insurance premiums are operating expenses in business accounting.",
+        confidence: 0.85
+      },
+    },
+    {
+      keywords: ["utility", "utilities", "electric", "water", "gas", "internet", "phone", "cable", "wifi", "electricity", "power", "sewer", "trash", "office utilities"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Utilities",
+        subcategory: "Office Utilities",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "UTILITIES_EXPENSE",
+        explanation: "This appears to be a utility expense account. Utility expenses are operating expenses in business accounting.",
+        confidence: 0.85
+      },
+    },
+    {
+      keywords: ["rent", "lease", "rental", "landlord", "property", "real estate", "office space", "warehouse", "storage", "office rent"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Rent",
+        subcategory: "Office & Warehouse Rent",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "RENT_EXPENSE",
+        explanation: "This appears to be a rent expense account. Rent expenses are operating expenses in business accounting.",
+        confidence: 0.85
+      },
+    },
+    {
+      keywords: ["software", "subscription", "saas", "cloud", "microsoft", "adobe", "quickbooks", "salesforce", "hubspot", "mailchimp", "stripe", "paypal"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Software",
+        subcategory: "Subscriptions & SaaS",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TECHNOLOGY_EXPENSE",
+        explanation: "This appears to be a software or subscription expense account. Software expenses are operating expenses in business accounting.",
         confidence: 0.8
       },
     },
     {
-      keywords: ["entertainment", "netflix", "spotify", "movie", "concert", "theater"],
+      keywords: ["maintenance", "repair", "service call", "technician", "janitorial", "cleaning", "landscaping", "security", "building maintenance"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Maintenance",
+        subcategory: "Building & Equipment",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "MAINTENANCE_EXPENSE",
+        explanation: "This appears to be a maintenance expense account. Maintenance expenses are operating expenses in business accounting.",
+        confidence: 0.8
+      },
+    },
+    {
+      keywords: ["travel", "business travel", "conference", "trade show", "meeting", "client visit", "business trip", "mileage", "airfare", "hotel", "car rental"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Travel",
+        subcategory: "Business Travel",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TRAVEL_EXPENSE",
+        explanation: "This appears to be a business travel expense account. Travel expenses are operating expenses in business accounting.",
+        confidence: 0.8
+      },
+    },
+    {
+      keywords: ["food", "restaurant", "dining", "meal", "lunch", "dinner", "breakfast", "cafe", "business meal", "client dinner", "catering", "office lunch"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Food & Dining",
+        subcategory: "Business Meals",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "MEAL_EXPENSE",
+        explanation: "This appears to be a food or dining expense account. Business meal expenses are operating expenses in business accounting.",
+        confidence: 0.8
+      },
+    },
+    {
+      keywords: ["gas", "fuel", "petrol", "exxon", "shell", "bp", "chevron", "mobil", "business fuel", "delivery vehicle", "company car", "fleet"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Transportation",
+        subcategory: "Fuel & Vehicle",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TRAVEL_EXPENSE",
+        explanation: "This appears to be a transportation expense account. Transportation costs are operating expenses in business accounting.",
+        confidence: 0.8
+      },
+    },
+    {
+      keywords: ["tax", "taxes", "taxation", "irs", "federal", "state", "local", "property tax", "income tax", "sales tax", "business tax", "payroll tax"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Taxes",
+        subcategory: "Business Taxes",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TAX_EXPENSE",
+        explanation: "This appears to be a tax expense account. Tax expenses are operating expenses in business accounting.",
+        confidence: 0.9
+      },
+    },
+    {
+      keywords: ["draw", "drawing", "withdrawal", "owner draw", "partner draw", "member distribution", "owner withdrawal"],
+      result: {
+        type: AccountType.EQUITY,
+        category: "Drawings",
+        subcategory: "Owner Withdrawals",
+        financialCategory: FinancialCategory.EQUITY,
+        financialSubcategory: "DRAWINGS",
+        explanation: "This appears to be an owner draw or withdrawal account. Drawings reduce owner equity in business accounting.",
+        confidence: 0.85
+      },
+    },
+    // Personal finance categories (lower priority for business context)
+    {
+      keywords: ["entertainment", "netflix", "spotify", "hulu", "disney", "game", "concert", "theater", "youtube", "apple music", "amazon prime", "hbo", "peacock", "paramount"],
       result: {
         type: AccountType.EXPENSE,
         category: "Entertainment",
@@ -425,11 +558,11 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "ADVERTISING_EXPENSE",
         explanation: "This appears to be an entertainment expense account. Entertainment costs are operating expenses.",
-        confidence: 0.8
+        confidence: 0.75
       },
     },
     {
-      keywords: ["healthcare", "medical", "doctor", "pharmacy", "dental", "vision"],
+      keywords: ["healthcare", "medical", "doctor", "pharmacy", "dental", "vision", "hospital", "clinic", "urgent care", "emergency room", "er", "prescription", "medication", "health insurance"],
       result: {
         type: AccountType.EXPENSE,
         category: "Healthcare",
@@ -437,7 +570,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "INSURANCE_EXPENSE",
         explanation: "This appears to be a healthcare expense account. Medical expenses are operating expenses.",
-        confidence: 0.8
+        confidence: 0.75
       },
     },
     {
@@ -449,47 +582,23 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "RENT_EXPENSE",
         explanation: "This appears to be a housing expense account. Housing costs are operating expenses.",
-        confidence: 0.85
+        confidence: 0.75
       },
     },
     {
-      keywords: ["insurance", "car insurance", "health insurance", "life insurance"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Insurance",
-        subcategory: "Various Policies",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "INSURANCE_EXPENSE",
-        explanation: "This appears to be an insurance expense account. Insurance premiums are operating expenses.",
-        confidence: 0.85
-      },
-    },
-    {
-      keywords: ["education", "tuition", "school", "books", "training", "course"],
+      keywords: ["education", "tuition", "school", "books", "training", "course", "college", "university", "textbook", "class", "workshop", "seminar", "business training", "employee training", "professional development"],
       result: {
         type: AccountType.EXPENSE,
         category: "Education",
-        subcategory: "Tuition & Books",
+        subcategory: "Tuition & Training",
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "ADVERTISING_EXPENSE",
         explanation: "This appears to be an education expense account. Education costs are operating expenses.",
-        confidence: 0.8
+        confidence: 0.75
       },
     },
     {
-      keywords: ["travel", "vacation", "hotel", "airline", "flight", "airbnb"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Travel",
-        subcategory: "Vacation & Business",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "TRAVEL_EXPENSE",
-        explanation: "This appears to be a travel expense account. Travel costs are operating expenses.",
-        confidence: 0.8
-      },
-    },
-    {
-      keywords: ["childcare", "daycare", "babysitter", "nanny"],
+      keywords: ["childcare", "daycare", "babysitter", "nanny", "preschool", "after school", "summer camp", "child care", "dependent care"],
       result: {
         type: AccountType.EXPENSE,
         category: "Family",
@@ -497,7 +606,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "SALARY_EXPENSE",
         explanation: "This appears to be a childcare expense account. Childcare costs are operating expenses.",
-        confidence: 0.8
+        confidence: 0.75
       },
     },
     {
@@ -509,7 +618,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "MAINTENANCE_EXPENSE",
         explanation: "This appears to be a pet-related expense account. Pet expenses are operating expenses.",
-        confidence: 0.75
+        confidence: 0.7
       },
     },
     {
@@ -521,7 +630,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "ADVERTISING_EXPENSE",
         explanation: "This appears to be a shopping expense account. Shopping expenses are operating expenses.",
-        confidence: 0.75
+        confidence: 0.7
       },
     },
     {
@@ -533,7 +642,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "MAINTENANCE_EXPENSE",
         explanation: "This appears to be a fitness expense account. Fitness expenses are operating expenses.",
-        confidence: 0.75
+        confidence: 0.7
       },
     },
     {

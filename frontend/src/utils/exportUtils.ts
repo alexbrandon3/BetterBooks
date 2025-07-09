@@ -1,4 +1,4 @@
-import { type BalanceSheet, type IncomeStatement } from '../services/ReportService';
+import { type BalanceSheet, type IncomeStatement, type CashFlow } from '../services/ReportService';
 import { formatCurrency } from './formatters';
 
 export { formatCurrency };
@@ -91,6 +91,49 @@ export const incomeStatementToCSV = (data: IncomeStatement): string => {
   return rows.join('\n');
 };
 
+export const cashFlowToCSV = (data: CashFlow): string => {
+  const rows: string[] = [];
+  rows.push('Section,Category,Account,Amount');
+  
+  // Operating Activities
+  rows.push('Operating Activities,,,');
+  if (data.operating && Object.keys(data.operating.subcategories).length > 0) {
+    Object.entries(data.operating.subcategories).forEach(([account, amount]) => {
+      rows.push(`Operating Activities,${escapeCSV(account)},,${formatAmount(amount)}`);
+    });
+  } else {
+    rows.push('Operating Activities,No operating activities found for the selected period,,');
+  }
+  rows.push(`Operating Activities,Total Operating Activities,,${formatAmount(data.operating?.total || 0)}`);
+  
+  // Investing Activities
+  rows.push('Investing Activities,,,');
+  if (data.investing && Object.keys(data.investing.subcategories).length > 0) {
+    Object.entries(data.investing.subcategories).forEach(([account, amount]) => {
+      rows.push(`Investing Activities,${escapeCSV(account)},,${formatAmount(amount)}`);
+    });
+  } else {
+    rows.push('Investing Activities,No investing activities found for the selected period,,');
+  }
+  rows.push(`Investing Activities,Total Investing Activities,,${formatAmount(data.investing?.total || 0)}`);
+  
+  // Financing Activities
+  rows.push('Financing Activities,,,');
+  if (data.financing && Object.keys(data.financing.subcategories).length > 0) {
+    Object.entries(data.financing.subcategories).forEach(([account, amount]) => {
+      rows.push(`Financing Activities,${escapeCSV(account)},,${formatAmount(amount)}`);
+    });
+  } else {
+    rows.push('Financing Activities,No financing activities found for the selected period,,');
+  }
+  rows.push(`Financing Activities,Total Financing Activities,,${formatAmount(data.financing?.total || 0)}`);
+  
+  // Net Cash Flow
+  rows.push(`Net Cash Flow,,,${formatAmount(data.netCashFlow)}`);
+  
+  return rows.join('\n');
+};
+
 export const createDownloadLink = (content: string, filename: string): void => {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
@@ -104,8 +147,8 @@ export const createDownloadLink = (content: string, filename: string): void => {
 };
 
 export const exportToCSV = (
-  data: BalanceSheet | IncomeStatement | null,
-  reportType: 'balance-sheet' | 'income-statement'
+  data: BalanceSheet | IncomeStatement | CashFlow | null,
+  reportType: 'balance-sheet' | 'income-statement' | 'cash-flow'
 ): void => {
   if (!data) return;
   let csvContent: string;
@@ -118,6 +161,10 @@ export const exportToCSV = (
     case 'income-statement':
       csvContent = incomeStatementToCSV(data as IncomeStatement);
       filename = `income_statement_${new Date().toISOString().split('T')[0]}.csv`;
+      break;
+    case 'cash-flow':
+      csvContent = cashFlowToCSV(data as CashFlow);
+      filename = `cash_flow_${new Date().toISOString().split('T')[0]}.csv`;
       break;
     default:
       return;

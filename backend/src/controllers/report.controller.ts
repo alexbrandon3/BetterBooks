@@ -30,7 +30,10 @@ export const getIncomeStatement = async (req: AuthenticatedRequest, res: Respons
     }
 
     const { startDate, endDate } = req.query;
-    const result = await reportService.generateIncomeStatement(user.id, startDate as string, endDate as string);
+    const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), 0, 1);
+    const end = endDate ? new Date(endDate as string) : new Date();
+    
+    const result = await reportService.generateIncomeStatement(user.id, start.toISOString(), end.toISOString());
     res.json(result);
   } catch (error) {
     console.error('Error generating income statement:', error);
@@ -55,5 +58,58 @@ export const getCashFlow = async (req: AuthenticatedRequest, res: Response): Pro
   } catch (error) {
     console.error('Error generating cash flow statement:', error);
     res.status(500).json({ message: 'Failed to generate cash flow statement' });
+  }
+};
+
+export const getDrillDown = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = await getUser(req);
+    if (!user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { type, accountId, subcategory, startDate, endDate } = req.query;
+    
+    // Validate required parameters
+    if (!type || typeof type !== 'string') {
+      res.status(400).json({ message: 'Report type is required' });
+      return;
+    }
+
+    if (!accountId && !subcategory) {
+      res.status(400).json({ message: 'Either accountId or subcategory is required' });
+      return;
+    }
+
+    // Parse dates
+    const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), 0, 1);
+    const end = endDate ? new Date(endDate as string) : new Date();
+
+    console.log('🔍 Drill-down request:', {
+      type,
+      accountId,
+      subcategory,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      userId: user.id
+    });
+
+    const result = await reportService.getDrillDown(
+      user.id,
+      type as string,
+      accountId ? Number(accountId) : undefined,
+      subcategory as string,
+      start,
+      end
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error generating drill-down data:', error);
+    res.status(500).json({ 
+      message: 'Failed to generate drill-down data',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

@@ -1,9 +1,8 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
-import { Account } from "../entities/Account";
+import { Account, AccountType, FinancialCategory } from "../entities/Account";
 import { Between } from "typeorm";
-import { FinancialCategory } from "../entities/Account";
 import { EntryType } from "../types/transaction.types";
 
 interface AccountBalance {
@@ -23,6 +22,75 @@ interface BalanceSheetResponse {
   assets: SubcategoryGroup[];
   liabilities: SubcategoryGroup[];
   equity: SubcategoryGroup[];
+}
+
+export interface BalanceSheet {
+  assets: {
+    current: {
+      subcategories: Record<string, number>;
+      total: number;
+    };
+    longTerm: {
+      subcategories: Record<string, number>;
+      total: number;
+    };
+    total: number;
+  };
+  liabilities: {
+    current: {
+      subcategories: Record<string, number>;
+      total: number;
+    };
+    longTerm: {
+      subcategories: Record<string, number>;
+      total: number;
+    };
+    total: number;
+  };
+  equity: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+}
+
+export interface IncomeStatement {
+  revenue: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  expenses: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  netIncome: number;
+}
+
+export interface CashFlow {
+  operating: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  investing: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  financing: {
+    subcategories: Record<string, number>;
+    total: number;
+  };
+  netCashFlow: number;
+}
+
+export interface DrillDownTransaction {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'DEBIT' | 'CREDIT';
+  accountName: string;
+  accountType: string;
+  financialCategory: string;
+  financialSubcategory: string;
 }
 
 export class ReportService {
@@ -363,5 +431,95 @@ export class ReportService {
 
     console.log('💰 Enhanced income statement result:', result);
     return result;
+  }
+
+  async getDrillDown(
+    userId: number,
+    type: string,
+    accountId?: number,
+    subcategory?: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<DrillDownTransaction[]> {
+    console.log('🔍 Drill-down request:', {
+      userId,
+      type,
+      accountId,
+      subcategory,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString()
+    });
+
+    // Build the base query
+    const queryBuilder = this.journalEntryRepo
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.transaction', 'transaction')
+      .leftJoinAndSelect('entry.account', 'account')
+      .where('transaction.user.id = :userId', { userId });
+
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      queryBuilder.andWhere('transaction.date BETWEEN :startDate AND :endDate', { startDate, endDate });
+    }
+
+    // Add account filter if accountId is provided
+    if (accountId) {
+      queryBuilder.andWhere('account.id = :accountId', { accountId });
+    }
+
+    // Add subcategory filter if subcategory is provided
+    if (subcategory) {
+      queryBuilder.andWhere('account.category = :subcategory', { subcategory });
+    }
+
+    // Add type-specific filters
+    switch (type.toLowerCase()) {
+      case 'income':
+        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.INCOME });
+        break;
+      case 'expense':
+        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.EXPENSE });
+        break;
+      case 'asset':
+        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.ASSET });
+        break;
+      case 'liability':
+        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.LIABILITY });
+        break;
+      case 'equity':
+        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.EQUITY });
+        break;
+      case 'cashflow':
+        // For cash flow, we'll include all transactions that affect cash accounts
+        queryBuilder.andWhere('account.financialCategory = :financialCategory', { 
+          financialCategory: FinancialCategory.CURRENT_ASSET 
+        });
+        break;
+      default:
+        // If no specific type filter, include all transactions
+        break;
+    }
+
+    // Order by date descending (most recent first)
+    queryBuilder.orderBy('transaction.date', 'DESC');
+
+    const entries = await queryBuilder.getMany();
+
+    console.log('📊 Found entries for drill-down:', entries.length);
+
+    // Transform to DrillDownTransaction format
+    const transactions: DrillDownTransaction[] = entries.map(entry => ({
+      id: Number(entry.transaction.id),
+      date: entry.transaction.date.toISOString().split('T')[0],
+      description: entry.transaction.description || 'No description',
+      amount: entry.amount,
+      type: entry.type as 'DEBIT' | 'CREDIT',
+      accountName: entry.account.name,
+      accountType: entry.account.type,
+      financialCategory: entry.account.financialCategory,
+      financialSubcategory: entry.account.financialSubcategory
+    }));
+
+    return transactions;
   }
 }

@@ -7,6 +7,8 @@ import { formatCurrency } from '../utils/formatters';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { DateRange } from '../types/common';
 import { toast } from 'react-hot-toast';
+import { useDrilldown } from '../hooks/useDrilldown';
+import DrilldownModal from '../components/DrilldownModal';
 
 // Constants for pagination
 const ITEMS_PER_PAGE = 10;
@@ -62,6 +64,7 @@ const Reports: React.FC = () => {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
   const [incomeStatement, setIncomeStatement] = useState<IncomeStatement | null>(null);
+  const drilldown = useDrilldown();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -118,7 +121,7 @@ const Reports: React.FC = () => {
         setError(null);
         
         console.log('📊 Fetching balance sheet...');
-        const balanceSheetData = await fetchBalanceSheet(dateRange.start, dateRange.end);
+        const balanceSheetData = await fetchBalanceSheet();
         console.log('📊 Balance sheet data received:', JSON.stringify(balanceSheetData, null, 2));
         
         console.log('💰 Fetching income statement...');
@@ -318,20 +321,49 @@ const Reports: React.FC = () => {
               <div className="space-y-3">
                 {balanceSheet.assets.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
-                    <div className="flex justify-between items-center py-2 px-4 bg-green-50 rounded-lg border border-green-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
-                        <p className="text-xs text-gray-500">Subcategory</p>
+                    <div 
+                      className="flex justify-between items-center py-2 px-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 hover:border-green-300 cursor-pointer transition-all duration-200 group"
+                      onClick={() => handleDrilldownClick(
+                        `Balance Sheet → Assets → ${formatEnumLabel(group.subcategoryName)}`,
+                        'asset',
+                        undefined,
+                        group.subcategoryName
+                      )}
+                      title="View details"
+                    >
+                      <div className="flex items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                          <p className="text-xs text-gray-500">Subcategory</p>
+                        </div>
+                        <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                       <p className="text-sm font-medium text-gray-900">
                         {formatCurrency(group.subtotal)}
                       </p>
                     </div>
                     {group.accounts.map((account, accountIndex) => (
-                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
-                          <p className="text-xs text-gray-500">Account</p>
+                      <div 
+                        key={accountIndex} 
+                        className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4 hover:bg-gray-100 cursor-pointer transition-all duration-200 group"
+                        onClick={() => handleDrilldownClick(
+                          `Balance Sheet → Assets → ${formatEnumLabel(group.subcategoryName)} → ${account.name}`,
+                          'asset',
+                          account.id,
+                          undefined
+                        )}
+                        title="View details"
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                            <p className="text-xs text-gray-500">Account</p>
+                          </div>
+                          <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
                           {formatCurrency(account.balance)}
@@ -356,20 +388,49 @@ const Reports: React.FC = () => {
               <div className="space-y-3">
                 {balanceSheet.liabilities.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
-                    <div className="flex justify-between items-center py-2 px-4 bg-red-50 rounded-lg border border-red-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
-                        <p className="text-xs text-gray-500">Subcategory</p>
+                    <div 
+                      className="flex justify-between items-center py-2 px-4 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 hover:border-red-300 cursor-pointer transition-all duration-200 group"
+                      onClick={() => handleDrilldownClick(
+                        `Balance Sheet → Liabilities → ${formatEnumLabel(group.subcategoryName)}`,
+                        'liability',
+                        undefined,
+                        group.subcategoryName
+                      )}
+                      title="View details"
+                    >
+                      <div className="flex items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                          <p className="text-xs text-gray-500">Subcategory</p>
+                        </div>
+                        <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                       <p className="text-sm font-medium text-gray-900">
                         {formatCurrency(group.subtotal)}
                       </p>
                     </div>
                     {group.accounts.map((account, accountIndex) => (
-                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
-                          <p className="text-xs text-gray-500">Account</p>
+                      <div 
+                        key={accountIndex} 
+                        className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4 hover:bg-gray-100 cursor-pointer transition-all duration-200 group"
+                        onClick={() => handleDrilldownClick(
+                          `Balance Sheet → Liabilities → ${formatEnumLabel(group.subcategoryName)} → ${account.name}`,
+                          'liability',
+                          account.id,
+                          undefined
+                        )}
+                        title="View details"
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                            <p className="text-xs text-gray-500">Account</p>
+                          </div>
+                          <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
                           {formatCurrency(account.balance)}
@@ -394,20 +455,49 @@ const Reports: React.FC = () => {
               <div className="space-y-3">
                 {balanceSheet.equity.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
-                    <div className="flex justify-between items-center py-2 px-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
-                        <p className="text-xs text-gray-500">Subcategory</p>
+                    <div 
+                      className="flex justify-between items-center py-2 px-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 cursor-pointer transition-all duration-200 group"
+                      onClick={() => handleDrilldownClick(
+                        `Balance Sheet → Equity → ${formatEnumLabel(group.subcategoryName)}`,
+                        'equity',
+                        undefined,
+                        group.subcategoryName
+                      )}
+                      title="View details"
+                    >
+                      <div className="flex items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                          <p className="text-xs text-gray-500">Subcategory</p>
+                        </div>
+                        <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                       <p className="text-sm font-medium text-gray-900">
                         {formatCurrency(group.subtotal)}
                       </p>
                     </div>
                     {group.accounts.map((account, accountIndex) => (
-                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
-                          <p className="text-xs text-gray-500">Account</p>
+                      <div 
+                        key={accountIndex} 
+                        className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4 hover:bg-gray-100 cursor-pointer transition-all duration-200 group"
+                        onClick={() => handleDrilldownClick(
+                          `Balance Sheet → Equity → ${formatEnumLabel(group.subcategoryName)} → ${account.name}`,
+                          'equity',
+                          account.id,
+                          undefined
+                        )}
+                        title="View details"
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                            <p className="text-xs text-gray-500">Account</p>
+                          </div>
+                          <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
                           {formatCurrency(account.balance)}
@@ -538,20 +628,49 @@ const Reports: React.FC = () => {
               <div className="space-y-3">
                 {incomeStatement.revenue.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
-                    <div className="flex justify-between items-center py-3 px-4 bg-green-50 rounded-lg border border-green-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
-                        <p className="text-xs text-gray-500">Revenue Category</p>
+                    <div 
+                      className="flex justify-between items-center py-3 px-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 hover:border-green-300 cursor-pointer transition-all duration-200 group"
+                      onClick={() => handleDrilldownClick(
+                        `Income Statement → Revenue → ${formatEnumLabel(group.subcategoryName)}`,
+                        'income',
+                        undefined,
+                        group.subcategoryName
+                      )}
+                      title="View details"
+                    >
+                      <div className="flex items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                          <p className="text-xs text-gray-500">Revenue Category</p>
+                        </div>
+                        <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                       <p className="text-sm font-medium text-green-600">
                         {formatCurrency(group.subtotal)}
                       </p>
                     </div>
                     {group.accounts.map((account, accountIndex) => (
-                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
-                          <p className="text-xs text-gray-500">Account</p>
+                      <div 
+                        key={accountIndex} 
+                        className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4 hover:bg-gray-100 cursor-pointer transition-all duration-200 group"
+                        onClick={() => handleDrilldownClick(
+                          `Income Statement → Revenue → ${formatEnumLabel(group.subcategoryName)} → ${account.name}`,
+                          'income',
+                          account.id,
+                          undefined
+                        )}
+                        title="View details"
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                            <p className="text-xs text-gray-500">Account</p>
+                          </div>
+                          <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                         <p className="text-sm font-medium text-green-600">
                           {formatCurrency(account.balance)}
@@ -576,20 +695,49 @@ const Reports: React.FC = () => {
               <div className="space-y-3">
                 {incomeStatement.expenses.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
-                    <div className="flex justify-between items-center py-3 px-4 bg-red-50 rounded-lg border border-red-200">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
-                        <p className="text-xs text-gray-500">Expense Category</p>
+                    <div 
+                      className="flex justify-between items-center py-3 px-4 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 hover:border-red-300 cursor-pointer transition-all duration-200 group"
+                      onClick={() => handleDrilldownClick(
+                        `Income Statement → Expenses → ${formatEnumLabel(group.subcategoryName)}`,
+                        'expense',
+                        undefined,
+                        group.subcategoryName
+                      )}
+                      title="View details"
+                    >
+                      <div className="flex items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatEnumLabel(group.subcategoryName)}</p>
+                          <p className="text-xs text-gray-500">Expense Category</p>
+                        </div>
+                        <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                       <p className="text-sm font-medium text-red-600">
                         {formatCurrency(group.subtotal)}
                       </p>
                     </div>
                     {group.accounts.map((account, accountIndex) => (
-                      <div key={accountIndex} className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{account.name}</p>
-                          <p className="text-xs text-gray-500">Account</p>
+                      <div 
+                        key={accountIndex} 
+                        className="flex justify-between items-center py-2 px-6 bg-gray-50 rounded-lg ml-4 hover:bg-gray-100 cursor-pointer transition-all duration-200 group"
+                        onClick={() => handleDrilldownClick(
+                          `Income Statement → Expenses → ${formatEnumLabel(group.subcategoryName)} → ${account.name}`,
+                          'expense',
+                          account.id,
+                          undefined
+                        )}
+                        title="View details"
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                            <p className="text-xs text-gray-500">Account</p>
+                          </div>
+                          <svg className="w-4 h-4 ml-2 text-gray-400 group-hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                         <p className="text-sm font-medium text-red-600">
                           {formatCurrency(account.balance)}
@@ -632,6 +780,23 @@ const Reports: React.FC = () => {
       return isNaN(num) ? formatCurrency(0) : formatCurrency(num);
     }
     return formatCurrency(0);
+  };
+
+  // Drill-down click handlers
+  const handleDrilldownClick = (
+    reportSection: string,
+    type: string,
+    accountId?: number,
+    subcategory?: string
+  ) => {
+    drilldown.openDrilldown(
+      reportSection,
+      type,
+      accountId,
+      subcategory,
+      dateRange.start,
+      dateRange.end
+    );
   };
 
   if (loading) {

@@ -1,10 +1,10 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { type BalanceSheet, type IncomeStatement } from '../services/ReportService';
+import { type BalanceSheet, type IncomeStatement, type CashFlow } from '../services/ReportService';
 import { formatCurrency } from './formatters';
 import { DateRange } from '../types/common';
 
-type ReportType = 'balance-sheet' | 'income-statement';
+type ReportType = 'balance-sheet' | 'income-statement' | 'cash-flow';
 
 const formatAmount = (amount: unknown): string => {
   if (typeof amount === 'number') {
@@ -223,9 +223,151 @@ const generateIncomeStatementPDF = (
   });
 };
 
+const generateCashFlowPDF = (
+  doc: jsPDF,
+  data: CashFlow,
+  dateRange: DateRange
+): void => {
+  doc.setFontSize(16);
+  doc.text('Cash Flow Statement', 14, 20);
+  doc.setFontSize(12);
+  doc.text(formatDateRange(dateRange), 14, 30);
+  let yPos = 40;
+
+  // Operating Activities Section
+  doc.setFontSize(14);
+  doc.text('Operating Activities', 14, yPos);
+  yPos += 10;
+  
+  if (data.operating && Object.keys(data.operating.subcategories).length > 0) {
+    const operatingData = Object.entries(data.operating.subcategories).map(([account, amount]) => [
+      account, '', formatAmount(amount)
+    ]);
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [['Account', 'Description', 'Amount']],
+      body: operatingData,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 139, 202] },
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  } else {
+    (doc as any).autoTable({
+      startY: yPos,
+      body: [['No operating activities found for the selected period', '', '']],
+      theme: 'grid',
+      styles: { fontSize: 10, fontStyle: 'italic' },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Total Operating Activities
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Total Operating Activities', '', formatAmount(data.operating?.total || 0)]],
+    theme: 'grid',
+    styles: { fontSize: 10, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 20;
+
+  // Investing Activities Section
+  doc.setFontSize(14);
+  doc.text('Investing Activities', 14, yPos);
+  yPos += 10;
+  
+  if (data.investing && Object.keys(data.investing.subcategories).length > 0) {
+    const investingData = Object.entries(data.investing.subcategories).map(([account, amount]) => [
+      account, '', formatAmount(amount)
+    ]);
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [['Account', 'Description', 'Amount']],
+      body: investingData,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 139, 202] },
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  } else {
+    (doc as any).autoTable({
+      startY: yPos,
+      body: [['No investing activities found for the selected period', '', '']],
+      theme: 'grid',
+      styles: { fontSize: 10, fontStyle: 'italic' },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Total Investing Activities
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Total Investing Activities', '', formatAmount(data.investing?.total || 0)]],
+    theme: 'grid',
+    styles: { fontSize: 10, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 20;
+
+  // Financing Activities Section
+  doc.setFontSize(14);
+  doc.text('Financing Activities', 14, yPos);
+  yPos += 10;
+  
+  if (data.financing && Object.keys(data.financing.subcategories).length > 0) {
+    const financingData = Object.entries(data.financing.subcategories).map(([account, amount]) => [
+      account, '', formatAmount(amount)
+    ]);
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [['Account', 'Description', 'Amount']],
+      body: financingData,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 139, 202] },
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  } else {
+    (doc as any).autoTable({
+      startY: yPos,
+      body: [['No financing activities found for the selected period', '', '']],
+      theme: 'grid',
+      styles: { fontSize: 10, fontStyle: 'italic' },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Total Financing Activities
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Total Financing Activities', '', formatAmount(data.financing?.total || 0)]],
+    theme: 'grid',
+    styles: { fontSize: 10, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 20;
+
+  // Net Cash Flow
+  const netCashFlowColor = data.netCashFlow >= 0 ? [34, 197, 94] : [239, 68, 68]; // Green for positive, red for negative
+  (doc as any).autoTable({
+    startY: yPos,
+    body: [['Net Cash Flow', '', formatAmount(data.netCashFlow)]],
+    theme: 'grid',
+    styles: { fontSize: 12, fontStyle: 'bold', textColor: netCashFlowColor },
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 60 }, 2: { cellWidth: 50, halign: 'right' } }
+  });
+};
+
 export const exportToPDF = (
   reportType: ReportType,
-  data: BalanceSheet | IncomeStatement | null,
+  data: BalanceSheet | IncomeStatement | CashFlow | null,
   dateRange: DateRange
 ): void => {
   if (!data) return;
@@ -236,6 +378,9 @@ export const exportToPDF = (
       break;
     case 'income-statement':
       generateIncomeStatementPDF(doc, data as IncomeStatement, dateRange);
+      break;
+    case 'cash-flow':
+      generateCashFlowPDF(doc, data as CashFlow, dateRange);
       break;
     default:
       return;
