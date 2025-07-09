@@ -588,19 +588,19 @@ export class ReportService {
           }
           
           // For drill-down, we want to show the impact on the account balance
-          // For asset accounts (like Cash, Savings), debits decrease the balance (negative)
+          // For asset accounts (like Cash, Savings), debits increase the balance (positive)
           // For liability/equity accounts, debits increase the balance (positive)
           if (entry.type === 'DEBIT') {
-            // For asset accounts, debits decrease balance (negative impact)
+            // For asset accounts, debits increase balance (positive impact)
             if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
-              netAmount -= amount; // Debit decreases asset balance
+              netAmount += amount; // Debit increases asset balance
             } else {
               netAmount += amount; // Debit increases liability/equity balance
             }
           } else {
-            // For asset accounts, credits increase balance (positive impact)
+            // For asset accounts, credits decrease balance (negative impact)
             if (entry.financialCategory === 'CURRENT_ASSET' || entry.financialCategory === 'FIXED_ASSET') {
-              netAmount += amount; // Credit increases asset balance
+              netAmount -= amount; // Credit decreases asset balance
             } else {
               netAmount -= amount; // Credit decreases liability/equity balance
             }
