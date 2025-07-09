@@ -40,7 +40,10 @@
     "react-hot-toast": "^2.5.2",
     "react-hook-form": "^7.58.0",
     "@heroicons/react": "^2.2.0",
-    "jspdf-autotable": "^5.0.2"
+    "jspdf-autotable": "^5.0.2",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
   },
   "main": "src/index.tsx",
   "scripts": {
