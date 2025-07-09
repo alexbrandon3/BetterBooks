@@ -343,8 +343,13 @@ const DrilldownModal: React.FC<DrilldownModalProps> = ({
                                 }
                                 
                                 return (
-                                  <div key={index} className="flex justify-between items-center text-xs">
-                                    <span className="text-gray-600">{entry.accountName}</span>
+                                  <div key={index} className={`flex justify-between items-center text-xs ${
+                                    entry.isRelevant ? 'bg-blue-50 border-l-2 border-blue-400 pl-2' : 'opacity-75'
+                                  }`}>
+                                    <span className={`${entry.isRelevant ? 'font-medium' : 'text-gray-600'}`}>
+                                      {entry.accountName}
+                                      {entry.isRelevant && <span className="ml-1 text-blue-600">★</span>}
+                                    </span>
                                     <span className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                                       {isPositive ? '+' : ''}{formatCurrency(impact)}
                                     </span>

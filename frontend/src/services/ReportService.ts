@@ -17,6 +17,7 @@ export interface DrillDownTransaction {
     accountType: string;
     financialCategory: string;
     financialSubcategory: string;
+    isRelevant: boolean;
   }[];
 }
 

@@ -93,6 +93,7 @@ export interface DrillDownTransaction {
     accountType: string;
     financialCategory: string;
     financialSubcategory: string;
+    isRelevant: boolean;
   }[];
 }
 
@@ -526,20 +527,15 @@ export class ReportService {
     entries.forEach((entry, index) => {
       const transactionId = entry.transaction.id; // Use as string!
       
-      // Check if this entry is relevant to our drill-down target
+      // For drill-down, we want to show ALL entries for each transaction
+      // but highlight the relevant ones and calculate net amount based on relevant entries only
       let isRelevantEntry = false;
       if (accountId) {
-        // For account drill-down, only show entries for this specific account
+        // For account drill-down, check if this entry is for the target account
         isRelevantEntry = entry.account.id === accountId;
       } else if (subcategory) {
-        // For subcategory drill-down, only show entries for accounts in this subcategory
+        // For subcategory drill-down, check if this entry is for an account in the target subcategory
         isRelevantEntry = entry.account.financialSubcategory === subcategory;
-      }
-      
-      // Skip entries that aren't relevant to our drill-down target
-      if (!isRelevantEntry) {
-        console.log(`🔍 Skipping irrelevant entry: ${entry.account.name} (not in target account/subcategory)`);
-        return;
       }
       
       console.log(`🔍 Processing relevant entry ${index + 1}: Transaction ID ${transactionId}, Description: "${entry.transaction.description}", Account: ${entry.account.name}, Amount: ${entry.amount}, Type: ${entry.type}`);
@@ -562,7 +558,8 @@ export class ReportService {
         type: entry.type as 'DEBIT' | 'CREDIT',
         accountType: entry.account.type,
         financialCategory: entry.account.financialCategory,
-        financialSubcategory: entry.account.financialSubcategory
+        financialSubcategory: entry.account.financialSubcategory,
+        isRelevant: isRelevantEntry
       });
     });
     
