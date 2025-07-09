@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
-import { Account, AccountType, FinancialCategory } from "../entities/Account";
+import { Account, FinancialCategory } from "../entities/Account";
 import { Between } from "typeorm";
 import { EntryType } from "../types/transaction.types";
 
