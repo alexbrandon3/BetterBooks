@@ -511,15 +511,26 @@ export class ReportService {
         amount: entry.amount,
         type: entry.type
       })));
+      
+      // Log all unique transaction IDs to see if we have multiple transactions
+      const uniqueTransactionIds = [...new Set(entries.map(entry => entry.transaction.id))];
+      console.log('🔍 Unique transaction IDs found:', uniqueTransactionIds);
+      console.log('🔍 Total entries:', entries.length);
+      console.log('🔍 Unique transactions:', uniqueTransactionIds.length);
     }
 
     // Group entries by transaction
     const transactionMap = new Map<number, DrillDownTransaction>();
     
-    entries.forEach(entry => {
+    console.log('🔍 Starting to group entries by transaction...');
+    
+    entries.forEach((entry, index) => {
       const transactionId = Number(entry.transaction.id);
       
+      console.log(`🔍 Entry ${index + 1}: Transaction ID ${transactionId}, Description: "${entry.transaction.description}", Account: ${entry.account.name}, Amount: ${entry.amount}, Type: ${entry.type}`);
+      
       if (!transactionMap.has(transactionId)) {
+        console.log(`🔍 Creating new transaction group for ID ${transactionId}`);
         transactionMap.set(transactionId, {
           id: transactionId,
           date: entry.transaction.date.toISOString().split('T')[0],
@@ -539,6 +550,8 @@ export class ReportService {
         financialSubcategory: entry.account.financialSubcategory
       });
     });
+    
+    console.log(`🔍 Created ${transactionMap.size} transaction groups`);
     
     // Calculate net amount for each transaction
     const transactions: DrillDownTransaction[] = Array.from(transactionMap.values()).map(transaction => {
