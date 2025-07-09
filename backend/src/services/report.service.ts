@@ -82,7 +82,7 @@ export interface CashFlow {
 }
 
 export interface DrillDownTransaction {
-  id: number;
+  id: string;
   date: string;
   description: string;
   netAmount: number;
@@ -488,6 +488,12 @@ export class ReportService {
         return 'transaction.id IN ' + subQuery.getQuery();
       });
     }
+    
+    // For debugging, let's also log what we're filtering by
+    console.log('🔍 Drill-down filters:', { accountId, subcategory, type });
+    
+    // For debugging, let's also log what we're filtering by
+    console.log('🔍 Drill-down filters:', { accountId, subcategory, type });
 
     // Order by date descending (most recent first)
     queryBuilder.orderBy('transaction.date', 'DESC');
@@ -525,12 +531,12 @@ export class ReportService {
     }
 
     // Group entries by transaction
-    const transactionMap = new Map<number, DrillDownTransaction>();
+    const transactionMap = new Map<string, DrillDownTransaction>();
     
     console.log('🔍 Starting to group entries by transaction...');
     
     entries.forEach((entry, index) => {
-      const transactionId = Number(entry.transaction.id);
+      const transactionId = entry.transaction.id; // Use as string!
       
       console.log(`🔍 Entry ${index + 1}: Transaction ID ${transactionId}, Description: "${entry.transaction.description}", Account: ${entry.account.name}, Amount: ${entry.amount}, Type: ${entry.type}`);
       
