@@ -570,23 +570,50 @@ export class ReportService {
     
     // Calculate net amount for each transaction based on the relevant entries only
     const transactions: DrillDownTransaction[] = Array.from(transactionMap.values()).map(transaction => {
-      // Calculate net amount based on the impact on the target account/subcategory
-      let netAmount = 0;
-      
-      transaction.entries.forEach(entry => {
-        // For the target account/subcategory, calculate the balance change
-        const amount = Number(entry.amount);
-        if (entry.type === 'DEBIT') {
-          netAmount += amount;
-        } else {
-          netAmount -= amount;
+      try {
+        // Calculate net amount based on the impact on the target account/subcategory
+        let netAmount = 0;
+        
+        console.log(`🔍 Processing transaction ${transaction.id} with ${transaction.entries.length} entries`);
+        
+        transaction.entries.forEach((entry, index) => {
+          // For the target account/subcategory, calculate the balance change
+          const amount = Number(entry.amount);
+          console.log(`🔍 Entry ${index + 1}: ${entry.accountName} - ${entry.type} ${amount} (${typeof amount})`);
+          
+          // Validate that amount is a valid number
+          if (isNaN(amount)) {
+            console.error(`🔍 Invalid amount for entry ${index + 1}: ${entry.amount}`);
+            throw new Error(`Invalid amount: ${entry.amount}`);
+          }
+          
+          if (entry.type === 'DEBIT') {
+            netAmount += amount;
+          } else {
+            netAmount -= amount;
+          }
+        });
+        
+        console.log(`🔍 Final net amount for transaction ${transaction.id}: ${netAmount} (${typeof netAmount})`);
+        
+        // Validate that netAmount is a valid number
+        if (isNaN(netAmount)) {
+          console.error(`🔍 Invalid net amount for transaction ${transaction.id}: ${netAmount}`);
+          throw new Error(`Invalid net amount: ${netAmount}`);
         }
-      });
-      
-      return {
-        ...transaction,
-        netAmount: Number(netAmount.toFixed(2)) // Ensure we get a proper number
-      };
+        
+        const result = {
+          ...transaction,
+          netAmount: Number(netAmount.toFixed(2)) // Ensure we get a proper number
+        };
+        
+        console.log(`🔍 Transaction result:`, result);
+        return result;
+      } catch (error) {
+        console.error(`🔍 Error processing transaction ${transaction.id}:`, error);
+        console.error(`🔍 Transaction data:`, transaction);
+        throw error;
+      }
     });
 
     console.log('🔍 Grouped transactions with relevant entries:', transactions.map(t => ({
