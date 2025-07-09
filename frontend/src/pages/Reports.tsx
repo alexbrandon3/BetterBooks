@@ -789,6 +789,7 @@ const Reports: React.FC = () => {
     accountId?: number,
     subcategory?: string
   ) => {
+    console.log('🔍 Drill-down clicked:', { reportSection, type, accountId, subcategory });
     drilldown.openDrilldown(
       reportSection,
       type,
@@ -941,6 +942,18 @@ const Reports: React.FC = () => {
 
         {/* Report Content */}
         {reportType === 'balance-sheet' ? renderBalanceSheet() : renderIncomeStatement()}
+
+        {/* Drill-down Modal */}
+        <DrilldownModal
+          isOpen={drilldown.isOpen}
+          onClose={drilldown.closeDrilldown}
+          reportSection={drilldown.reportSection}
+          type={drilldown.type}
+          accountId={drilldown.accountId}
+          subcategory={drilldown.subcategory}
+          startDate={drilldown.startDate}
+          endDate={drilldown.endDate}
+        />
       </div>
     </div>
   );

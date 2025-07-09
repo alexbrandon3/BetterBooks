@@ -29,6 +29,7 @@ export const useDrilldown = () => {
     startDate?: string,
     endDate?: string
   ) => {
+    console.log('🔍 Opening drill-down modal:', { reportSection, type, accountId, subcategory, startDate, endDate });
     setDrilldownState({
       isOpen: true,
       reportSection,
@@ -41,6 +42,7 @@ export const useDrilldown = () => {
   };
 
   const closeDrilldown = () => {
+    console.log('🔍 Closing drill-down modal');
     setDrilldownState(prev => ({
       ...prev,
       isOpen: false
