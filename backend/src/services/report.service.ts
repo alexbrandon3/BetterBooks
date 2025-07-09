@@ -465,36 +465,24 @@ export class ReportService {
       queryBuilder.andWhere('transaction.date BETWEEN :startDate AND :endDate', { startDate, endDate });
     }
 
-    // Add account filter if accountId is provided
+    // Add filters based on what we're drilling down on
     if (accountId) {
-      queryBuilder.andWhere('account.id = :accountId', { accountId });
-    }
-
-    // Add subcategory filter if subcategory is provided
-    if (subcategory) {
-      // If we're drilling down by subcategory, we want to see all entries for transactions
-      // that have at least one entry for an account in this subcategory
+      // If drilling down by specific account, find all transactions that have entries for this account
+      queryBuilder.andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('je.transactionId')
+          .from('journal_entry', 'je')
+          .where('je.accountId = :accountId', { accountId });
+        return 'transaction.id IN ' + subQuery.getQuery();
+      });
+    } else if (subcategory) {
+      // If drilling down by subcategory, find all transactions that have entries for accounts in this subcategory
       queryBuilder.andWhere(qb => {
         const subQuery = qb.subQuery()
           .select('je.transactionId')
           .from('journal_entry', 'je')
           .leftJoin('account', 'acc', 'je.accountId = acc.id')
           .where('acc.financialSubcategory = :subcategory', { subcategory });
-        return 'transaction.id IN ' + subQuery.getQuery();
-      });
-    }
-
-    // For drill-down, we want to show all transactions that involve the selected account
-    // So we don't filter by account type - we want to see all entries for transactions
-    // that have at least one entry matching our criteria
-    if (accountId) {
-      // If we're drilling down by account, we want to see all entries for transactions
-      // that have at least one entry for this account
-      queryBuilder.andWhere(qb => {
-        const subQuery = qb.subQuery()
-          .select('je.transactionId')
-          .from('journal_entry', 'je')
-          .where('je.accountId = :accountId', { accountId });
         return 'transaction.id IN ' + subQuery.getQuery();
       });
     }
@@ -513,6 +501,17 @@ export class ReportService {
       startDate: startDate?.toISOString(),
       endDate: endDate?.toISOString()
     });
+    
+    // Debug: Log the first few entries to see what we're getting
+    if (entries.length > 0) {
+      console.log('🔍 Sample entries:', entries.slice(0, 3).map(entry => ({
+        transactionId: entry.transaction.id,
+        description: entry.transaction.description,
+        accountName: entry.account.name,
+        amount: entry.amount,
+        type: entry.type
+      })));
+    }
 
     // Group entries by transaction
     const transactionMap = new Map<number, DrillDownTransaction>();
@@ -563,6 +562,13 @@ export class ReportService {
         netAmount: Number(netAmount.toFixed(2)) // Ensure we get a proper number
       };
     });
+
+    console.log('🔍 Grouped transactions:', transactions.map(t => ({
+      id: t.id,
+      description: t.description,
+      entryCount: t.entries.length,
+      entries: t.entries.map(e => `${e.accountName}: ${e.type} ${e.amount}`)
+    })));
 
     return transactions;
   }
