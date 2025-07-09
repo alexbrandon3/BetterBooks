@@ -7,322 +7,201 @@ import { AuthenticatedRequest } from "../types/express";
 import { getSuggestedMetadata, validateAccountMetadata } from "../utils/accountCategorizer";
 import { BaseController } from "./base.controller";
 import { AccountTemplateService } from "../services/accountTemplate.service";
+import { JournalEntry } from '../entities/JournalEntry';
+import { AccountService } from '../services/AccountService';
 
 const accountRepo = AppDataSource.getRepository(Account);
+const journalEntryRepo = AppDataSource.getRepository(JournalEntry);
+const accountService = new AccountService();
+
 
 export class AccountController extends BaseController {
   async getAccounts(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
+      }
+
       const accounts = await accountRepo.find({
-        where: { user: { id: req.user.userId } },
+        where: { user: { id: user.id } },
+        order: { name: 'ASC' }
       });
-      this.sendResponse(res, 200, accounts);
+
+      res.json(accounts);
     } catch (error) {
-      console.error("Get accounts error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error fetching accounts:', error);
+      res.status(500).json({ message: 'Failed to fetch accounts' });
     }
   }
 
   async getAccountsWithRecalculatedBalances(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const userId = req.user.userId;
-      
-      // Get all accounts for the user
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
+      }
+
       const accounts = await accountRepo.find({
-        where: { user: { id: userId } },
+        where: { user: { id: user.id } },
+        order: { name: 'ASC' }
       });
-
-      // Get all journal entries for the user
-      const journalEntries = await AppDataSource.getRepository("JournalEntry").find({
-        where: { transaction: { user: { id: userId } } },
-        relations: ['account', 'transaction']
-      });
-
-      console.log(`🔍 Calculating balances for ${accounts.length} accounts with ${journalEntries.length} journal entries`);
 
       // Calculate balances from journal entries
       const accountBalances = new Map<number, number>();
-      accounts.forEach((account: any) => {
+      accounts.forEach(account => {
         accountBalances.set(account.id, 0);
       });
 
-      journalEntries.forEach((entry: any) => {
+      const journalEntries = await journalEntryRepo.find({
+        where: { transaction: { user: { id: user.id } } },
+        relations: ['account', 'transaction']
+      });
+
+      journalEntries.forEach(entry => {
         const currentBalance = accountBalances.get(entry.account.id) || 0;
-        
-        // Ensure entry.amount is a number
-        const amount = parseFloat(entry.amount?.toString() || '0');
-        if (isNaN(amount)) {
-          console.warn(`⚠️ Invalid amount in journal entry:`, entry);
-          return;
+        if (entry.type === 'CREDIT') {
+          accountBalances.set(entry.account.id, currentBalance + entry.amount);
+        } else {
+          accountBalances.set(entry.account.id, currentBalance - entry.amount);
         }
-        
-        // Calculate balance change based on entry type and account type
-        let balanceChange = 0;
-        
-        if (entry.type === 'DEBIT') {
-          // For ASSET and EXPENSE accounts, debit increases balance
-          // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
-          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
-            balanceChange = amount;
-          } else {
-            balanceChange = -amount;
-          }
-        } else if (entry.type === 'CREDIT') {
-          // For ASSET and EXPENSE accounts, credit decreases balance
-          // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
-          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
-            balanceChange = -amount;
-          } else {
-            balanceChange = amount;
-          }
-        }
-        
-        const newBalance = currentBalance + balanceChange;
-        accountBalances.set(entry.account.id, newBalance);
-        
-        console.log(`📝 Entry: Account ${entry.account.name} - Type: ${entry.type}, Amount: ${amount}, Balance Change: ${balanceChange}, New Balance: ${newBalance}`);
       });
 
-      // Update account objects with recalculated balances
-      const accountsWithRecalculatedBalances = accounts.map(account => {
-        const calculatedBalance = accountBalances.get(account.id) || 0;
-        console.log(`💰 Account ${account.name}: calculated balance = ${calculatedBalance}`);
-        
-        return {
-          ...account,
-          balance: calculatedBalance
-        };
-      });
+      // Update account balances
+      const accountsWithBalances = accounts.map(account => ({
+        ...account,
+        balance: accountBalances.get(account.id) || 0
+      }));
 
-      console.log('📤 Sending accounts data to frontend:', JSON.stringify(accountsWithRecalculatedBalances.map(acc => ({
-        id: acc.id,
-        name: acc.name,
-        balance: acc.balance,
-        balanceType: typeof acc.balance
-      })), null, 2));
-
-      this.sendResponse(res, 200, accountsWithRecalculatedBalances);
+      res.json(accountsWithBalances);
     } catch (error) {
-      console.error("Get accounts with recalculated balances error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error fetching accounts with recalculated balances:', error);
+      res.status(500).json({ message: 'Failed to fetch accounts' });
+    }
+  }
+
+  async getAccountBalances(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
+      }
+
+      const accounts = await accountRepo.find({
+        where: { user: { id: user.id } },
+        order: { name: 'ASC' }
+      });
+
+      // Calculate balances from journal entries
+      const accountBalances = new Map<number, number>();
+      accounts.forEach(account => {
+        accountBalances.set(account.id, 0);
+      });
+
+      const journalEntries = await journalEntryRepo.find({
+        where: { transaction: { user: { id: user.id } } },
+        relations: ['account', 'transaction']
+      });
+
+      journalEntries.forEach(entry => {
+        const currentBalance = accountBalances.get(entry.account.id) || 0;
+        if (entry.type === 'CREDIT') {
+          accountBalances.set(entry.account.id, currentBalance + entry.amount);
+        } else {
+          accountBalances.set(entry.account.id, currentBalance - entry.amount);
+        }
+      });
+
+      // Return balances in the format expected by frontend
+      const balances = Array.from(accountBalances.entries()).map(([accountId, balance]) => ({
+        accountId,
+        balance
+      }));
+
+      res.json(balances);
+    } catch (error) {
+      console.error('Error fetching account balances:', error);
+      res.status(500).json({ message: 'Failed to fetch account balances' });
     }
   }
 
   async createAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { 
-        name, 
-        type, 
-        balance, 
-        isLiquid,
-        category,
-        subcategory,
-        financialCategory,
-        financialSubcategory
-      } = req.body;
-      
-      console.log(`📥 Creating account with data:`, {
-        name,
-        type,
-        balance,
-        balanceType: typeof balance,
-        category,
-        financialCategory,
-        hasType: !!type,
-        hasCategory: !!category,
-        hasFinancialCategory: !!financialCategory
-      });
-      
-      // If no categorization data is provided, automatically suggest it based on the account name
-      let validatedMetadata;
-      if (!category || category === 'Uncategorized' || category === '') {
-        console.log(`🔍 Auto-categorizing account: ${name}`);
-        const suggestion = getSuggestedMetadata(name);
-        if (suggestion) {
-          validatedMetadata = suggestion;
-          console.log(`✅ Auto-categorized as: ${suggestion.category} - ${suggestion.financialCategory}`);
-        } else {
-          validatedMetadata = validateAccountMetadata({
-            type: type || AccountType.ASSET,
-            category: "Uncategorized",
-            subcategory: "",
-            financialCategory: financialCategory || FinancialCategory.CURRENT_ASSET,
-            financialSubcategory: "UNCATEGORIZED"
-          });
-        }
-      } else {
-        console.log(`🔧 Using provided categorization data`);
-        // Validate and clean the account metadata provided by frontend
-        validatedMetadata = validateAccountMetadata({
-          type,
-          category,
-          subcategory,
-          financialCategory,
-          financialSubcategory
-        });
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
       }
-      
-      const account = accountRepo.create({
-        name,
-        type: validatedMetadata.type,
-        balance,
-        isLiquid,
-        category: validatedMetadata.category,
-        subcategory: validatedMetadata.subcategory,
-        financialCategory: validatedMetadata.financialCategory,
-        financialSubcategory: validatedMetadata.financialSubcategory,
-        user: { id: req.user.userId },
-      });
 
-      console.log(`💰 Saving account with balance: ${balance} (type: ${typeof balance})`);
-      await accountRepo.save(account);
-      console.log(`✅ Account saved with ID: ${account.id}, balance: ${account.balance}`);
-      
-      // If there's a starting balance, create a transaction and journal entry to represent it
-      if (balance !== 0) {
-        try {
-          const transactionRepo = AppDataSource.getRepository("Transaction");
-          const journalEntryRepo = AppDataSource.getRepository("JournalEntry");
-          
-          // Create a "Starting Balance" transaction
-          const startingBalanceTransaction = transactionRepo.create({
-            description: `Starting balance for ${account.name}`,
-            date: new Date(),
-            type: 'ADJUSTMENT',
-            category: 'Starting Balance',
-            amount: Math.abs(balance),
-            user: { id: req.user.userId }
-          });
-          
-          const savedTransaction = await transactionRepo.save(startingBalanceTransaction);
-          console.log(`📋 Created starting balance transaction: ${savedTransaction.id}`);
-          
-          // Determine the journal entry type based on account type
-          // Since we only allow positive starting balances, we need to determine the appropriate entry type
-          let entryType = 'CREDIT';
-          let entryAmount = Math.abs(balance);
-          
-          if (account.type === 'ASSET') {
-            // Assets increase with DEBIT entries
-            entryType = 'DEBIT';
-          } else if (account.type === 'EXPENSE') {
-            // Expenses increase with DEBIT entries
-            entryType = 'DEBIT';
-          } else if (account.type === 'LIABILITY') {
-            // Liabilities increase with CREDIT entries
-            entryType = 'CREDIT';
-          } else if (account.type === 'INCOME') {
-            // Income increases with CREDIT entries
-            entryType = 'CREDIT';
-          } else if (account.type === 'EQUITY') {
-            // Equity increases with CREDIT entries
-            entryType = 'CREDIT';
-          }
-          
-          const journalEntry = journalEntryRepo.create({
-            amount: entryAmount,
-            type: entryType,
-            description: `Starting balance for ${account.name}`,
-            account: { id: account.id },
-            user: { id: req.user.userId },
-            transaction: savedTransaction
-          });
-          
-          await journalEntryRepo.save(journalEntry);
-          console.log(`📝 Created starting balance journal entry: ${entryType} ${entryAmount} for account ${account.name}`);
-        } catch (journalError) {
-          console.error("⚠️ Failed to create starting balance journal entry:", journalError);
-          // Don't fail the account creation if journal entry fails
-        }
-      }
-      
-      this.sendResponse(res, 201, account);
+      const accountData = {
+        ...req.body,
+        user: { id: user.id }
+      };
+
+      const account = accountRepo.create(accountData);
+      const savedAccount = await accountRepo.save(account);
+
+      res.status(201).json(savedAccount);
     } catch (error) {
-      console.error("Create account error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error creating account:', error);
+      res.status(500).json({ message: 'Failed to create account' });
     }
   }
 
   async updateAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { 
-        name, 
-        type, 
-        balance, 
-        isLiquid,
-        category,
-        subcategory,
-        financialCategory,
-        financialSubcategory
-      } = req.body;
-
-      const account = await accountRepo.findOne({
-        where: { id: Number(id), user: { id: req.user.userId } },
-      });
-
-      if (!account) {
-        this.sendError(res, 404, "Account not found");
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
         return;
       }
 
-      // Validate and clean the account metadata if provided
-      const validatedMetadata = validateAccountMetadata({
-        type: type || account.type,
-        category: category || account.category,
-        subcategory: subcategory || account.subcategory,
-        financialCategory: financialCategory || account.financialCategory,
-        financialSubcategory: financialSubcategory || account.financialSubcategory
+      const { id } = req.params;
+      const account = await accountRepo.findOne({
+        where: { id: Number(id), user: { id: user.id } }
       });
 
-      account.name = name ?? account.name;
-      account.type = validatedMetadata.type;
-      account.balance = balance ?? account.balance;
-      account.isLiquid = isLiquid ?? account.isLiquid;
-      account.category = validatedMetadata.category;
-      account.subcategory = validatedMetadata.subcategory;
-      account.financialCategory = validatedMetadata.financialCategory;
-      account.financialSubcategory = validatedMetadata.financialSubcategory;
+      if (!account) {
+        res.status(404).json({ message: 'Account not found' });
+        return;
+      }
 
-      await accountRepo.save(account);
-      this.sendResponse(res, 200, account);
+      Object.assign(account, req.body);
+      const updatedAccount = await accountRepo.save(account);
+
+      res.json(updatedAccount);
     } catch (error) {
-      console.error("Update account error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error updating account:', error);
+      res.status(500).json({ message: 'Failed to update account' });
     }
   }
 
   async deleteAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-
-      const account = await accountRepo.findOne({
-        where: { id: Number(id), user: { id: req.user.userId } },
-      });
-
-      if (!account) {
-        this.sendError(res, 404, "Account not found");
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
         return;
       }
 
-      // First, delete all related journal entries
-      const journalEntryRepo = AppDataSource.getRepository("JournalEntry");
-      const relatedEntries = await journalEntryRepo.find({
-        where: { account: { id: Number(id) } }
+      const { id } = req.params;
+      const account = await accountRepo.findOne({
+        where: { id: Number(id), user: { id: user.id } }
       });
 
-      if (relatedEntries.length > 0) {
-        console.log(`🗑️ Deleting ${relatedEntries.length} journal entries for account ${account.name}`);
-        await journalEntryRepo.remove(relatedEntries);
+      if (!account) {
+        res.status(404).json({ message: 'Account not found' });
+        return;
       }
 
-      // Then delete the account
       await accountRepo.remove(account);
-      console.log(`✅ Successfully deleted account: ${account.name}`);
-      this.sendResponse(res, 200, { message: "Account deleted successfully" });
+      res.status(204).send();
     } catch (error) {
-      console.error("Delete account error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error deleting account:', error);
+      res.status(500).json({ message: 'Failed to delete account' });
     }
   }
 
@@ -368,135 +247,63 @@ export class AccountController extends BaseController {
     }
   }
 
-  async suggestAccount(req: Request, res: Response): Promise<void> {
+  async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log("📥 suggestAccount body:", req.body);
-      
-      const { name } = req.body;
-      if (!name) {
-        console.error("🔥 suggestAccount error: Missing name in request body");
-        this.sendError(res, 400, "Account name is required.");
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
         return;
       }
 
-      console.log("🔍 Getting suggestion for name:", name);
-      const suggestion = getSuggestedMetadata(name);
-      
-      if (suggestion) {
-        console.log("✅ Found suggestion:", suggestion);
-        this.sendResponse(res, 200, suggestion);
-      } else {
-        console.log("ℹ️ No specific suggestion found, using default");
-        this.sendResponse(res, 200, {
-          type: "ASSET",
-          category: "Uncategorized",
-          subcategory: "",
-          financialCategory: "OPERATING_EXPENSE",
-          financialSubcategory: "Uncategorized",
-        });
+      const { name } = req.body;
+      if (!name) {
+        res.status(400).json({ message: 'Account name is required' });
+        return;
       }
+
+      const suggestion = getSuggestedMetadata(name);
+      res.json(suggestion);
     } catch (error) {
-      console.error("🔥 suggestAccount error:", error);
-      this.sendError(res, 500, { 
-        message: "Suggestion failed", 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      });
+      console.error('Error suggesting account:', error);
+      res.status(500).json({ message: 'Failed to suggest account' });
     }
   }
 
   async suggestAccountAutoCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log("📥 suggestAccountAutoCategory body:", req.body);
-      
       const user = await getUser(req);
       if (!user) {
-        console.error("🔥 suggestAccountAutoCategory error: No authenticated user found");
-        this.sendError(res, 401, "Authentication required");
+        res.status(401).json({ message: 'Unauthorized' });
         return;
       }
 
       const { name } = req.body;
       if (!name) {
-        console.error("🔥 suggestAccountAutoCategory error: Missing name in request body");
-        this.sendError(res, 400, "Account name is required.");
+        res.status(400).json({ message: 'Account name is required' });
         return;
       }
 
-      console.log("[AutoCategory] Incoming name:", name);
-
-      // Get enhanced suggestion with explanation and confidence
       const suggestion = getSuggestedMetadata(name);
-      if (suggestion) {
-        console.log("[AutoCategory] Enhanced suggestion found:", {
-          ...suggestion,
-          confidence: suggestion.confidence,
-          explanation: suggestion.explanation
-        });
-        
-        // Return the enhanced suggestion with explanation
-        this.sendResponse(res, 200, {
-          type: suggestion.type,
-          category: suggestion.category,
-          subcategory: suggestion.subcategory,
-          financialCategory: suggestion.financialCategory,
-          financialSubcategory: suggestion.financialSubcategory,
-          explanation: suggestion.explanation,
-          confidence: suggestion.confidence
-        });
-      } else {
-        // Fallback to user's existing accounts if no keyword match
-        console.log("[AutoCategory] No keyword match, checking user accounts");
-        const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
-        const match = accounts.find((acc) =>
-          acc.name.toLowerCase().includes(name.toLowerCase()) ||
-          acc.category?.toLowerCase().includes(name.toLowerCase()) ||
-          acc.subcategory?.toLowerCase().includes(name.toLowerCase())
-        );
-
-        if (match) {
-          console.log("[AutoCategory] Fallback matched user account:", match.name);
-          this.sendResponse(res, 200, {
-            type: match.type,
-            category: match.category,
-            subcategory: match.subcategory,
-            financialCategory: match.financialCategory,
-            financialSubcategory: match.financialSubcategory,
-            explanation: `Matched existing account: ${match.name}`,
-            confidence: 0.6
-          });
-        } else {
-          // Final fallback with explanation
-          console.log("[AutoCategory] No match found, using enhanced fallback");
-          this.sendResponse(res, 200, {
-            type: "ASSET",
-            category: "Uncategorized",
-            subcategory: "",
-            financialCategory: "CURRENT_ASSET",
-            financialSubcategory: "UNCATEGORIZED",
-            explanation: "No specific category match found. This account has been classified as a current asset by default. You may want to adjust the classification based on the account's purpose.",
-            confidence: 0.3
-          });
-        }
-      }
+      res.json(suggestion);
     } catch (error) {
-      console.error("[AutoCategory] Error:", error);
-      this.sendError(res, 500, { 
-        message: "Suggestion failed", 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      });
+      console.error('Error suggesting account metadata:', error);
+      res.status(500).json({ message: 'Failed to suggest account metadata' });
     }
   }
 
   async getAccountTemplates(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const user = await getUser(req);
-      if (!user) throw new AuthenticationError();
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
+      }
 
       const templates = AccountTemplateService.getAllTemplates();
-      this.sendResponse(res, 200, templates);
+      res.json(templates);
     } catch (error) {
-      console.error("Get account templates error:", error);
-      this.sendError(res, 500, "Internal server error");
+      console.error('Error fetching account templates:', error);
+      res.status(500).json({ message: 'Failed to fetch account templates' });
     }
   }
 }
