@@ -469,35 +469,31 @@ export class ReportService {
 
     // Add subcategory filter if subcategory is provided
     if (subcategory) {
-      queryBuilder.andWhere('account.category = :subcategory', { subcategory });
+      // If we're drilling down by subcategory, we want to see all entries for transactions
+      // that have at least one entry for an account in this subcategory
+      queryBuilder.andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('je.transactionId')
+          .from('journal_entry', 'je')
+          .leftJoin('account', 'acc', 'je.accountId = acc.id')
+          .where('acc.financialSubcategory = :subcategory', { subcategory });
+        return 'transaction.id IN ' + subQuery.getQuery();
+      });
     }
 
-    // Add type-specific filters
-    switch (type.toLowerCase()) {
-      case 'income':
-        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.INCOME });
-        break;
-      case 'expense':
-        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.EXPENSE });
-        break;
-      case 'asset':
-        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.ASSET });
-        break;
-      case 'liability':
-        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.LIABILITY });
-        break;
-      case 'equity':
-        queryBuilder.andWhere('account.type = :accountType', { accountType: AccountType.EQUITY });
-        break;
-      case 'cashflow':
-        // For cash flow, we'll include all transactions that affect cash accounts
-        queryBuilder.andWhere('account.financialCategory = :financialCategory', { 
-          financialCategory: FinancialCategory.CURRENT_ASSET 
-        });
-        break;
-      default:
-        // If no specific type filter, include all transactions
-        break;
+    // For drill-down, we want to show all transactions that involve the selected account
+    // So we don't filter by account type - we want to see all entries for transactions
+    // that have at least one entry matching our criteria
+    if (accountId) {
+      // If we're drilling down by account, we want to see all entries for transactions
+      // that have at least one entry for this account
+      queryBuilder.andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('je.transactionId')
+          .from('journal_entry', 'je')
+          .where('je.accountId = :accountId', { accountId });
+        return 'transaction.id IN ' + subQuery.getQuery();
+      });
     }
 
     // Order by date descending (most recent first)
@@ -506,6 +502,14 @@ export class ReportService {
     const entries = await queryBuilder.getMany();
 
     console.log('📊 Found entries for drill-down:', entries.length);
+    console.log('🔍 Query parameters:', {
+      userId,
+      type,
+      accountId,
+      subcategory,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString()
+    });
 
     // Transform to DrillDownTransaction format
     const transactions: DrillDownTransaction[] = entries.map(entry => ({
