@@ -3,6 +3,7 @@ import { formatEnumLabel } from "../utils/formatEnumLabel";
 import { Account, AccountForm, AccountType, FinancialCategory, AccountTemplate } from "../types/account";
 import * as AccountService from "../services/AccountService";
 import { toast } from 'react-hot-toast';
+import { fetchAccountBalances } from "../services/AccountService";
 
 const initialFormState: AccountForm = {
   name: "",
@@ -32,28 +33,11 @@ const displayBalance = (account: Account) => {
   return formatCurrency(Math.abs(account.balance));
 };
 
-const isNegativeBalance = (account: Account) => {
-  const balance = Number(account.balance);
-  return !isNaN(balance) && balance < 0;
-};
 
-const getBalanceDisplay = (account: Account) => {
-  const balance = Number(account.balance);
-  
-  // Safety check for NaN or invalid values
-  if (isNaN(balance) || !isFinite(balance)) {
-    console.warn('Invalid balance for account:', account.name, 'balance:', account.balance);
-    return '$0.00';
-  }
-  
-  if (balance < 0) {
-    return `-${formatCurrency(Math.abs(balance))}`;
-  }
-  return formatCurrency(balance);
-};
 
 const Accounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountBalances, setAccountBalances] = useState<Map<number, number>>(new Map());
   const [form, setForm] = useState<AccountForm>(initialFormState);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +55,7 @@ const Accounts = () => {
   useEffect(() => {
     fetchAccounts();
     fetchTemplates();
+    fetchBalances();
   }, []);
 
   useEffect(() => {
@@ -121,6 +106,33 @@ const Accounts = () => {
       console.error("Error fetching templates", err);
       // Don't show error toast for templates as it's not critical
     }
+  };
+
+  const fetchBalances = async () => {
+    try {
+      const balances = await fetchAccountBalances();
+      setAccountBalances(balances);
+    } catch (err) {
+      console.error("Error fetching account balances", err);
+    }
+  };
+
+  const isNegativeBalance = (account: Account) => {
+    const balance = accountBalances.get(account.id) ?? Number(account.balance);
+    return !isNaN(balance) && balance < 0;
+  };
+
+  const getBalanceDisplay = (account: Account) => {
+    const balance = accountBalances.get(account.id) ?? Number(account.balance);
+    // Safety check for NaN or invalid values
+    if (isNaN(balance) || !isFinite(balance)) {
+      console.warn('Invalid balance for account:', account.name, 'balance:', balance);
+      return '$0.00';
+    }
+    if (balance < 0) {
+      return `-${formatCurrency(Math.abs(balance))}`;
+    }
+    return formatCurrency(balance);
   };
 
   const validateForm = () => {
