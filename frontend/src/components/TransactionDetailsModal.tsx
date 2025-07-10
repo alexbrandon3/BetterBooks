@@ -345,12 +345,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                     <p className="text-lg font-semibold">{transaction.category || 'Uncategorized'}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Debits</p>
-                    <p className="text-lg font-semibold text-red-600">${totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Credits</p>
-                    <p className="text-lg font-semibold text-green-600">${totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-sm font-medium text-gray-500">Transaction Amount</p>
+                    <p className="text-lg font-semibold">${totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Transaction ID</p>
