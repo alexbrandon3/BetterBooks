@@ -3,8 +3,7 @@ import { Account } from "../entities/Account";
 import { TransactionService } from "./transaction.service";
 import { AccountService } from "./AccountService";
 import { logInfo, logSuccess, logError } from '../utils/logger';
-// @ts-ignore
-import htmlPdf from 'html-pdf-node';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export interface ExportOptions {
   format: 'csv' | 'pdf';
@@ -148,30 +147,138 @@ export class ExportService {
 
     const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
-    // Generate HTML content for PDF
-    const htmlContent = this.generatePDFHTML(transactions, totalAmount);
-
     try {
-      // Generate PDF from HTML
-      const options = {
-        format: 'A4',
-        margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      let yPosition = 750; // Start from top
+      const margin = 50;
+      const lineHeight = 20;
+
+      // Add title
+      page.drawText('Transaction Report', {
+        x: margin,
+        y: yPosition,
+        size: 24,
+        font: boldFont,
+        color: rgb(0, 0, 0)
+      });
+      yPosition -= 40;
+
+      // Add summary
+      page.drawText(`Total Transactions: ${transactions.length}`, {
+        x: margin,
+        y: yPosition,
+        size: 12,
+        font: font,
+        color: rgb(0, 0, 0)
+      });
+      yPosition -= lineHeight;
+
+      page.drawText(`Total Amount: $${totalAmount.toFixed(2)}`, {
+        x: margin,
+        y: yPosition,
+        size: 12,
+        font: font,
+        color: rgb(0, 0, 0)
+      });
+      yPosition -= 40;
+
+      // Add table headers
+      const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
+      const columnWidths = [80, 200, 100, 80, 80];
+      let xPosition = margin;
+
+      headers.forEach((header, index) => {
+        page.drawText(header, {
+          x: xPosition,
+          y: yPosition,
+          size: 10,
+          font: boldFont,
+          color: rgb(0, 0, 0)
+        });
+        xPosition += columnWidths[index];
+      });
+      yPosition -= lineHeight;
+
+      // Add transaction data
+      for (const transaction of transactions.slice(0, 30)) { // Limit to first 30 transactions
+        if (yPosition < 100) {
+          // Add new page if running out of space
+          page = pdfDoc.addPage([595.28, 841.89]);
+          yPosition = 750;
         }
-      };
 
-      const file = { content: htmlContent };
-      const pdfBuffer = await htmlPdf.generatePdf(file, options);
+        xPosition = margin;
+        const amount = parseFloat(transaction.amount.toString());
+        const isPositive = transaction.type === 'INCOME';
 
+        // Date
+        page.drawText(new Date(transaction.date).toLocaleDateString(), {
+          x: xPosition,
+          y: yPosition,
+          size: 8,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        xPosition += columnWidths[0];
+
+        // Description (truncated if too long)
+        const description = transaction.description.length > 25 ? 
+          transaction.description.substring(0, 22) + '...' : transaction.description;
+        page.drawText(description, {
+          x: xPosition,
+          y: yPosition,
+          size: 8,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        xPosition += columnWidths[1];
+
+        // Category
+        page.drawText(transaction.category || 'Uncategorized', {
+          x: xPosition,
+          y: yPosition,
+          size: 8,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        xPosition += columnWidths[2];
+
+        // Type
+        page.drawText(transaction.type, {
+          x: xPosition,
+          y: yPosition,
+          size: 8,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        xPosition += columnWidths[3];
+
+        // Amount
+        const amountText = `${isPositive ? '+' : ''}$${amount.toFixed(2)}`;
+        page.drawText(amountText, {
+          x: xPosition,
+          y: yPosition,
+          size: 8,
+          font: font,
+          color: isPositive ? rgb(0, 0.5, 0) : rgb(0.8, 0, 0)
+        });
+
+        yPosition -= lineHeight;
+      }
+
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save();
       const filename = `transactions_${new Date().toISOString().split('T')[0]}.pdf`;
 
       logSuccess(`PDF export generated with ${transactions.length} transactions`, 'ExportService');
 
       return {
-        data: pdfBuffer.toString('base64'),
+        data: Buffer.from(pdfBytes).toString('base64'),
         filename,
         contentType: 'application/pdf',
         totalTransactions: transactions.length,
@@ -183,122 +290,7 @@ export class ExportService {
     }
   }
 
-  private generatePDFHTML(
-    transactions: Transaction[], 
-    totalAmount: number
-  ): string {
-    // Group transactions by date for better organization
-    const groups = new Map();
-    transactions.forEach((transaction: Transaction) => {
-      const key = new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(transaction);
-    });
-    const groupedTransactions = Array.from(groups.entries()).map(([key, transactions]) => ({
-      group: key,
-      transactions: transactions as Transaction[]
-    }));
 
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Transaction Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .summary { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .summary-item { text-align: center; }
-        .summary-value { font-size: 24px; font-weight: bold; color: #007bff; }
-        .summary-label { font-size: 12px; color: #6c757d; text-transform: uppercase; }
-        .group { margin-bottom: 30px; }
-        .group-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #495057; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #dee2e6; }
-        th { background-color: #f8f9fa; font-weight: bold; }
-        .amount-positive { color: #28a745; }
-        .amount-negative { color: #dc3545; }
-        .type-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-        .type-INCOME { background: #d4edda; color: #155724; }
-        .type-EXPENSE { background: #f8d7da; color: #721c24; }
-        .type-TRANSFER { background: #d1ecf1; color: #0c5460; }
-        .footer { margin-top: 30px; text-align: center; color: #6c757d; font-size: 12px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Transaction Report</h1>
-        <p>Generated on ${new Date().toLocaleDateString()}</p>
-    </div>
-
-    <div class="summary">
-        <div class="summary-grid">
-            <div class="summary-item">
-                <div class="summary-value">${transactions.length}</div>
-                <div class="summary-label">Total Transactions</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-value">$${totalAmount.toFixed(2)}</div>
-                <div class="summary-label">Total Amount</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-value">${new Set(transactions.map(t => t.category)).size}</div>
-                <div class="summary-label">Unique Categories</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-value">${new Set(transactions.map(t => t.type)).size}</div>
-                <div class="summary-label">Transaction Types</div>
-            </div>
-        </div>
-    </div>
-
-    ${groupedTransactions.map(group => `
-        <div class="group">
-            <div class="group-title">${group.group}</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Category</th>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Account</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${group.transactions.map((transaction: Transaction) => {
-                        const amount = parseFloat(transaction.amount.toString());
-                        const isPositive = transaction.type === 'INCOME';
-                        
-                        return `
-                            <tr>
-                                <td>${new Date(transaction.date).toLocaleDateString()}</td>
-                                <td>${transaction.description}</td>
-                                <td>${transaction.category || 'Uncategorized'}</td>
-                                <td><span class="type-badge type-${transaction.type}">${transaction.type}</span></td>
-                                <td class="${isPositive ? 'amount-positive' : 'amount-negative'}">
-                                    ${isPositive ? '+' : ''}$${amount.toFixed(2)}
-                                </td>
-                                <td>${transaction.entries?.[0]?.account?.name || 'Unknown Account'}</td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
-    `).join('')}
-
-    <div class="footer">
-        <p>Report generated by BetterBooks - Small Business Accounting</p>
-    </div>
-</body>
-</html>`;
-
-    return html;
-  }
 
   async generateFinancialSummary(userId: number, dateRange?: { startDate: string; endDate: string }): Promise<any> {
     logInfo(`Generating financial summary for user ${userId}`, 'ExportService');
