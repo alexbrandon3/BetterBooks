@@ -36,11 +36,6 @@ export const exportTransactions = async (options: ExportOptions): Promise<void> 
       responseType: 'blob'
     });
 
-    // Create a download link
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    
     // Get filename from response headers or use default
     const contentDisposition = response.headers['content-disposition'];
     let filename = 'transactions.csv';
@@ -50,11 +45,16 @@ export const exportTransactions = async (options: ExportOptions): Promise<void> 
         filename = filenameMatch[1];
       }
     }
-    
+
+    // Create a download link using the blob directly
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
     link.setAttribute('download', filename);
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    link.remove();
+    document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error exporting transactions:", error);
