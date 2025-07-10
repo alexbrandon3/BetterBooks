@@ -521,6 +521,13 @@ export class TransactionController extends BaseController {
         res.setHeader('Content-Length', buffer.length);
         res.setHeader('Cache-Control', 'no-cache');
         res.send(buffer);
+      } else if (result.contentType === 'text/plain') {
+        // For text files, send as string with proper headers
+        const data = typeof result.data === 'string' ? result.data : result.data.toString();
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+        res.setHeader('Content-Length', Buffer.byteLength(data, 'utf8'));
+        res.send(data);
       } else {
         // For CSV, send as string
         const data = typeof result.data === 'string' ? result.data : result.data.toString();

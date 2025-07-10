@@ -3,7 +3,6 @@ import { Account } from "../entities/Account";
 import { TransactionService } from "./transaction.service";
 import { AccountService } from "./AccountService";
 import { logInfo, logSuccess, logError } from '../utils/logger';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export interface ExportOptions {
   format: 'csv' | 'pdf';
@@ -147,146 +146,38 @@ export class ExportService {
 
     const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
-    try {
-      // Create a new PDF document
-      const pdfDoc = await PDFDocument.create();
-      let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    // Generate a simple text report instead of PDF for now
+    const filename = `transactions_${new Date().toISOString().split('T')[0]}.txt`;
 
-      let yPosition = 750; // Start from top
-      const margin = 50;
-      const lineHeight = 20;
+    let reportContent = 'TRANSACTION REPORT\n';
+    reportContent += '==================\n\n';
+    reportContent += `Generated on: ${new Date().toLocaleDateString()}\n`;
+    reportContent += `Total Transactions: ${transactions.length}\n`;
+    reportContent += `Total Amount: $${totalAmount.toFixed(2)}\n\n`;
+    reportContent += 'Date\t\tDescription\t\tCategory\t\tType\t\tAmount\n';
+    reportContent += '----\t\t-----------\t\t--------\t\t----\t\t------\n';
 
-      // Add title
-      page.drawText('Transaction Report', {
-        x: margin,
-        y: yPosition,
-        size: 24,
-        font: boldFont,
-        color: rgb(0, 0, 0)
-      });
-      yPosition -= 40;
-
-      // Add summary
-      page.drawText(`Total Transactions: ${transactions.length}`, {
-        x: margin,
-        y: yPosition,
-        size: 12,
-        font: font,
-        color: rgb(0, 0, 0)
-      });
-      yPosition -= lineHeight;
-
-      page.drawText(`Total Amount: $${totalAmount.toFixed(2)}`, {
-        x: margin,
-        y: yPosition,
-        size: 12,
-        font: font,
-        color: rgb(0, 0, 0)
-      });
-      yPosition -= 40;
-
-      // Add table headers
-      const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
-      const columnWidths = [80, 200, 100, 80, 80];
-      let xPosition = margin;
-
-      headers.forEach((header, index) => {
-        page.drawText(header, {
-          x: xPosition,
-          y: yPosition,
-          size: 10,
-          font: boldFont,
-          color: rgb(0, 0, 0)
-        });
-        xPosition += columnWidths[index];
-      });
-      yPosition -= lineHeight;
-
-      // Add transaction data (simplified for testing)
-      for (const transaction of transactions.slice(0, 10)) { // Limit to first 10 transactions for testing
-        if (yPosition < 100) {
-          // Add new page if running out of space
-          page = pdfDoc.addPage([595.28, 841.89]);
-          yPosition = 750;
-        }
-
-        xPosition = margin;
-        const amount = parseFloat(transaction.amount.toString());
-
-        // Date
-        page.drawText(new Date(transaction.date).toLocaleDateString(), {
-          x: xPosition,
-          y: yPosition,
-          size: 8,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-        xPosition += columnWidths[0];
-
-        // Description (truncated if too long)
-        const description = transaction.description.length > 25 ? 
-          transaction.description.substring(0, 22) + '...' : transaction.description;
-        page.drawText(description, {
-          x: xPosition,
-          y: yPosition,
-          size: 8,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-        xPosition += columnWidths[1];
-
-        // Category
-        page.drawText(transaction.category || 'Uncategorized', {
-          x: xPosition,
-          y: yPosition,
-          size: 8,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-        xPosition += columnWidths[2];
-
-        // Type
-        page.drawText(transaction.type, {
-          x: xPosition,
-          y: yPosition,
-          size: 8,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-        xPosition += columnWidths[3];
-
-        // Amount
-        const amountText = `$${amount.toFixed(2)}`;
-        page.drawText(amountText, {
-          x: xPosition,
-          y: yPosition,
-          size: 8,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-
-        yPosition -= lineHeight;
-      }
-
-      // Save the PDF
-      const pdfBytes = await pdfDoc.save();
-      const filename = `transactions_${new Date().toISOString().split('T')[0]}.pdf`;
-
-      logSuccess(`PDF export generated with ${transactions.length} transactions`, 'ExportService');
-
-      return {
-        data: Buffer.from(pdfBytes),
-        filename,
-        contentType: 'application/pdf',
-        totalTransactions: transactions.length,
-        totalAmount
-      };
-    } catch (error) {
-      logError(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`, 'ExportService');
-      throw error;
+    // Add transaction data
+    for (const transaction of transactions) {
+      const date = new Date(transaction.date).toLocaleDateString();
+      const description = transaction.description.length > 20 ? 
+        transaction.description.substring(0, 17) + '...' : transaction.description.padEnd(20);
+      const category = (transaction.category || 'Uncategorized').padEnd(15);
+      const type = transaction.type.padEnd(10);
+      const amount = parseFloat(transaction.amount.toString()).toFixed(2);
+      
+      reportContent += `${date}\t\t${description}\t\t${category}\t\t${type}\t\t$${amount}\n`;
     }
+
+    logSuccess(`Text report generated with ${transactions.length} transactions`, 'ExportService');
+
+    return {
+      data: reportContent,
+      filename,
+      contentType: 'text/plain',
+      totalTransactions: transactions.length,
+      totalAmount
+    };
   }
 
 
