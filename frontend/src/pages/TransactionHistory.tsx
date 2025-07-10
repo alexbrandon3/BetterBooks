@@ -6,6 +6,7 @@ import { Account } from '../types/account';
 import * as TransactionService from '../services/TransactionService';
 import * as AccountService from '../services/AccountService';
 import { toast } from 'react-hot-toast';
+import TransactionDetailsModal from '../components/TransactionDetailsModal';
 
 interface TransactionFilters {
   search: string;
@@ -61,6 +62,10 @@ const TransactionHistory: React.FC = () => {
     sortBy: 'date',
     sortOrder: 'desc'
   });
+
+  // Modal state
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Load accounts for filter dropdown
   useEffect(() => {
@@ -146,6 +151,40 @@ const TransactionHistory: React.FC = () => {
     try {
       await TransactionService.deleteTransaction(transactionId);
       toast.success('Transaction deleted successfully');
+      loadTransactions(); // Reload the list
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      toast.error('Failed to delete transaction');
+    }
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedTransaction(null);
+  };
+
+  const handleTransactionUpdate = async (id: string, data: any) => {
+    try {
+      await TransactionService.updateTransaction(id, data);
+      toast.success('Transaction updated successfully');
+      loadTransactions(); // Reload the list
+    } catch (err) {
+      console.error('Error updating transaction:', err);
+      toast.error('Failed to update transaction');
+    }
+  };
+
+  const handleTransactionDelete = async (id: string) => {
+    try {
+      await TransactionService.deleteTransaction(id);
+      toast.success('Transaction deleted successfully');
+      setIsModalOpen(false);
+      setSelectedTransaction(null);
       loadTransactions(); // Reload the list
     } catch (err) {
       console.error('Error deleting transaction:', err);
@@ -395,7 +434,11 @@ const TransactionHistory: React.FC = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={transaction.id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleTransactionClick(transaction)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(transaction.date)}
                       </td>
@@ -417,7 +460,10 @@ const TransactionHistory: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={() => handleDeleteTransaction(transaction.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTransaction(transaction.id);
+                          }}
                           className="text-red-600 hover:text-red-900"
                           title="Delete transaction"
                         >
@@ -462,6 +508,16 @@ const TransactionHistory: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Transaction Details Modal */}
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        accounts={accounts}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onUpdate={handleTransactionUpdate}
+        onDelete={handleTransactionDelete}
+      />
     </div>
   );
 };
