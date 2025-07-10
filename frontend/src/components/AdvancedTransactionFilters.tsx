@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Account } from '../types/account';
+import { getUniqueCategories } from '../services/TransactionService';
 
 interface AdvancedFiltersProps {
   filters: {
@@ -28,10 +29,12 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const categoryInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Common categories for autocomplete
+  // Common categories for autocomplete (fallback)
   const commonCategories = [
     'Sales', 'Revenue', 'Service Income', 'Product Sales',
     'Payroll', 'Wages', 'Employee Benefits', 'Bonuses',
@@ -49,6 +52,28 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
     'Other', 'Miscellaneous', 'Uncategorized'
   ];
 
+  // Load dynamic categories from backend
+  useEffect(() => {
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const categories = await getUniqueCategories();
+        setDynamicCategories(categories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to common categories
+        setDynamicCategories(commonCategories);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  // Combine dynamic and common categories, removing duplicates
+  const allCategories = [...new Set([...dynamicCategories, ...commonCategories])];
+
   // Common search terms for suggestions
   const commonSearchTerms = [
     'invoice', 'payment', 'receipt', 'deposit', 'withdrawal',
@@ -60,27 +85,105 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
     'commission', 'bonus', 'expense', 'income', 'revenue'
   ];
 
-  // Filter categories based on search input
+  // Filter categories based on search input with improved fuzzy matching
   useEffect(() => {
     if (filters.category) {
-      const filtered = commonCategories.filter(cat =>
-        cat.toLowerCase().includes(filters.category.toLowerCase())
-      );
-      setCategorySuggestions(filtered);
+      const searchTerm = filters.category.toLowerCase();
+      const filtered = allCategories.filter(cat => {
+        const category = cat.toLowerCase();
+        
+        // Exact match gets highest priority
+        if (category === searchTerm) return true;
+        
+        // Starts with search term
+        if (category.startsWith(searchTerm)) return true;
+        
+        // Contains search term
+        if (category.includes(searchTerm)) return true;
+        
+        // Fuzzy matching for typos and partial matches
+        const words = category.split(' ');
+        const searchWords = searchTerm.split(' ');
+        
+        // Check if any word starts with any search word
+        for (const word of words) {
+          for (const searchWord of searchWords) {
+            if (word.startsWith(searchWord) && searchWord.length > 1) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      });
+      
+      // Sort by relevance: exact matches first, then starts with, then contains
+      const sorted = filtered.sort((a, b) => {
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        
+        if (aLower === searchTerm && bLower !== searchTerm) return -1;
+        if (bLower === searchTerm && aLower !== searchTerm) return 1;
+        if (aLower.startsWith(searchTerm) && !bLower.startsWith(searchTerm)) return -1;
+        if (bLower.startsWith(searchTerm) && !aLower.startsWith(searchTerm)) return 1;
+        
+        return aLower.localeCompare(bLower);
+      });
+      
+      setCategorySuggestions(sorted.slice(0, 10)); // Limit to top 10 matches
     } else {
-      setCategorySuggestions(commonCategories);
+      setCategorySuggestions(allCategories.slice(0, 10)); // Show top 10 categories when empty
     }
-  }, [filters.category]);
+  }, [filters.category, allCategories]);
 
-  // Filter search terms based on search input
+  // Filter search terms based on search input with improved fuzzy matching
   useEffect(() => {
     if (filters.search) {
-      const filtered = commonSearchTerms.filter(term =>
-        term.toLowerCase().includes(filters.search.toLowerCase())
-      );
-      setSearchSuggestions(filtered);
+      const searchTerm = filters.search.toLowerCase();
+      const filtered = commonSearchTerms.filter(term => {
+        const termLower = term.toLowerCase();
+        
+        // Exact match gets highest priority
+        if (termLower === searchTerm) return true;
+        
+        // Starts with search term
+        if (termLower.startsWith(searchTerm)) return true;
+        
+        // Contains search term
+        if (termLower.includes(searchTerm)) return true;
+        
+        // Fuzzy matching for typos and partial matches
+        const words = termLower.split(' ');
+        const searchWords = searchTerm.split(' ');
+        
+        // Check if any word starts with any search word
+        for (const word of words) {
+          for (const searchWord of searchWords) {
+            if (word.startsWith(searchWord) && searchWord.length > 1) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      });
+      
+      // Sort by relevance: exact matches first, then starts with, then contains
+      const sorted = filtered.sort((a, b) => {
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        
+        if (aLower === searchTerm && bLower !== searchTerm) return -1;
+        if (bLower === searchTerm && aLower !== searchTerm) return 1;
+        if (aLower.startsWith(searchTerm) && !bLower.startsWith(searchTerm)) return -1;
+        if (bLower.startsWith(searchTerm) && !aLower.startsWith(searchTerm)) return 1;
+        
+        return aLower.localeCompare(bLower);
+      });
+      
+      setSearchSuggestions(sorted.slice(0, 8)); // Limit to top 8 matches
     } else {
-      setSearchSuggestions(commonSearchTerms);
+      setSearchSuggestions(commonSearchTerms.slice(0, 8)); // Show top 8 terms when empty
     }
   }, [filters.search]);
 
@@ -235,6 +338,9 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
         <div className="relative" ref={categoryInputRef}>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Category
+            {isLoadingCategories && (
+              <span className="ml-2 text-xs text-gray-500">(Loading...)</span>
+            )}
           </label>
           <input
             type="text"
@@ -244,8 +350,9 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
               setShowCategorySuggestions(true);
             }}
             onFocus={() => setShowCategorySuggestions(true)}
-            placeholder="Enter category..."
+            placeholder={isLoadingCategories ? "Loading categories..." : "Enter category..."}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoadingCategories}
           />
           {showCategorySuggestions && categorySuggestions.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">

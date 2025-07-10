@@ -319,3 +319,13 @@ export const validateTransactionTemplate = async (transactionType: string, entri
     return { isValid: false, errors: ['Validation failed'] };
   }
 };
+
+export const getUniqueCategories = async (): Promise<string[]> => {
+  try {
+    const response = await api.get("/transactions/categories");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching unique categories:", error);
+    throw error;
+  }
+};
