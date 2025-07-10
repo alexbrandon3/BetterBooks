@@ -39,8 +39,10 @@ export const fetchAccountBalances = async (): Promise<Map<number, number>> => {
       
       if (response.data && Array.isArray(response.data)) {
         response.data.forEach((item: { accountId: number; balance: number }) => {
-          console.log(`📊 Setting balance for account ${item.accountId}: ${item.balance} (type: ${typeof item.balance})`);
-          balanceMap.set(item.accountId, item.balance);
+          // Ensure balance is a number
+          const balance = Number(item.balance);
+          console.log(`📊 Setting balance for account ${item.accountId}: ${item.balance} -> ${balance} (type: ${typeof balance})`);
+          balanceMap.set(item.accountId, balance);
         });
       }
       

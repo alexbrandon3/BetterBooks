@@ -61,17 +61,20 @@ export class AccountController extends BaseController {
 
       journalEntries.forEach(entry => {
         const currentBalance = accountBalances.get(entry.account.id) || 0;
+        // Ensure entry.amount is a number
+        const amount = Number(entry.amount);
+        
         if (entry.type === 'CREDIT') {
-          accountBalances.set(entry.account.id, currentBalance + entry.amount);
+          accountBalances.set(entry.account.id, currentBalance + amount);
         } else {
-          accountBalances.set(entry.account.id, currentBalance - entry.amount);
+          accountBalances.set(entry.account.id, currentBalance - amount);
         }
       });
 
       // Update account balances
       const accountsWithBalances = accounts.map(account => ({
         ...account,
-        balance: accountBalances.get(account.id) || 0
+        balance: Number(accountBalances.get(account.id) || 0) // Ensure balance is a number
       }));
 
       res.json(accountsWithBalances);
@@ -107,17 +110,20 @@ export class AccountController extends BaseController {
 
       journalEntries.forEach(entry => {
         const currentBalance = accountBalances.get(entry.account.id) || 0;
+        // Ensure entry.amount is a number
+        const amount = Number(entry.amount);
+        
         if (entry.type === 'CREDIT') {
-          accountBalances.set(entry.account.id, currentBalance + entry.amount);
+          accountBalances.set(entry.account.id, currentBalance + amount);
         } else {
-          accountBalances.set(entry.account.id, currentBalance - entry.amount);
+          accountBalances.set(entry.account.id, currentBalance - amount);
         }
       });
 
       // Return balances in the format expected by frontend
       const balances = Array.from(accountBalances.entries()).map(([accountId, balance]) => ({
         accountId,
-        balance
+        balance: Number(balance) // Ensure balance is a number
       }));
 
       res.json(balances);
