@@ -147,7 +147,7 @@ export class ExportService {
     const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
     // Generate a simple text report instead of PDF for now
-    const filename = `transactions_${new Date().toISOString().split('T')[0]}.txt`;
+    const filename = `transactions_${new Date().toISOString().split('T')[0]}.report`;
 
     let reportContent = 'TRANSACTION REPORT\n';
     reportContent += '==================\n\n';
