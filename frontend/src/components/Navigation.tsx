@@ -41,6 +41,7 @@ const Navigation = () => {
   const navLinks = [
     { to: "/", label: "Dashboard", icon: "📊" },
     { to: "/transactions", label: "Transactions", icon: "💰" },
+    { to: "/transaction-history", label: "History", icon: "📋" },
     { to: "/accounts", label: "Accounts", icon: "🏦" },
     { to: "/reports", label: "Reports", icon: "📈" },
     { to: "/settings", label: "Settings", icon: "⚙️" },

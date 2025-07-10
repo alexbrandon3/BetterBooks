@@ -6,6 +6,7 @@ import Navigation from "./components/Navigation";
 import { Settings } from "./components/PageStubs";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
+import TransactionHistory from "./pages/TransactionHistory";
 import RecurringTransactions from "./pages/RecurringTransactions";
 import Reports from "./pages/Reports";
 import Accounts from "./pages/Accounts";
@@ -57,6 +58,11 @@ const AppContent = () => {
           <Route path="/transactions" element={
             <ProtectedRoute>
               <Transactions />
+            </ProtectedRoute>
+          } />
+          <Route path="/transaction-history" element={
+            <ProtectedRoute>
+              <TransactionHistory />
             </ProtectedRoute>
           } />
           <Route path="/recurring-transactions" element={

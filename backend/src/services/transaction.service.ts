@@ -43,6 +43,73 @@ export class TransactionService {
     return transactions;
   }
 
+  async getTransactionsWithFilters(
+    userId: number, 
+    filters: {
+      search?: string;
+      type?: string;
+      category?: string;
+      startDate?: string;
+      endDate?: string;
+      accountId?: number;
+      minAmount?: number;
+      maxAmount?: number;
+    }
+  ): Promise<Transaction[]> {
+    logInfo(`Fetching transactions with filters for user ${userId}`, 'TransactionService');
+    
+    let query = this.transactionRepo
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.entries', 'entry')
+      .leftJoinAndSelect('entry.account', 'account')
+      .leftJoinAndSelect('transaction.user', 'user')
+      .where('user.id = :userId', { userId });
+
+    // Apply search filter
+    if (filters.search) {
+      query = query.andWhere(
+        '(transaction.description ILIKE :search OR transaction.category ILIKE :search)',
+        { search: `%${filters.search}%` }
+      );
+    }
+
+    // Apply type filter
+    if (filters.type) {
+      query = query.andWhere('transaction.type = :type', { type: filters.type });
+    }
+
+    // Apply category filter
+    if (filters.category) {
+      query = query.andWhere('transaction.category = :category', { category: filters.category });
+    }
+
+    // Apply date range filter
+    if (filters.startDate) {
+      query = query.andWhere('transaction.date >= :startDate', { startDate: filters.startDate });
+    }
+    if (filters.endDate) {
+      query = query.andWhere('transaction.date <= :endDate', { endDate: filters.endDate });
+    }
+
+    // Apply account filter
+    if (filters.accountId) {
+      query = query.andWhere('entry.account.id = :accountId', { accountId: filters.accountId });
+    }
+
+    // Apply amount range filter
+    if (filters.minAmount !== undefined) {
+      query = query.andWhere('transaction.amount >= :minAmount', { minAmount: filters.minAmount });
+    }
+    if (filters.maxAmount !== undefined) {
+      query = query.andWhere('transaction.amount <= :maxAmount', { maxAmount: filters.maxAmount });
+    }
+
+    const transactions = await query.orderBy('transaction.date', 'DESC').getMany();
+    
+    logSuccess(`Retrieved ${transactions.length} filtered transactions for user ${userId}`, 'TransactionService');
+    return transactions;
+  }
+
   async createTransaction(transactionData: CreateTransactionDTO): Promise<TransactionResult> {
     logInfo('Starting createTransaction', 'TransactionService');
 

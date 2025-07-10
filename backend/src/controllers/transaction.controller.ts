@@ -30,40 +30,92 @@ export class TransactionController extends BaseController {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = (page - 1) * limit;
 
-      // For now, use the simple getTransactions method
-      const allTransactions = await this.transactionService.getTransactions(user.id);
-      
+      // Get filtering parameters
+      const search = req.query.search as string;
+      const type = req.query.type as string;
+      const category = req.query.category as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      const accountId = req.query.accountId ? parseInt(req.query.accountId as string) : undefined;
+      const minAmount = req.query.minAmount ? parseFloat(req.query.minAmount as string) : undefined;
+      const maxAmount = req.query.maxAmount ? parseFloat(req.query.maxAmount as string) : undefined;
+
+      // Get sorting parameters
+      const sortBy = req.query.sortBy as string || 'date';
+      const sortOrder = req.query.sortOrder as string || 'desc';
+
+      // Get all transactions with filtering
+      const allTransactions = await this.transactionService.getTransactionsWithFilters(
+        user.id,
+        {
+          search,
+          type,
+          category,
+          startDate,
+          endDate,
+          accountId,
+          minAmount,
+          maxAmount
+        }
+      );
+
+      // Apply sorting
+      const sortedTransactions = allTransactions.sort((a: Transaction, b: Transaction) => {
+        let aValue: any, bValue: any;
+        
+        switch (sortBy) {
+          case 'date':
+            aValue = new Date(a.date).getTime();
+            bValue = new Date(b.date).getTime();
+            break;
+          case 'amount':
+            aValue = a.amount;
+            bValue = b.amount;
+            break;
+          case 'description':
+            aValue = a.description.toLowerCase();
+            bValue = b.description.toLowerCase();
+            break;
+          case 'type':
+            aValue = a.type.toLowerCase();
+            bValue = b.type.toLowerCase();
+            break;
+          default:
+            aValue = new Date(a.date).getTime();
+            bValue = new Date(b.date).getTime();
+        }
+
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
       // Apply pagination
-      const total = allTransactions.length;
+      const total = sortedTransactions.length;
       const totalPages = Math.ceil(total / limit);
-      const transactions = allTransactions.slice(offset, offset + limit);
-      
-      console.log('📤 Sending transactions response:', JSON.stringify({
-        transactions: transactions.map((t: Transaction) => ({
-          id: t.id,
-          description: t.description,
-          type: t.type,
-          category: t.category,
-          date: t.date,
-          amount: t.amount,
-          entryCount: t.entries?.length,
-          entries: t.entries?.map((e: any) => ({
-            id: e.id,
-            amount: e.amount,
-            type: e.type,
-            accountId: e.account?.id
-          }))
-        })),
-        total,
-        page,
-        totalPages
-      }, null, 2));
+      const transactions = sortedTransactions.slice(offset, offset + limit);
 
       res.json({
         transactions,
         total,
         page,
-        totalPages
+        totalPages,
+        filters: {
+          search,
+          type,
+          category,
+          startDate,
+          endDate,
+          accountId,
+          minAmount,
+          maxAmount
+        },
+        sorting: {
+          sortBy,
+          sortOrder
+        }
       });
     } catch (error) {
       console.error("❌ Error in getTransactions controller:", error);

@@ -96,6 +96,24 @@ export const fetchTransactions = async (options: TransactionQueryOptions = {}): 
   }, { ttl: 2 * 60 * 1000 }); // 2 minute cache
 };
 
+// Fetch transactions with advanced filtering and sorting
+export const fetchTransactionsWithFilters = async (params: URLSearchParams): Promise<{
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  totalPages: number;
+  filters: any;
+  sorting: any;
+}> => {
+  try {
+    const response = await api.get(`/transactions?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching transactions with filters:", error);
+    throw error;
+  }
+};
+
 // Cached fetch recent transactions for dashboard
 export const fetchRecentTransactions = async (limit: number = 10): Promise<Transaction[]> => {
   const cacheKey = `${CACHE_KEYS.RECENT_TRANSACTIONS}_${limit}`;
