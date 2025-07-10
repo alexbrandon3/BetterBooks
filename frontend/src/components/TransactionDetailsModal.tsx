@@ -49,8 +49,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   // Reset form when transaction changes
   useEffect(() => {
     if (transaction) {
+      // Format date for HTML date input (YYYY-MM-DD)
+      const formattedDate = new Date(transaction.date).toISOString().split('T')[0];
+      
       reset({
-        date: transaction.date,
+        date: formattedDate,
         type: transaction.type,
         description: transaction.description,
         category: transaction.category || '',
@@ -73,8 +76,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     setIsEditing(false);
     // Reset form to original values
     if (transaction) {
+      // Format date for HTML date input (YYYY-MM-DD)
+      const formattedDate = new Date(transaction.date).toISOString().split('T')[0];
+      
       reset({
-        date: transaction.date,
+        date: formattedDate,
         type: transaction.type,
         description: transaction.description,
         category: transaction.category || '',
@@ -137,7 +143,14 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
   if (!isOpen || !transaction) return null;
 
-  const totalAmount = transaction.entries.reduce((sum, entry) => sum + Math.abs(entry.amount), 0);
+  // Calculate total debits and credits separately
+  const totalDebits = transaction.entries
+    .filter(entry => entry.type === 'DEBIT')
+    .reduce((sum, entry) => sum + Math.abs(entry.amount), 0);
+  
+  const totalCredits = transaction.entries
+    .filter(entry => entry.type === 'CREDIT')
+    .reduce((sum, entry) => sum + Math.abs(entry.amount), 0);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -332,8 +345,12 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                     <p className="text-lg font-semibold">{transaction.category || 'Uncategorized'}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                    <p className="text-lg font-semibold">${totalAmount.toFixed(2)}</p>
+                    <p className="text-sm font-medium text-gray-500">Total Debits</p>
+                    <p className="text-lg font-semibold text-red-600">${totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Total Credits</p>
+                    <p className="text-lg font-semibold text-green-600">${totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Transaction ID</p>
@@ -354,7 +371,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                       </div>
                       <div className="text-right">
                         <p className={`font-semibold ${entry.type === 'DEBIT' ? 'text-red-600' : 'text-green-600'}`}>
-                          {entry.type === 'DEBIT' ? '-' : '+'}${Math.abs(entry.amount).toFixed(2)}
+                          {entry.type === 'DEBIT' ? '-' : '+'}${Math.abs(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                         <p className="text-sm text-gray-500">{entry.type}</p>
                       </div>
