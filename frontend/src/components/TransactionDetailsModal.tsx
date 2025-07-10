@@ -366,24 +366,25 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                         <p className="text-sm text-gray-500">{entry.account.type}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-semibold ${entry.type === 'DEBIT' ? 'text-red-600' : 'text-green-600'}`}>
-                          {/* Show correct sign based on account type and entry type */}
-                          {(() => {
-                            const accountType = entry.account.type;
-                            let shouldShowPositive = false;
-                            
-                            // Assets and Expenses are increased by DEBITS
-                            if ((accountType === 'ASSET' || accountType === 'EXPENSE') && entry.type === 'DEBIT') {
-                              shouldShowPositive = true;
-                            }
-                            // Liabilities, Equity, and Income are increased by CREDITS  
-                            else if ((accountType === 'LIABILITY' || accountType === 'EQUITY' || accountType === 'INCOME') && entry.type === 'CREDIT') {
-                              shouldShowPositive = true;
-                            }
-                            
-                            return `${shouldShowPositive ? '+' : '-'}$${Math.abs(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          })()}
-                        </p>
+                        {(() => {
+                          const accountType = entry.account.type;
+                          let shouldShowPositive = false;
+                          
+                          // Assets and Expenses are increased by DEBITS
+                          if ((accountType === 'ASSET' || accountType === 'EXPENSE') && entry.type === 'DEBIT') {
+                            shouldShowPositive = true;
+                          }
+                          // Liabilities, Equity, and Income are increased by CREDITS  
+                          else if ((accountType === 'LIABILITY' || accountType === 'EQUITY' || accountType === 'INCOME') && entry.type === 'CREDIT') {
+                            shouldShowPositive = true;
+                          }
+                          
+                          return (
+                            <p className={`font-semibold ${shouldShowPositive ? 'text-green-600' : 'text-red-600'}`}>
+                              {shouldShowPositive ? '+' : '-'}${Math.abs(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          );
+                        })()}
                         <p className="text-sm text-gray-500">{entry.type}</p>
                       </div>
                     </div>
