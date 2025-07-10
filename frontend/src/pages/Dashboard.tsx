@@ -61,16 +61,19 @@ const Dashboard = () => {
 
   // Memoize expensive calculations
   const cashAccounts = useMemo(() => {
-    return (accounts || []).filter(account => {
+    const filtered = (accounts || []).filter(account => {
       // Include CURRENT_ASSET accounts as cash accounts (most liquid)
       return account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET';
     });
+    console.log('💰 Cash accounts found:', filtered.length, filtered.map(acc => ({ name: acc.name, balance: acc.balance })));
+    return filtered;
   }, [accounts]);
 
   const totalCash = useMemo(() => {
-    return cashAccounts.reduce((sum, account) => {
+    const result = cashAccounts.reduce((sum, account) => {
       // Use cached balance if available, otherwise fall back to account.balance
       const balance = accountBalances.get(account.id) ?? Number(account.balance);
+      
       // Safety check for NaN or invalid values
       if (isNaN(balance) || !isFinite(balance)) {
         console.warn('⚠️ Invalid balance detected in Dashboard for account:', account.name, 'balance:', balance);
@@ -78,10 +81,10 @@ const Dashboard = () => {
       }
       return sum + balance;
     }, 0);
+    
+    console.log('💰 Total cash calculated:', result, 'type:', typeof result, 'isNaN:', isNaN(result));
+    return result;
   }, [cashAccounts, accountBalances]);
-  
-  // console.log('Cash accounts found:', cashAccounts.length);
-  // console.log('Total cash:', totalCash);
 
   // Memoize callback functions to prevent recreation on every render
   const formatTransactionAmount = useCallback((transaction: Transaction) => {
