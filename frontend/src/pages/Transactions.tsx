@@ -485,7 +485,7 @@ const Transactions = () => {
         description: data.description,
         date: data.date,
         type: data.type,
-        category: "Uncategorized", // Default category
+        category: data.category || "Uncategorized", // Use form category or default
         amount: totalAmount,
         entries: data.entries.map(entry => ({
           accountId: parseInt(entry.accountId) || 0, // Convert string to number
@@ -583,11 +583,11 @@ const Transactions = () => {
       }
       // Reset form completely after successful submission
       const resetData: TransactionForm = {
-        date: new Date().toISOString().split('T')[0],
-        type: "EXPENSE",
-        description: "",
-        category: "Uncategorized",
-        amount: 0,
+              date: new Date().toISOString().split('T')[0],
+      type: "EXPENSE",
+      description: "",
+      category: "",
+      amount: 0,
         entries: [
           { accountId: "", amount: "", type: "DEBIT" },
           { accountId: "", amount: "", type: "CREDIT" }
@@ -663,7 +663,7 @@ const Transactions = () => {
       date: new Date(recurring.nextRun).toISOString().split('T')[0],
       type: recurring.amount > 0 ? "INCOME" : "EXPENSE",
       description: recurring.description,
-      category: "Uncategorized",
+      category: recurring.category || "",
       amount: Math.abs(recurring.amount),
       entries: [
         { 
@@ -900,15 +900,28 @@ const Transactions = () => {
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Description *</label>
-          <input
-            type="text"
-            {...register("description")}
-            aria-label="Transaction Description *"
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description *</label>
+            <input
+              type="text"
+              {...register("description")}
+              aria-label="Transaction Description *"
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Category</label>
+            <input
+              type="text"
+              {...register("category")}
+              aria-label="Transaction Category"
+              placeholder="e.g., Food, Transportation, Utilities"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         {/* Smart Suggestions Toggle */}
