@@ -514,9 +514,12 @@ export class TransactionController extends BaseController {
       
       // Handle different content types
       if (result.contentType === 'application/pdf') {
-        // For PDF, send as buffer
+        // For PDF, send as buffer with proper headers
         const buffer = Buffer.from(result.data, 'base64');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
         res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
         res.send(buffer);
       } else {
         // For CSV, send as string

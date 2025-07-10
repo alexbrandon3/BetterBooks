@@ -204,8 +204,8 @@ export class ExportService {
       });
       yPosition -= lineHeight;
 
-      // Add transaction data
-      for (const transaction of transactions.slice(0, 30)) { // Limit to first 30 transactions
+      // Add transaction data (simplified for testing)
+      for (const transaction of transactions.slice(0, 10)) { // Limit to first 10 transactions for testing
         if (yPosition < 100) {
           // Add new page if running out of space
           page = pdfDoc.addPage([595.28, 841.89]);
@@ -214,7 +214,6 @@ export class ExportService {
 
         xPosition = margin;
         const amount = parseFloat(transaction.amount.toString());
-        const isPositive = transaction.type === 'INCOME';
 
         // Date
         page.drawText(new Date(transaction.date).toLocaleDateString(), {
@@ -259,13 +258,13 @@ export class ExportService {
         xPosition += columnWidths[3];
 
         // Amount
-        const amountText = `${isPositive ? '+' : ''}$${amount.toFixed(2)}`;
+        const amountText = `$${amount.toFixed(2)}`;
         page.drawText(amountText, {
           x: xPosition,
           y: yPosition,
           size: 8,
           font: font,
-          color: isPositive ? rgb(0, 0.5, 0) : rgb(0.8, 0, 0)
+          color: rgb(0, 0, 0)
         });
 
         yPosition -= lineHeight;
