@@ -531,18 +531,24 @@ export class TransactionService {
   async getUniqueCategories(userId: number): Promise<string[]> {
     logInfo(`Getting unique categories for user ${userId}`, 'TransactionService');
     
-    const categories = await this.transactionRepo
-      .createQueryBuilder('transaction')
-      .select('DISTINCT transaction.category', 'category')
-      .where('transaction.user.id = :userId', { userId })
-      .andWhere('transaction.category IS NOT NULL')
-      .andWhere('transaction.category != ""')
-      .orderBy('transaction.category', 'ASC')
-      .getRawMany();
+    try {
+      const categories = await this.transactionRepo
+        .createQueryBuilder('transaction')
+        .select('DISTINCT transaction.category', 'category')
+        .leftJoin('transaction.user', 'user')
+        .where('user.id = :userId', { userId })
+        .andWhere('transaction.category IS NOT NULL')
+        .andWhere("transaction.category != ''")
+        .orderBy('transaction.category', 'ASC')
+        .getRawMany();
 
-    const categoryList = categories.map(cat => cat.category).filter(Boolean);
-    logSuccess(`Found ${categoryList.length} unique categories for user ${userId}`, 'TransactionService');
-    return categoryList;
+      const categoryList = categories.map((cat: any) => cat.category).filter(Boolean);
+      logSuccess(`Found ${categoryList.length} unique categories for user ${userId}`, 'TransactionService');
+      return categoryList;
+    } catch (error) {
+      logError(`Error in getUniqueCategories: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
   }
 
   async recalculateAccountBalances(userId: number): Promise<void> {
