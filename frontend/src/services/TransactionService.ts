@@ -169,6 +169,25 @@ export const updateTransaction = async (id: string, transaction: BackendTransact
   }
 };
 
+export const updateTransactionPartial = async (id: string, updates: Partial<{
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
+  description: string;
+  date: string;
+  category: string;
+}>): Promise<Transaction> => {
+  try {
+    const response = await api.patch(`/transactions/${id}`, updates);
+    
+    // Invalidate relevant caches
+    invalidateTransactions();
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    throw error;
+  }
+};
+
 export const deleteTransaction = async (id: string): Promise<void> => {
   try {
     await api.delete(`/transactions/${id}`);

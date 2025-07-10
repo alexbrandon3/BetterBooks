@@ -67,6 +67,10 @@ const TransactionHistory: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Bulk operations state
+  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
+  const [isBulkMode, setIsBulkMode] = useState(false);
+
   // Load accounts for filter dropdown
   useEffect(() => {
     const loadAccounts = async () => {
@@ -189,6 +193,90 @@ const TransactionHistory: React.FC = () => {
     } catch (err) {
       console.error('Error deleting transaction:', err);
       toast.error('Failed to delete transaction');
+    }
+  };
+
+  // Bulk operations handlers
+  const handleBulkModeToggle = () => {
+    setIsBulkMode(!isBulkMode);
+    if (isBulkMode) {
+      setSelectedTransactions(new Set()); // Clear selections when exiting bulk mode
+    }
+  };
+
+  const handleSelectTransaction = (transactionId: string) => {
+    const newSelected = new Set(selectedTransactions);
+    if (newSelected.has(transactionId)) {
+      newSelected.delete(transactionId);
+    } else {
+      newSelected.add(transactionId);
+    }
+    setSelectedTransactions(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTransactions.size === transactions.length) {
+      setSelectedTransactions(new Set());
+    } else {
+      setSelectedTransactions(new Set(transactions.map(t => t.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTransactions.size === 0) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedTransactions.size} transaction(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedTransactions).map(id => 
+        TransactionService.deleteTransaction(id)
+      );
+      await Promise.all(deletePromises);
+      toast.success(`${selectedTransactions.size} transaction(s) deleted successfully`);
+      setSelectedTransactions(new Set());
+      setIsBulkMode(false);
+      loadTransactions();
+    } catch (err) {
+      console.error('Error deleting transactions:', err);
+      toast.error('Failed to delete some transactions');
+    }
+  };
+
+  const handleBulkCategoryChange = async (newCategory: string) => {
+    if (selectedTransactions.size === 0) return;
+    
+    try {
+      const updatePromises = Array.from(selectedTransactions).map(id => 
+        TransactionService.updateTransactionPartial(id, { category: newCategory })
+      );
+      await Promise.all(updatePromises);
+      toast.success(`Category updated for ${selectedTransactions.size} transaction(s)`);
+      setSelectedTransactions(new Set());
+      setIsBulkMode(false);
+      loadTransactions();
+    } catch (err) {
+      console.error('Error updating transactions:', err);
+      toast.error('Failed to update some transactions');
+    }
+  };
+
+  const handleBulkTypeChange = async (newType: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL') => {
+    if (selectedTransactions.size === 0) return;
+    
+    try {
+      const updatePromises = Array.from(selectedTransactions).map(id => 
+        TransactionService.updateTransactionPartial(id, { type: newType })
+      );
+      await Promise.all(updatePromises);
+      toast.success(`Type updated for ${selectedTransactions.size} transaction(s)`);
+      setSelectedTransactions(new Set());
+      setIsBulkMode(false);
+      loadTransactions();
+    } catch (err) {
+      console.error('Error updating transactions:', err);
+      toast.error('Failed to update some transactions');
     }
   };
 
@@ -349,6 +437,16 @@ const TransactionHistory: React.FC = () => {
               Transactions ({total} total)
             </h2>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={handleBulkModeToggle}
+                className={`px-3 py-1 text-sm rounded-md ${
+                  isBulkMode 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {isBulkMode ? 'Exit Bulk Mode' : 'Bulk Operations'}
+              </button>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
@@ -361,6 +459,65 @@ const TransactionHistory: React.FC = () => {
               </select>
             </div>
           </div>
+          
+          {/* Bulk Operations Bar */}
+          {isBulkMode && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    {selectedTransactions.size === transactions.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {selectedTransactions.size} of {transactions.length} selected
+                  </span>
+                </div>
+                
+                {selectedTransactions.size > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <select
+                      onChange={(e) => handleBulkCategoryChange(e.target.value)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Change Category</option>
+                      <option value="Sales">Sales</option>
+                      <option value="Expenses">Expenses</option>
+                      <option value="Payroll">Payroll</option>
+                      <option value="Taxes">Taxes</option>
+                      <option value="Utilities">Utilities</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Travel">Travel</option>
+                      <option value="Equipment">Equipment</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    
+                    <select
+                      onChange={(e) => handleBulkTypeChange(e.target.value as any)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Change Type</option>
+                      <option value="INCOME">Income</option>
+                      <option value="EXPENSE">Expense</option>
+                      <option value="TRANSFER">Transfer</option>
+                      <option value="ADJUSTMENT">Adjustment</option>
+                    </select>
+                    
+                    <button
+                      onClick={handleBulkDelete}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Delete Selected
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -388,6 +545,16 @@ const TransactionHistory: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {isBulkMode && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={selectedTransactions.size === transactions.length && transactions.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
+                    )}
                     <th 
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => handleSortChange('date')}
@@ -436,9 +603,20 @@ const TransactionHistory: React.FC = () => {
                   {transactions.map((transaction) => (
                     <tr 
                       key={transaction.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleTransactionClick(transaction)}
+                      className={`hover:bg-gray-50 ${isBulkMode ? '' : 'cursor-pointer'}`}
+                      onClick={isBulkMode ? undefined : () => handleTransactionClick(transaction)}
                     >
+                      {isBulkMode && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedTransactions.has(transaction.id)}
+                            onChange={() => handleSelectTransaction(transaction.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(transaction.date)}
                       </td>

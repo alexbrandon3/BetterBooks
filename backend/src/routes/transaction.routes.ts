@@ -12,6 +12,7 @@ router.get("/recent", authenticate, (req, res) => transactionController.getRecen
 router.get("/balances", authenticate, (req, res) => transactionController.getAccountBalances(req as AuthenticatedRequest, res));
 router.post("/", authenticate, (req, res) => transactionController.createTransaction(req as AuthenticatedRequest, res));
 router.put("/:id", authenticate, (req, res) => transactionController.updateTransaction(req as AuthenticatedRequest, res));
+router.patch("/:id", authenticate, (req, res) => transactionController.updateTransactionPartial(req as AuthenticatedRequest, res));
 router.delete("/:id", authenticate, (req, res) => transactionController.deleteTransaction(req as AuthenticatedRequest, res));
 router.post("/suggest-account", authenticate, (req, res) => transactionController.suggestAccount(req as AuthenticatedRequest, res));
 router.get("/recurring", authenticate, (req, res) => transactionController.getRecurringTransactions(req as AuthenticatedRequest, res));

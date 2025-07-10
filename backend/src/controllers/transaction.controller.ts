@@ -332,6 +332,36 @@ export class TransactionController extends BaseController {
     }
   };
 
+  updateTransactionPartial = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+
+      // Only allow specific fields to be updated
+      const allowedUpdates: any = {};
+      if (updates.type) allowedUpdates.type = updates.type;
+      if (updates.description) allowedUpdates.description = updates.description;
+      if (updates.date) allowedUpdates.date = updates.date;
+      if (updates.category) allowedUpdates.category = updates.category;
+
+      const updatedTransaction = await this.transactionService.updateTransactionPartial(id, allowedUpdates, user.id);
+      
+      res.json(updatedTransaction);
+    } catch (error) {
+      console.error("❌ Error in updateTransactionPartial controller:", error);
+      res.status(500).json({ 
+        error: "Failed to update transaction",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  };
+
   deleteTransaction = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);

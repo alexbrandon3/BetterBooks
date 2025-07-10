@@ -338,6 +338,41 @@ export class TransactionService {
     }
   }
 
+  async updateTransactionPartial(id: string, updates: Partial<{
+    type: TransactionType;
+    description: string;
+    date: string;
+    category: string;
+  }>, userId: number): Promise<Transaction> {
+    logInfo(`Starting updateTransactionPartial for ID: ${id}`, 'TransactionService');
+
+    try {
+      const transaction = await this.transactionRepo.findOne({
+        where: { id, user: { id: userId } },
+        relations: ['entries', 'entries.account']
+      });
+
+      if (!transaction) {
+        logError(`Transaction not found: ${id}`, 'TransactionService');
+        throw new Error(`Transaction with ID ${id} not found`);
+      }
+
+      // Update only the provided fields
+      if (updates.type) transaction.type = updates.type;
+      if (updates.description) transaction.description = updates.description;
+      if (updates.date) transaction.date = new Date(updates.date);
+      if (updates.category) transaction.category = updates.category;
+
+      // Save the updated transaction
+      const updatedTransaction = await this.transactionRepo.save(transaction);
+      logSuccess(`Transaction partially updated successfully: ${updatedTransaction.id}`, 'TransactionService');
+      return updatedTransaction;
+    } catch (error) {
+      logError(`Error partially updating transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
+      throw error;
+    }
+  }
+
   async deleteTransaction(id: string, userId: number): Promise<void> {
     logInfo(`Starting deleteTransaction for ID: ${id}`, 'TransactionService');
     
