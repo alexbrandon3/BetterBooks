@@ -3,6 +3,8 @@ import { Account } from "../entities/Account";
 import { TransactionService } from "./transaction.service";
 import { AccountService } from "./AccountService";
 import { logInfo, logSuccess, logError } from '../utils/logger';
+// @ts-ignore
+import htmlPdf from 'html-pdf-node';
 
 export interface ExportOptions {
   format: 'csv' | 'pdf';
@@ -149,19 +151,36 @@ export class ExportService {
     // Generate HTML content for PDF
     const htmlContent = this.generatePDFHTML(transactions, totalAmount);
 
-    // For now, return HTML content as a downloadable file
-    // In production, you might want to use a service like wkhtmltopdf or a cloud PDF service
-    const filename = `transactions_${new Date().toISOString().split('T')[0]}.html`;
+    try {
+      // Generate PDF from HTML
+      const options = {
+        format: 'A4',
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        }
+      };
 
-    logSuccess(`HTML export generated with ${transactions.length} transactions`, 'ExportService');
+      const file = { content: htmlContent };
+      const pdfBuffer = await htmlPdf.generatePdf(file, options);
 
-    return {
-      data: htmlContent,
-      filename,
-      contentType: 'text/html',
-      totalTransactions: transactions.length,
-      totalAmount
-    };
+      const filename = `transactions_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      logSuccess(`PDF export generated with ${transactions.length} transactions`, 'ExportService');
+
+      return {
+        data: pdfBuffer.toString('base64'),
+        filename,
+        contentType: 'application/pdf',
+        totalTransactions: transactions.length,
+        totalAmount
+      };
+    } catch (error) {
+      logError(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`, 'ExportService');
+      throw error;
+    }
   }
 
   private generatePDFHTML(

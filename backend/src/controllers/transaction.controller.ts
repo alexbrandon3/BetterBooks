@@ -513,10 +513,11 @@ export class TransactionController extends BaseController {
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
       
       // Handle different content types
-      if (result.contentType === 'text/html') {
-        // For HTML, send as string
-        res.setHeader('Content-Length', Buffer.byteLength(result.data, 'utf8'));
-        res.send(result.data);
+      if (result.contentType === 'application/pdf') {
+        // For PDF, send as buffer
+        const buffer = Buffer.from(result.data, 'base64');
+        res.setHeader('Content-Length', buffer.length);
+        res.send(buffer);
       } else {
         // For CSV, send as string
         res.setHeader('Content-Length', Buffer.byteLength(result.data, 'utf8'));
