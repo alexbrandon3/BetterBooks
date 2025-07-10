@@ -3,6 +3,7 @@
 import { Request, Response } from "express";
 import { getUser } from "../utils/getUser";
 import { TransactionService } from "../services/transaction.service";
+import { ExportService } from "../services/export.service";
 import { CreateTransactionDTO, TransactionType, EntryType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { AuthenticatedRequest } from "../types/express";
@@ -11,10 +12,12 @@ import { Transaction } from "../entities/Transaction";
 
 export class TransactionController extends BaseController {
   private transactionService: TransactionService;
+  private exportService: ExportService;
 
   constructor() {
     super();
     this.transactionService = new TransactionService();
+    this.exportService = new ExportService();
   }
 
   getTransactions = async (req: Request, res: Response): Promise<void> => {
@@ -465,6 +468,77 @@ export class TransactionController extends BaseController {
       console.error("❌ Error in getUniqueCategories controller:", error);
       res.status(500).json({ 
         error: "Failed to fetch unique categories",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  async exportTransactions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const {
+        format = 'csv',
+        dateRange,
+        filters,
+        includeHeaders = true,
+        includeAccountDetails = true,
+        includeCategoryBreakdown = false,
+        groupBy
+      } = req.body;
+
+      if (!format || !['csv', 'pdf'].includes(format)) {
+        res.status(400).json({ error: "Invalid format. Must be 'csv' or 'pdf'" });
+        return;
+      }
+
+      const exportOptions = {
+        format,
+        dateRange,
+        filters,
+        includeHeaders,
+        includeAccountDetails,
+        includeCategoryBreakdown,
+        groupBy
+      };
+
+      const result = await this.exportService.exportTransactions(user.id, exportOptions);
+
+      // Set appropriate headers for file download
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('Content-Length', Buffer.byteLength(result.data, 'utf8'));
+
+      res.send(result.data);
+    } catch (error) {
+      console.error("❌ Error in exportTransactions controller:", error);
+      res.status(500).json({ 
+        error: "Failed to export transactions",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  async generateFinancialSummary(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const { dateRange } = req.body;
+      const summary = await this.exportService.generateFinancialSummary(user.id, dateRange);
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("❌ Error in generateFinancialSummary controller:", error);
+      res.status(500).json({ 
+        error: "Failed to generate financial summary",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

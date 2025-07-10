@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import TransactionDetailsModal from '../components/TransactionDetailsModal';
 import AdvancedTransactionFilters from '../components/AdvancedTransactionFilters';
 import FilterSummary from '../components/FilterSummary';
+import ExportModal from '../components/ExportModal';
 
 interface TransactionFilters {
   search: string;
@@ -68,6 +69,7 @@ const TransactionHistory: React.FC = () => {
   // Modal state
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Bulk operations state
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
@@ -346,6 +348,12 @@ const TransactionHistory: React.FC = () => {
             </h2>
             <div className="flex items-center space-x-4">
               <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Export
+              </button>
+              <button
                 onClick={handleBulkModeToggle}
                 className={`px-3 py-1 text-sm rounded-md ${
                   isBulkMode 
@@ -603,6 +611,15 @@ const TransactionHistory: React.FC = () => {
         onClose={handleModalClose}
         onUpdate={handleTransactionUpdate}
         onDelete={handleTransactionDelete}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        filters={filters}
+        totalTransactions={total}
+        totalAmount={transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0)}
       />
     </div>
   );

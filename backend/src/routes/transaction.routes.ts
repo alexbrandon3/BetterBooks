@@ -20,5 +20,7 @@ router.get("/templates", authenticate, (req, res) => transactionController.getTr
 router.post("/suggest-template", authenticate, (req, res) => transactionController.suggestTransactionTemplate(req as AuthenticatedRequest, res));
 router.post("/validate-template", authenticate, (req, res) => transactionController.validateTransactionTemplate(req as AuthenticatedRequest, res));
 router.get("/categories", authenticate, (req, res) => transactionController.getUniqueCategories(req as AuthenticatedRequest, res));
+router.post("/export", authenticate, (req, res) => transactionController.exportTransactions(req as AuthenticatedRequest, res));
+router.post("/financial-summary", authenticate, (req, res) => transactionController.generateFinancialSummary(req as AuthenticatedRequest, res));
 
 export default router;
