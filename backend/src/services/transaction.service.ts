@@ -78,9 +78,9 @@ export class TransactionService {
       query = query.andWhere('transaction.type = :type', { type: filters.type });
     }
 
-    // Apply category filter
+    // Apply category filter with fuzzy matching
     if (filters.category) {
-      query = query.andWhere('transaction.category = :category', { category: filters.category });
+      query = query.andWhere('transaction.category ILIKE :category', { category: `%${filters.category}%` });
     }
 
     // Apply date range filter
@@ -526,6 +526,23 @@ export class TransactionService {
       logError(`Error in getRecurringTransactions: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
     }
+  }
+
+  async getUniqueCategories(userId: number): Promise<string[]> {
+    logInfo(`Getting unique categories for user ${userId}`, 'TransactionService');
+    
+    const categories = await this.transactionRepo
+      .createQueryBuilder('transaction')
+      .select('DISTINCT transaction.category', 'category')
+      .where('transaction.user.id = :userId', { userId })
+      .andWhere('transaction.category IS NOT NULL')
+      .andWhere('transaction.category != ""')
+      .orderBy('transaction.category', 'ASC')
+      .getRawMany();
+
+    const categoryList = categories.map(cat => cat.category).filter(Boolean);
+    logSuccess(`Found ${categoryList.length} unique categories for user ${userId}`, 'TransactionService');
+    return categoryList;
   }
 
   async recalculateAccountBalances(userId: number): Promise<void> {

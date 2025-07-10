@@ -450,6 +450,25 @@ export class TransactionController extends BaseController {
       res.status(500).json({ error: "Failed to validate transaction template" });
     }
   }
+
+  async getUniqueCategories(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const categories = await this.transactionService.getUniqueCategories(user.id);
+      res.json(categories);
+    } catch (error) {
+      console.error("❌ Error in getUniqueCategories controller:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch unique categories",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
 }
 
 // Create and export an instance of the controller
