@@ -7,6 +7,8 @@ import * as TransactionService from '../services/TransactionService';
 import * as AccountService from '../services/AccountService';
 import { toast } from 'react-hot-toast';
 import TransactionDetailsModal from '../components/TransactionDetailsModal';
+import AdvancedTransactionFilters from '../components/AdvancedTransactionFilters';
+import FilterSummary from '../components/FilterSummary';
 
 interface TransactionFilters {
   search: string;
@@ -144,6 +146,17 @@ const TransactionHistory: React.FC = () => {
       minAmount: '',
       maxAmount: ''
     });
+    setCurrentPage(1);
+  };
+
+  const removeFilter = (key: string) => {
+    if (key === 'dateRange') {
+      setFilters(prev => ({ ...prev, startDate: '', endDate: '' }));
+    } else if (key === 'amountRange') {
+      setFilters(prev => ({ ...prev, minAmount: '', maxAmount: '' }));
+    } else {
+      setFilters(prev => ({ ...prev, [key]: '' }));
+    }
     setCurrentPage(1);
   };
 
@@ -308,126 +321,21 @@ const TransactionHistory: React.FC = () => {
         <p className="text-gray-600 mt-2">View and manage all your transactions</p>
       </div>
 
-      {/* Filters Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Filters</h2>
-          <button
-            onClick={clearFilters}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Clear All Filters
-          </button>
-        </div>
+      {/* Advanced Filters Section */}
+      <AdvancedTransactionFilters
+        filters={filters}
+        accounts={accounts}
+        onFilterChange={handleFilterChange}
+        onClearFilters={clearFilters}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Search
-            </label>
-            <input
-              type="text"
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              placeholder="Search transactions..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Transaction Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
-            </label>
-                      <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Types</option>
-            {(['INCOME', 'EXPENSE', 'TRANSFER', 'ADJUSTMENT', 'LOAN_PAYMENT', 'ASSET_PURCHASE', 'LIABILITY_SETTLEMENT', 'EQUITY_CONTRIBUTION', 'EQUITY_WITHDRAWAL'] as const).map((type) => (
-              <option key={type} value={type}>
-                {formatEnumLabel(type)}
-              </option>
-            ))}
-          </select>
-          </div>
-
-          {/* Account */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Account
-            </label>
-            <select
-              value={filters.accountId}
-              onChange={(e) => handleFilterChange('accountId', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Accounts</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
-            </label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Amount Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Min Amount
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={filters.minAmount}
-              onChange={(e) => handleFilterChange('minAmount', e.target.value)}
-              placeholder="0.00"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Max Amount
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={filters.maxAmount}
-              onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
-              placeholder="0.00"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Filter Summary */}
+      <FilterSummary
+        filters={filters}
+        accounts={accounts}
+        onRemoveFilter={removeFilter}
+        onClearAll={clearFilters}
+      />
 
       {/* Transactions Table */}
       <div className="bg-white rounded-lg shadow-md">
