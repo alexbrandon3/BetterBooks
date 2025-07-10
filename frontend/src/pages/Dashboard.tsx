@@ -70,16 +70,29 @@ const Dashboard = () => {
   }, [accounts]);
 
   const totalCash = useMemo(() => {
+    console.log('🔍 Starting total cash calculation...');
+    console.log('Account balances map:', Array.from(accountBalances.entries()));
+    
     const result = cashAccounts.reduce((sum, account) => {
+      console.log(`\n🔍 Processing account: ${account.name} (ID: ${account.id})`);
+      console.log(`  Account balance from account object: ${account.balance} (type: ${typeof account.balance})`);
+      
       // Use cached balance if available, otherwise fall back to account.balance
-      const balance = accountBalances.get(account.id) ?? Number(account.balance);
+      const cachedBalance = accountBalances.get(account.id);
+      console.log(`  Cached balance: ${cachedBalance} (type: ${typeof cachedBalance})`);
+      
+      const balance = cachedBalance ?? Number(account.balance);
+      console.log(`  Final balance used: ${balance} (type: ${typeof balance})`);
       
       // Safety check for NaN or invalid values
       if (isNaN(balance) || !isFinite(balance)) {
         console.warn('⚠️ Invalid balance detected in Dashboard for account:', account.name, 'balance:', balance);
         return sum;
       }
-      return sum + balance;
+      
+      const newSum = sum + balance;
+      console.log(`  Running sum: ${sum} + ${balance} = ${newSum} (type: ${typeof newSum})`);
+      return newSum;
     }, 0);
     
     console.log('💰 Total cash calculated:', result, 'type:', typeof result, 'isNaN:', isNaN(result));
