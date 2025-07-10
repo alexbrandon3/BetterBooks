@@ -69,8 +69,9 @@ export class TransactionController extends BaseController {
             bValue = new Date(b.date).getTime();
             break;
           case 'amount':
-            aValue = a.amount;
-            bValue = b.amount;
+            // Convert to numbers to ensure proper numeric sorting
+            aValue = parseFloat(a.amount.toString());
+            bValue = parseFloat(b.amount.toString());
             break;
           case 'description':
             aValue = a.description.toLowerCase();
