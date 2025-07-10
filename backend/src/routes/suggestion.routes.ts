@@ -18,4 +18,7 @@ router.post('/save-preference', authenticate, suggestionController.saveUserPrefe
 // Add the suggest category route
 router.post('/suggest-category', authenticate, suggestionController.suggestCategory.bind(suggestionController));
 
+// Add the suggest transaction type route
+router.post('/suggest-transaction-type', authenticate, suggestionController.suggestTransactionType.bind(suggestionController));
+
 export default router; 

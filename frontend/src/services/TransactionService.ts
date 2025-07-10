@@ -227,6 +227,27 @@ export const getSuggestedCategory = async (description: string): Promise<{
   }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
 };
 
+export const getSuggestedTransactionType = async (description: string): Promise<{ 
+  suggestedType: string; 
+  confidence: number; 
+  reason: string; 
+  detailedReason: string; 
+} | null> => {
+  const cacheKey = `${CACHE_KEYS.TRANSACTION_TYPE_SUGGESTIONS}_${description.trim()}`;
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const response = await api.post('/suggestions/suggest-transaction-type', {
+        description: description.trim()
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error getting suggested transaction type:", error);
+      return null;
+    }
+  }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
+};
+
 export const saveUserPreference = async (description: string, accountId: number): Promise<void> => {
   try {
     await api.post('/suggestions/save-preference', {

@@ -326,6 +326,145 @@ export class SuggestionService {
     }
   }
 
+  async suggestTransactionTypeForDescription(description: string, userId: number): Promise<{
+    suggestedType: string;
+    confidence: number;
+    reason: string;
+    detailedReason: string;
+  } | null> {
+    try {
+      console.log('🔍 SuggestionService: Processing transaction type suggestion for description:', description, 'userId:', userId);
+      
+      if (!description || description.trim().length === 0) {
+        console.log('❌ Empty description provided');
+        return null;
+      }
+
+      // Normalize description: lowercase, remove punctuation, trim whitespace
+      const normalizedDescription = description.toLowerCase()
+        .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim();
+      
+      console.log('📝 Normalized description for transaction type suggestion:', normalizedDescription);
+      
+      // Keyword mapping for transaction types
+      const typeKeywordMap = [
+        // Income/Revenue transactions
+        {
+          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client', 'retail', 'wholesale', 'consulting fee', 'service fee', 'project payment', 'rental income', 'interest income', 'dividend', 'refund', 'rebate'],
+          suggestedType: 'INCOME',
+          reason: 'Revenue or income transaction',
+          priority: 1
+        },
+        // Expense transactions
+        {
+          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery', 'payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck', 'w2', 'withholding', 'payroll tax', 'employee payroll', 'bonus', 'commission', 'overtime', 'holiday pay', 'sick pay', 'vacation pay', 'tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax', 'business tax', 'payroll tax', 'futa', 'fica', 'medicare', 'social security', 'marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'pr', 'rent', 'lease', 'rental', 'property', 'office space', 'warehouse', 'storage', 'facility', 'premises', 'commercial lease', 'office rent', 'warehouse rent', 'utility', 'utilities', 'electric', 'electricity', 'gas', 'water', 'sewer', 'internet', 'phone', 'telephone', 'cable', 'wifi', 'broadband', 'power', 'energy', 'heating', 'cooling', 'ac', 'hvac', 'legal', 'lawyer', 'attorney', 'law firm', 'legal services', 'contract', 'litigation', 'compliance', 'regulatory', 'intellectual property', 'patent', 'trademark', 'copyright', 'legal advice', 'accounting', 'accountant', 'cpa', 'bookkeeping', 'audit', 'financial statement', 'tax preparation', 'consulting', 'advisory', 'financial advisor', 'software', 'subscription', 'saas', 'cloud', 'microsoft', 'adobe', 'quickbooks', 'salesforce', 'hubspot', 'mailchimp', 'stripe', 'paypal', 'square', 'zoom', 'slack', 'trello', 'asana', 'food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal', 'client dinner', 'business lunch', 'catering', 'office lunch', 'gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping', 'grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies', 'amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy', 'business purchase', 'uniform', 'safety equipment', 'ppe', 'insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance', 'commercial insurance'],
+          suggestedType: 'EXPENSE',
+          reason: 'Expense or cost transaction',
+          priority: 1
+        },
+        // Transfer transactions
+        {
+          keywords: ['transfer', 'move', 'moved', 'moving', 'between accounts', 'account transfer', 'bank transfer', 'wire transfer', 'ach transfer', 'internal transfer', 'from account', 'to account'],
+          suggestedType: 'TRANSFER',
+          reason: 'Transfer between accounts',
+          priority: 2
+        },
+        // Loan payment transactions
+        {
+          keywords: ['loan payment', 'loan repayment', 'principal payment', 'interest payment', 'mortgage payment', 'debt payment', 'credit card payment', 'line of credit payment', 'business loan payment', 'sba payment'],
+          suggestedType: 'LOAN_PAYMENT',
+          reason: 'Loan or debt payment transaction',
+          priority: 2
+        },
+        // Asset purchase transactions
+        {
+          keywords: ['asset purchase', 'equipment purchase', 'vehicle purchase', 'machinery purchase', 'building purchase', 'property purchase', 'capital expenditure', 'capex', 'fixed asset', 'capital asset'],
+          suggestedType: 'ASSET_PURCHASE',
+          reason: 'Asset or capital purchase transaction',
+          priority: 2
+        },
+        // Liability settlement transactions
+        {
+          keywords: ['liability settlement', 'debt settlement', 'creditor settlement', 'vendor payment', 'supplier payment', 'accounts payable', 'payable settlement'],
+          suggestedType: 'LIABILITY_SETTLEMENT',
+          reason: 'Liability settlement transaction',
+          priority: 2
+        },
+        // Equity contribution transactions
+        {
+          keywords: ['equity contribution', 'owner contribution', 'capital contribution', 'investment', 'owner investment', 'partner contribution', 'shareholder contribution'],
+          suggestedType: 'EQUITY_CONTRIBUTION',
+          reason: 'Equity or capital contribution transaction',
+          priority: 2
+        },
+        // Equity withdrawal transactions
+        {
+          keywords: ['equity withdrawal', 'owner withdrawal', 'draw', 'drawing', 'owner draw', 'partner withdrawal', 'shareholder withdrawal', 'distribution'],
+          suggestedType: 'EQUITY_WITHDRAWAL',
+          reason: 'Equity or capital withdrawal transaction',
+          priority: 2
+        },
+        // Adjustment transactions
+        {
+          keywords: ['adjustment', 'correction', 'reconciliation', 'balance adjustment', 'accounting adjustment', 'error correction', 'reversing entry', 'journal entry'],
+          suggestedType: 'ADJUSTMENT',
+          reason: 'Accounting adjustment or correction transaction',
+          priority: 3
+        }
+      ];
+
+      // Find matching keyword category with priority-based selection
+      let matchedType = null;
+      let matchedKeyword = null;
+      let bestPriority = 999; // Start with high number (lower is better)
+      
+      for (const mapping of typeKeywordMap) {
+        const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
+        if (foundKeyword) {
+          // Prioritize by priority number (lower number = higher priority)
+          if (mapping.priority < bestPriority) {
+            matchedType = mapping;
+            matchedKeyword = foundKeyword;
+            bestPriority = mapping.priority;
+            console.log('✅ Found keyword match for transaction type:', foundKeyword, 'Type:', mapping.suggestedType, 'Priority:', mapping.priority);
+          }
+        }
+      }
+
+      if (!matchedType) {
+        console.log('❌ No keyword transaction type match found for:', normalizedDescription);
+        return null;
+      }
+
+      const suggestedType = matchedType.suggestedType;
+      
+      // Calculate confidence based on priority (higher priority = higher confidence)
+      const confidence = Math.max(60, 100 - ((matchedType.priority - 1) * 10)); // 90% for priority 1, 80% for priority 2, etc.
+
+      const reason = `Based on keyword "${matchedKeyword}" in description`;
+      const detailedReason = `The description contains "${matchedKeyword}" which typically indicates a ${matchedType.reason}. This suggests the transaction type "${suggestedType}".`;
+
+      console.log('✅ Transaction type suggestion found:', {
+        suggestedType,
+        confidence,
+        reason,
+        detailedReason
+      });
+
+      return {
+        suggestedType,
+        confidence,
+        reason,
+        detailedReason
+      };
+    } catch (error) {
+      logError(`Failed to suggest transaction type for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
   private async findUserPreference(description: string, userId: number): Promise<UserSuggestionPreference | null> {
     try {
       const normalizedDescription = this.normalizeDescription(description);

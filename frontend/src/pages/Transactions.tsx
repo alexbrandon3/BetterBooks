@@ -6,6 +6,7 @@ import {
   deleteTransaction,
   getSuggestedAccount,
   getSuggestedCategory,
+  getSuggestedTransactionType,
   JournalEntryFields,
   BalanceWarning,
   TransactionResponse,
@@ -273,10 +274,11 @@ const Transactions = () => {
   const handleDescriptionChange = async (desc: string) => {
     if (desc && smartSuggestionsEnabled) {
       try {
-        // Get both account and category suggestions in parallel
-        const [accountSuggestion, categorySuggestion] = await Promise.all([
+        // Get account, category, and transaction type suggestions in parallel
+        const [accountSuggestion, categorySuggestion, transactionTypeSuggestion] = await Promise.all([
           getSuggestedAccount ? getSuggestedAccount(desc) : Promise.resolve(null),
-          getSuggestedCategory ? getSuggestedCategory(desc) : Promise.resolve(null)
+          getSuggestedCategory ? getSuggestedCategory(desc) : Promise.resolve(null),
+          getSuggestedTransactionType ? getSuggestedTransactionType(desc) : Promise.resolve(null)
         ]);
 
         // Handle account suggestion
@@ -348,17 +350,28 @@ const Transactions = () => {
             updatedValues.category = categorySuggestion.suggestedCategory;
             console.log('✅ Applied category suggestion:', categorySuggestion.suggestedCategory);
           }
+
+          // Add transaction type suggestion if available
+          if (transactionTypeSuggestion?.suggestedType) {
+            updatedValues.type = transactionTypeSuggestion.suggestedType as any;
+            console.log('✅ Applied transaction type suggestion:', transactionTypeSuggestion.suggestedType);
+          }
           
           reset(updatedValues);
           
           // Set suggestion explanation and confidence - keep persistent until user dismissal
           const combinedExplanation = [
             accountSuggestion.detailedReason,
-            categorySuggestion?.detailedReason
+            categorySuggestion?.detailedReason,
+            transactionTypeSuggestion?.detailedReason
           ].filter(Boolean).join('\n\n');
           
           setSuggestionExplanation(combinedExplanation);
-          setSuggestionConfidence(Math.max(accountSuggestion.confidence, categorySuggestion?.confidence || 0));
+          setSuggestionConfidence(Math.max(
+            accountSuggestion.confidence, 
+            categorySuggestion?.confidence || 0,
+            transactionTypeSuggestion?.confidence || 0
+          ));
         }
       } catch (error) {
         console.error('Failed to get suggestions:', error);
@@ -888,7 +901,20 @@ const Transactions = () => {
           onEntriesUpdate={(entries) => setValue('entries', entries)}
           onTransactionTypeUpdate={(type) => setValue('type', type as any)}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Description - Most Important Field */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Description *</label>
+          <input
+            type="text"
+            {...register("description")}
+            aria-label="Transaction Description *"
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            placeholder="Enter transaction description to enable smart suggestions..."
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Date *</label>
             <input
@@ -917,19 +943,6 @@ const Transactions = () => {
               <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
               <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
             </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description *</label>
-            <input
-              type="text"
-              {...register("description")}
-              aria-label="Transaction Description *"
-              onChange={(e) => handleDescriptionChange(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
           </div>
           
           <div>
