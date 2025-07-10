@@ -162,7 +162,8 @@ export const CACHE_KEYS = {
   INCOME_STATEMENT: 'income_statement',
   CASH_FLOW: 'cash_flow',
   GOALS: 'goals',
-  SUGGESTIONS: 'suggestions'
+  SUGGESTIONS: 'suggestions',
+  CATEGORY_SUGGESTIONS: 'category_suggestions'
 } as const;
 
 // Cache-aware API wrapper

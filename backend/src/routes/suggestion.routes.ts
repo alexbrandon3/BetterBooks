@@ -15,4 +15,7 @@ router.post('/suggest-account', authenticate, suggestionController.suggestAccoun
 // Add the save preference route
 router.post('/save-preference', authenticate, suggestionController.saveUserPreference.bind(suggestionController));
 
+// Add the suggest category route
+router.post('/suggest-category', authenticate, suggestionController.suggestCategory.bind(suggestionController));
+
 export default router; 

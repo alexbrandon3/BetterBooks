@@ -143,6 +143,189 @@ export class SuggestionService {
     }
   }
 
+  async suggestCategoryForDescription(description: string, userId: number): Promise<{
+    suggestedCategory: string;
+    confidence: number;
+    reason: string;
+    detailedReason: string;
+  } | null> {
+    try {
+      console.log('🔍 SuggestionService: Processing category suggestion for description:', description, 'userId:', userId);
+      
+      if (!description || description.trim().length === 0) {
+        console.log('❌ Empty description provided');
+        return null;
+      }
+
+      // Normalize description: lowercase, remove punctuation, trim whitespace
+      const normalizedDescription = description.toLowerCase()
+        .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim();
+      
+      console.log('📝 Normalized description for category suggestion:', normalizedDescription);
+      
+      // Use the same keyword mapping as account suggestions but extract category information
+      const keywordMap = [
+        // PRIORITY 1: Core Business Revenue & Operations
+        {
+          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client', 'retail', 'wholesale', 'consulting fee', 'service fee', 'project payment'],
+          categories: ['Sales', 'Revenue', 'Service Income', 'Product Sales', 'Consulting Revenue'],
+          reason: 'Business revenue transaction',
+          priority: 1
+        },
+        {
+          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
+          categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials'],
+          reason: 'Business purchase transaction',
+          priority: 1
+        },
+        {
+          keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck', 'w2', 'withholding', 'payroll tax', 'employee payroll', 'bonus', 'commission', 'overtime', 'holiday pay', 'sick pay', 'vacation pay'],
+          categories: ['Payroll', 'Payroll Expense', 'Employee Benefits', 'Wages'],
+          reason: 'Payroll and employee compensation transaction',
+          priority: 1
+        },
+        {
+          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax', 'business tax', 'payroll tax', 'futa', 'fica', 'medicare', 'social security'],
+          categories: ['Taxes', 'Tax Expense', 'Tax Liability', 'Payroll Taxes'],
+          reason: 'Tax related transaction',
+          priority: 1
+        },
+        {
+          keywords: ['loan', 'credit', 'debt', 'borrow', 'lending', 'mortgage', 'financing', 'principal', 'line of credit', 'business loan', 'bank loan', 'sba loan', 'equipment financing', 'working capital loan'],
+          categories: ['Loan', 'Credit', 'Loan Payable', 'Business Loan'],
+          reason: 'Loan and credit related transaction',
+          priority: 1
+        },
+        // PRIORITY 2: Business Operations & Professional Services
+        {
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'pr'],
+          categories: ['Marketing', 'Marketing Expense', 'Advertising', 'Promotion'],
+          reason: 'Marketing and advertising transaction',
+          priority: 2
+        },
+        {
+          keywords: ['rent', 'lease', 'rental', 'property', 'office space', 'warehouse', 'storage', 'facility', 'premises', 'commercial lease', 'office rent', 'warehouse rent'],
+          categories: ['Rent', 'Rent Expense', 'Lease', 'Facility'],
+          reason: 'Rent and lease transaction',
+          priority: 2
+        },
+        {
+          keywords: ['utility', 'utilities', 'electric', 'electricity', 'gas', 'water', 'sewer', 'internet', 'phone', 'telephone', 'cable', 'wifi', 'broadband', 'power', 'energy', 'heating', 'cooling', 'ac', 'hvac'],
+          categories: ['Utilities', 'Utility Expense', 'Energy', 'Infrastructure'],
+          reason: 'Utility and infrastructure transaction',
+          priority: 2
+        },
+        {
+          keywords: ['legal', 'lawyer', 'attorney', 'law firm', 'legal services', 'contract', 'litigation', 'compliance', 'regulatory', 'intellectual property', 'patent', 'trademark', 'copyright', 'legal advice'],
+          categories: ['Legal', 'Legal Expense', 'Professional Services', 'Compliance'],
+          reason: 'Legal and compliance transaction',
+          priority: 2
+        },
+        {
+          keywords: ['accounting', 'accountant', 'cpa', 'bookkeeping', 'audit', 'financial statement', 'tax preparation', 'consulting', 'advisory', 'financial advisor'],
+          categories: ['Accounting', 'Professional Services', 'Consulting', 'Financial Advisory'],
+          reason: 'Accounting and professional services transaction',
+          priority: 2
+        },
+        // PRIORITY 3: Technology & Software
+        {
+          keywords: ['software', 'subscription', 'saas', 'cloud', 'microsoft', 'adobe', 'quickbooks', 'salesforce', 'hubspot', 'mailchimp', 'stripe', 'paypal', 'square', 'zoom', 'slack', 'trello', 'asana'],
+          categories: ['Software', 'Subscriptions', 'Technology', 'SaaS'],
+          reason: 'Business software and subscription transaction',
+          priority: 3
+        },
+        // PRIORITY 4: Business-Specific Expenses
+        {
+          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal', 'client dinner', 'business lunch', 'catering', 'office lunch'],
+          categories: ['Food', 'Dining', 'Meals & Entertainment', 'Business Meals'],
+          reason: 'Food and dining related transaction',
+          priority: 4
+        },
+        {
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van'],
+          categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
+          reason: 'Fuel and gas related transaction',
+          priority: 4
+        },
+        {
+          keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping'],
+          categories: ['Transportation', 'Auto', 'Public Transport', 'Delivery'],
+          reason: 'Transportation related transaction',
+          priority: 4
+        },
+        {
+          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies'],
+          categories: ['Food', 'Groceries', 'Office Supplies', 'Kitchen Supplies'],
+          reason: 'Grocery and supplies transaction',
+          priority: 4
+        },
+        {
+          keywords: ['amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy', 'business purchase', 'uniform', 'safety equipment', 'ppe'],
+          categories: ['Shopping', 'Retail', 'Online Shopping', 'Business Supplies'],
+          reason: 'Shopping and retail transaction',
+          priority: 4
+        },
+        {
+          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance', 'commercial insurance'],
+          categories: ['Insurance', 'Business Insurance'],
+          reason: 'Insurance related transaction',
+          priority: 4
+        }
+      ];
+
+      // Find matching keyword category with priority-based selection
+      let matchedCategory = null;
+      let matchedKeyword = null;
+      let bestPriority = 999; // Start with high number (lower is better)
+      
+      for (const mapping of keywordMap) {
+        const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
+        if (foundKeyword) {
+          // Prioritize by priority number (lower number = higher priority)
+          if (mapping.priority < bestPriority) {
+            matchedCategory = mapping;
+            matchedKeyword = foundKeyword;
+            bestPriority = mapping.priority;
+            console.log('✅ Found keyword match for category:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+          }
+        }
+      }
+
+      if (!matchedCategory) {
+        console.log('❌ No keyword category match found for:', normalizedDescription);
+        return null;
+      }
+
+      // Select the first category from the matched category list
+      const suggestedCategory = matchedCategory.categories[0];
+      
+      // Calculate confidence based on priority (higher priority = higher confidence)
+      const confidence = Math.max(60, 100 - ((matchedCategory.priority - 1) * 10)); // 90% for priority 1, 80% for priority 2, etc.
+
+      const reason = `Based on keyword "${matchedKeyword}" in description`;
+      const detailedReason = `The description contains "${matchedKeyword}" which typically indicates a ${matchedCategory.reason}. This suggests the category "${suggestedCategory}".`;
+
+      console.log('✅ Category suggestion found:', {
+        suggestedCategory,
+        confidence,
+        reason,
+        detailedReason
+      });
+
+      return {
+        suggestedCategory,
+        confidence,
+        reason,
+        detailedReason
+      };
+    } catch (error) {
+      logError(`Failed to suggest category for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
   private async findUserPreference(description: string, userId: number): Promise<UserSuggestionPreference | null> {
     try {
       const normalizedDescription = this.normalizeDescription(description);

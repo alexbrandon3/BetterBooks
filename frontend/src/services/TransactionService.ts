@@ -206,6 +206,27 @@ export const getSuggestedAccount = async (description: string): Promise<{
   }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
 };
 
+export const getSuggestedCategory = async (description: string): Promise<{ 
+  suggestedCategory: string; 
+  confidence: number; 
+  reason: string; 
+  detailedReason: string; 
+} | null> => {
+  const cacheKey = `${CACHE_KEYS.CATEGORY_SUGGESTIONS}_${description.trim()}`;
+  
+  return withCache(cacheKey, async () => {
+    try {
+      const response = await api.post('/suggestions/suggest-category', {
+        description: description.trim()
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error getting suggested category:", error);
+      return null;
+    }
+  }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
+};
+
 export const saveUserPreference = async (description: string, accountId: number): Promise<void> => {
   try {
     await api.post('/suggestions/save-preference', {
