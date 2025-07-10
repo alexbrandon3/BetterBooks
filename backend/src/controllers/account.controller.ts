@@ -64,11 +64,28 @@ export class AccountController extends BaseController {
         // Ensure entry.amount is a number
         const amount = Number(entry.amount);
         
-        if (entry.type === 'CREDIT') {
-          accountBalances.set(entry.account.id, currentBalance + amount);
-        } else {
-          accountBalances.set(entry.account.id, currentBalance - amount);
+        // Calculate balance change based on entry type and account type
+        let balanceChange = 0;
+        
+        if (entry.type === 'DEBIT') {
+          // For ASSET and EXPENSE accounts, debit increases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = amount;
+          } else {
+            balanceChange = -amount;
+          }
+        } else if (entry.type === 'CREDIT') {
+          // For ASSET and EXPENSE accounts, credit decreases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = -amount;
+          } else {
+            balanceChange = amount;
+          }
         }
+        
+        accountBalances.set(entry.account.id, currentBalance + balanceChange);
       });
 
       // Update account balances
@@ -113,11 +130,28 @@ export class AccountController extends BaseController {
         // Ensure entry.amount is a number
         const amount = Number(entry.amount);
         
-        if (entry.type === 'CREDIT') {
-          accountBalances.set(entry.account.id, currentBalance + amount);
-        } else {
-          accountBalances.set(entry.account.id, currentBalance - amount);
+        // Calculate balance change based on entry type and account type
+        let balanceChange = 0;
+        
+        if (entry.type === 'DEBIT') {
+          // For ASSET and EXPENSE accounts, debit increases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = amount;
+          } else {
+            balanceChange = -amount;
+          }
+        } else if (entry.type === 'CREDIT') {
+          // For ASSET and EXPENSE accounts, credit decreases balance
+          // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
+          if (entry.account.type === 'ASSET' || entry.account.type === 'EXPENSE') {
+            balanceChange = -amount;
+          } else {
+            balanceChange = amount;
+          }
         }
+        
+        accountBalances.set(entry.account.id, currentBalance + balanceChange);
       });
 
       // Return balances in the format expected by frontend

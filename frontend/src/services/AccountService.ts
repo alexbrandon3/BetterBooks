@@ -33,20 +33,16 @@ export const fetchAccountBalances = async (): Promise<Map<number, number>> => {
   return withCache(cacheKey, async () => {
     try {
       const response = await api.get("/accounts/balances");
-      console.log('📊 Raw account balances response:', response.data);
-      
       const balanceMap = new Map<number, number>();
       
       if (response.data && Array.isArray(response.data)) {
         response.data.forEach((item: { accountId: number; balance: number }) => {
           // Ensure balance is a number
           const balance = Number(item.balance);
-          console.log(`📊 Setting balance for account ${item.accountId}: ${item.balance} -> ${balance} (type: ${typeof balance})`);
           balanceMap.set(item.accountId, balance);
         });
       }
       
-      console.log('📊 Final balance map:', Array.from(balanceMap.entries()));
       return balanceMap;
     } catch (error) {
       console.error("Error fetching account balances:", error);
