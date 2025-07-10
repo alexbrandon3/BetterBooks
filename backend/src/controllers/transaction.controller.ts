@@ -515,7 +515,7 @@ export class TransactionController extends BaseController {
       // Handle different content types
       if (result.contentType === 'application/pdf') {
         // For PDF, send as buffer with proper headers
-        const buffer = Buffer.from(result.data, 'base64');
+        const buffer = Buffer.isBuffer(result.data) ? result.data : Buffer.from(result.data, 'base64');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
         res.setHeader('Content-Length', buffer.length);
@@ -523,8 +523,9 @@ export class TransactionController extends BaseController {
         res.send(buffer);
       } else {
         // For CSV, send as string
-        res.setHeader('Content-Length', Buffer.byteLength(result.data, 'utf8'));
-        res.send(result.data);
+        const data = typeof result.data === 'string' ? result.data : result.data.toString();
+        res.setHeader('Content-Length', Buffer.byteLength(data, 'utf8'));
+        res.send(data);
       }
     } catch (error) {
       console.error("❌ Error in exportTransactions controller:", error);

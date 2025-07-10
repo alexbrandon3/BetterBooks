@@ -26,7 +26,7 @@ export interface ExportOptions {
 }
 
 export interface ExportResult {
-  data: string;
+  data: string | Buffer;
   filename: string;
   contentType: string;
   totalTransactions: number;
@@ -277,7 +277,7 @@ export class ExportService {
       logSuccess(`PDF export generated with ${transactions.length} transactions`, 'ExportService');
 
       return {
-        data: Buffer.from(pdfBytes).toString('base64'),
+        data: Buffer.from(pdfBytes),
         filename,
         contentType: 'application/pdf',
         totalTransactions: transactions.length,
