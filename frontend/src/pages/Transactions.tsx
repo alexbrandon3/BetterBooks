@@ -25,7 +25,7 @@ import {
   updateRecurringTransaction,
   deleteRecurringTransaction,
 } from "../services/RecurringTransactionService";
-import { TransactionTemplateSelector } from '../components/transactions/TransactionTemplateSelector';
+import { EnhancedTransactionTemplateSelector } from '../components/transactions/EnhancedTransactionTemplateSelector';
 import { TransactionTemplate } from '../types/transaction';
 
 interface TransactionForm {
@@ -893,14 +893,14 @@ const Transactions = () => {
 
       <form key={formKey} onSubmit={handleSubmit(handleFormSubmission)} className="mb-8" onChange={handleAnyInput} onInput={handleAnyInput}>
         {/* Template Selector */}
-        <TransactionTemplateSelector
-          selectedTemplate={selectedTemplate}
-          onTemplateSelect={handleTemplateSelect}
-          onTemplateClear={handleTemplateClear}
-          accounts={usableAccounts}
-          onEntriesUpdate={(entries) => setValue('entries', entries)}
-          onTransactionTypeUpdate={(type) => setValue('type', type as any)}
-        />
+                    <EnhancedTransactionTemplateSelector
+              selectedTemplate={selectedTemplate}
+              onTemplateSelect={handleTemplateSelect}
+              onTemplateClear={handleTemplateClear}
+              accounts={usableAccounts}
+              onEntriesUpdate={(entries: any[]) => setValue('entries', entries)}
+              onTransactionTypeUpdate={(type: string) => setValue('type', type as any)}
+            />
         {/* Description - Most Important Field */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">Description *</label>
