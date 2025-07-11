@@ -187,6 +187,14 @@ export class ExportService {
       const totalIncome = incomeTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
       const totalExpenses = expenseTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
+      // Helper function to format currency with commas
+      const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      };
+
       page.drawText(`Total Transactions: ${transactions.length}`, {
         x: margin,
         y: yPos,
@@ -196,7 +204,7 @@ export class ExportService {
       });
       yPos -= lineHeight;
 
-      page.drawText(`Total Income: $${totalIncome.toFixed(2)}`, {
+      page.drawText(`Total Income: $${formatCurrency(totalIncome)}`, {
         x: margin,
         y: yPos,
         size: 12,
@@ -205,7 +213,7 @@ export class ExportService {
       });
       yPos -= lineHeight;
 
-      page.drawText(`Total Expenses: $${totalExpenses.toFixed(2)}`, {
+      page.drawText(`Total Expenses: $${formatCurrency(totalExpenses)}`, {
         x: margin,
         y: yPos,
         size: 12,
@@ -214,7 +222,7 @@ export class ExportService {
       });
       yPos -= lineHeight;
 
-      page.drawText(`Net Amount: $${totalAmount.toFixed(2)}`, {
+      page.drawText(`Net Amount: $${formatCurrency(totalAmount)}`, {
         x: margin,
         y: yPos,
         size: 14,
@@ -225,7 +233,7 @@ export class ExportService {
 
       // Table headers
       const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
-      const columnWidths = [80, 200, 100, 80, 80];
+      const columnWidths = [70, 180, 120, 120, 80];
       const startX = margin;
 
       // Draw header background
@@ -283,11 +291,12 @@ export class ExportService {
         }
 
         const date = new Date(transaction.date).toLocaleDateString();
-        const description = transaction.description.length > 30 ? 
-          transaction.description.substring(0, 27) + '...' : transaction.description;
-        const category = transaction.category || 'Uncategorized';
+        const description = transaction.description.length > 25 ? 
+          transaction.description.substring(0, 22) + '...' : transaction.description;
+        const category = (transaction.category || 'Uncategorized').length > 15 ? 
+          (transaction.category || 'Uncategorized').substring(0, 12) + '...' : (transaction.category || 'Uncategorized');
         const type = transaction.type;
-        const amount = parseFloat(transaction.amount.toString()).toFixed(2);
+        const amount = formatCurrency(parseFloat(transaction.amount.toString()));
 
         // Alternate row colors
         if (rowCount % 2 === 0) {
@@ -340,7 +349,7 @@ export class ExportService {
 
         // Color code amounts based on type
         const amountColor = type === 'INCOME' ? rgb(0, 0.6, 0) : rgb(0.8, 0, 0);
-        page.drawText(`$${amount}`, {
+        page.drawText(amount, {
           x: currentX + 5,
           y: yPos,
           size: 9,
