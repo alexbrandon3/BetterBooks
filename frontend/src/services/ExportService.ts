@@ -36,9 +36,9 @@ export const exportTransactions = async (options: ExportOptions): Promise<void> 
       responseType: 'blob'
     });
 
-    // Get filename from response headers or use default
+    // Get filename from response headers or use default based on format
     const contentDisposition = response.headers['content-disposition'];
-    let filename = 'transactions.csv';
+    let filename = options.format === 'pdf' ? 'transactions.pdf' : 'transactions.csv';
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename="(.+)"/);
       if (filenameMatch) {
