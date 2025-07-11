@@ -316,6 +316,7 @@ export class TransactionService {
 
   async updateTransaction(id: string, data: UpdateTransactionDTO): Promise<Transaction> {
     logInfo(`Starting updateTransaction for ID: ${id}`, 'TransactionService');
+    console.log('🔍 BACKEND DEBUG - Received update data:', JSON.stringify(data, null, 2));
 
     try {
       const transaction = await this.transactionRepo.findOne({
@@ -327,6 +328,9 @@ export class TransactionService {
         logError(`Transaction not found: ${id}`, 'TransactionService');
         throw new Error(`Transaction with ID ${id} not found`);
       }
+
+      console.log('🔍 BACKEND DEBUG - Original transaction amount:', transaction.amount);
+      console.log('🔍 BACKEND DEBUG - Original entry amounts:', transaction.entries.map(e => e.amount));
 
       return await AppDataSource.transaction(async transactionalEntityManager => {
         // Step 1: Update transaction fields
@@ -350,9 +354,11 @@ export class TransactionService {
             let newAmount;
             if (data.entries && data.entries[i]) {
               newAmount = Number(data.entries[i].amount);
+              console.log(`🔍 BACKEND DEBUG - Using frontend amount for entry ${i}: ${newAmount}`);
             } else {
               // Fallback to equal distribution
               newAmount = Number(data.amount) / transaction.entries.length;
+              console.log(`🔍 BACKEND DEBUG - Using calculated amount for entry ${i}: ${newAmount}`);
             }
             
             const oldAmount = Number(entry.amount);

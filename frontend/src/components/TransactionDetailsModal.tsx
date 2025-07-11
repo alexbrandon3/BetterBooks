@@ -114,6 +114,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
         }))
       };
 
+      console.log('🔍 FRONTEND DEBUG - Sending update data:', JSON.stringify(updateData, null, 2));
+      console.log('🔍 FRONTEND DEBUG - Original transaction amount:', transaction.amount);
+      console.log('🔍 FRONTEND DEBUG - Form amount:', data.amount);
+      console.log('🔍 FRONTEND DEBUG - Entry amounts:', data.entries.map(e => e.amount));
+
       await onUpdate(transaction.id, updateData);
       setIsEditing(false);
     } catch (error) {
