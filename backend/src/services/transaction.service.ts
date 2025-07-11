@@ -369,7 +369,9 @@ export class TransactionService {
         }
 
         // Step 3: Recalculate all account balances from scratch
+        console.log('🔍 BACKEND DEBUG - Starting balance recalculation...');
         await this.recalculateAccountBalances(transaction.user.id);
+        console.log('🔍 BACKEND DEBUG - Balance recalculation complete');
 
         // Return the updated transaction with entries
         const fullTransaction = await transactionalEntityManager.findOne(Transaction, {
@@ -634,8 +636,12 @@ export class TransactionService {
       for (const transaction of transactions) {
         if (!transaction.entries) continue;
 
+        console.log(`🔍 BACKEND DEBUG - Processing transaction ${transaction.id}: amount=${transaction.amount}, entries=${transaction.entries.length}`);
+        
         for (const entry of transaction.entries) {
           if (!entry.account) continue;
+          
+          console.log(`🔍 BACKEND DEBUG - Entry: account=${entry.account.name}, amount=${entry.amount}, type=${entry.type}`);
 
           // Calculate balance change based on entry type and account type
           let balanceChange = 0;
@@ -664,6 +670,8 @@ export class TransactionService {
           // Update account balance
           const currentBalance = Number(entry.account.balance || 0);
           const newBalance = currentBalance + balanceChange;
+          
+          console.log(`🔍 BACKEND DEBUG - Balance calculation: ${currentBalance} + ${balanceChange} = ${newBalance}`);
           
           // Safety checks to prevent numeric overflow
           if (isNaN(newBalance) || !isFinite(newBalance)) {
