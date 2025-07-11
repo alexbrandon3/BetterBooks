@@ -195,6 +195,14 @@ export class ExportService {
         }).format(amount);
       };
 
+      // Helper function to format transaction types
+      const formatTransactionType = (type: string) => {
+        return type
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      };
+
       page.drawText(`Total Transactions: ${transactions.length}`, {
         x: margin,
         y: yPos,
@@ -295,7 +303,7 @@ export class ExportService {
           transaction.description.substring(0, 22) + '...' : transaction.description;
         const category = (transaction.category || 'Uncategorized').length > 15 ? 
           (transaction.category || 'Uncategorized').substring(0, 12) + '...' : (transaction.category || 'Uncategorized');
-        const type = transaction.type;
+        const type = formatTransactionType(transaction.type);
         const amount = formatCurrency(parseFloat(transaction.amount.toString()));
 
         // Alternate row colors

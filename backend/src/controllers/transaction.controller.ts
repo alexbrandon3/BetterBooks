@@ -9,6 +9,7 @@ import { logInfo, logSuccess, logError } from '../utils/logger';
 import { AuthenticatedRequest } from "../types/express";
 import { BaseController } from "./base.controller";
 import { Transaction } from "../entities/Transaction";
+import { TransactionTemplateService } from "../services/transactionTemplate.service";
 
 export class TransactionController extends BaseController {
   private transactionService: TransactionService;
@@ -412,13 +413,45 @@ export class TransactionController extends BaseController {
     }
   }
 
-  async getTransactionTemplates(_req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getTransactionTemplates(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const templates = await this.transactionService.getTransactionTemplates();
+      const templates = await TransactionTemplateService.getAllTemplates(req.user.userId);
       res.json(templates);
     } catch (error) {
       console.error("Error fetching transaction templates:", error);
       res.status(500).json({ error: "Failed to fetch transaction templates" });
+    }
+  }
+
+  async createTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { name, description, type, requiredAccounts, optionalAccounts } = req.body;
+      
+      if (!name || !description || !type || !requiredAccounts) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+      }
+
+      const template = await TransactionTemplateService.createUserTemplate(
+        req.user.userId,
+        { name, description, type, requiredAccounts, optionalAccounts }
+      );
+      
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating transaction template:", error);
+      res.status(500).json({ error: "Failed to create transaction template" });
+    }
+  }
+
+  async deleteTransactionTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      await TransactionTemplateService.deleteUserTemplate(parseInt(id), req.user.userId);
+      res.status(200).json({ message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting transaction template:", error);
+      res.status(500).json({ error: "Failed to delete transaction template" });
     }
   }
 
@@ -579,6 +612,8 @@ export const {
   suggestAccount,
   getRecurringTransactions,
   getTransactionTemplates,
+  createTransactionTemplate,
+  deleteTransactionTemplate,
   suggestTransactionTemplate,
   validateTransactionTemplate,
   getRecentTransactions,
