@@ -87,6 +87,7 @@ export class BooksController {
   }
 
   async previewClosingEntries(req: AuthenticatedRequest, res: Response): Promise<void> {
+    console.log(`🎯 PREVIEW CLOSING ENTRIES - Method called`);
     logInfo('Starting previewClosingEntries', 'BooksController');
 
     try {

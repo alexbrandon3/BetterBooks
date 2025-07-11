@@ -38,13 +38,14 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 // Debug middleware to log all requests
-// app.use((req, _res, next) => {
-//   console.log(`📨 ${req.method} ${req.path} - ${req.headers.origin || 'no origin'}`);
-//   console.log(`🔍 Request headers:`, req.headers);
-//   console.log(`🌐 Request IP: ${req.ip}`);
-//   console.log(`🚨 CORS DEBUG - Method: ${req.method}, Origin: ${req.headers.origin}, Path: ${req.path}`);
-//   next();
-// });
+app.use((req, _res, next) => {
+  console.log(`🔍 ROUTE DEBUG - ${req.method} ${req.originalUrl}`);
+  console.log(`📨 Path: ${req.path}, Base URL: ${req.baseUrl}`);
+  console.log(`🌐 Origin: ${req.headers.origin || 'no origin'}`);
+  console.log(`🔑 Authorization: ${req.headers.authorization ? 'Present' : 'Missing'}`);
+  console.log(`📦 Body: ${JSON.stringify(req.body)}`);
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json());
@@ -75,8 +76,15 @@ app.use('/api/books', booksRoutes);
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ message: 'Route not found', path: req.originalUrl });
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`🔍 404 DEBUG - Path: ${req.path}, Base URL: ${req.baseUrl}`);
+  console.log(`📋 404 DEBUG - Available routes: /api/auth, /api/accounts, /api/transactions, /api/recurring-transactions, /api/goals, /api/suggestions, /api/reports, /api/books`);
+  res.status(404).json({ 
+    message: 'Route not found', 
+    path: req.originalUrl,
+    method: req.method,
+    availableRoutes: ['/api/auth', '/api/accounts', '/api/transactions', '/api/recurring-transactions', '/api/goals', '/api/suggestions', '/api/reports', '/api/books']
+  });
 });
 
 // Error handling middleware
