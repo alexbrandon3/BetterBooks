@@ -2,8 +2,10 @@ import express from 'express';
 import { closeBooks, previewClosingEntries } from '../controllers/books.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { AuthenticatedRequest } from '../types/express';
+import { BooksController } from '../controllers/books.controller';
 
 const router = express.Router();
+const booksController = new BooksController();
 
 // Debug middleware for books routes
 router.use((_, __, next) => {
@@ -25,13 +27,13 @@ router.get('/test', (_, res) => {
 // POST /books/close - Close books for a period
 router.post('/close', authenticate, (req, res) => {
   console.log(`🔐 CLOSE BOOKS - Authenticated request received`);
-  closeBooks(req as AuthenticatedRequest, res);
+  closeBooks.call(booksController, req as AuthenticatedRequest, res);
 });
 
 // POST /books/preview - Preview closing entries before posting
 router.post('/preview', authenticate, (req, res) => {
   console.log(`🔐 PREVIEW CLOSING - Authenticated request received`);
-  previewClosingEntries(req as AuthenticatedRequest, res);
+  previewClosingEntries.call(booksController, req as AuthenticatedRequest, res);
 });
 
 export default router; 
