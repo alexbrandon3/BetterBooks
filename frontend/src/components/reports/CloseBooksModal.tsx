@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../../utils/formatters';
 import { format } from 'date-fns';
+import api from '../../utils/axios';
 
 interface CloseBooksModalProps {
   isOpen: boolean;
@@ -69,19 +70,12 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/books/preview', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          periodEndDate: selectedPeriod,
-          periodType: selectedPeriodType
-        })
+      const response = await api.post('/books/preview', {
+        periodEndDate: selectedPeriod,
+        periodType: selectedPeriodType
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (data.success) {
         setPreview(data.preview);
@@ -113,19 +107,12 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
 
     setIsClosing(true);
     try {
-      const response = await fetch('/api/books/close', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          periodEndDate: selectedPeriod,
-          periodType: selectedPeriodType
-        })
+      const response = await api.post('/books/close', {
+        periodEndDate: selectedPeriod,
+        periodType: selectedPeriodType
       });
 
-      const data: CloseBooksResponse = await response.json();
+      const data: CloseBooksResponse = response.data;
 
       if (data.success) {
         toast.success(data.message);
