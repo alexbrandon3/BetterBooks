@@ -1,6 +1,10 @@
-export * from './User';
-export * from './Account';
-export * from './Transaction';
-export * from './JournalEntry';
-export * from './FinancialGoal';
-export * from './UserSuggestionPreference'; 
+export { User } from "./User";
+export { Account } from "./Account";
+export { Transaction } from "./Transaction";
+export { JournalEntry } from "./JournalEntry";
+export { FinancialGoal } from "./FinancialGoal";
+export { RecurringTransaction } from "./RecurringTransaction";
+export { SplitTransaction } from "./SplitTransaction";
+export { Suggestion } from "./Suggestion";
+export { UserSuggestionPreference } from "./UserSuggestionPreference";
+export { ClosedPeriod } from "./ClosedPeriod"; 

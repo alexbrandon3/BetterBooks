@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
 import { Account, AccountType, FinancialCategory } from "../entities/Account";
+import { ClosedPeriod } from "../entities/ClosedPeriod";
 import { TransactionService } from "./transaction.service";
 import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
@@ -39,6 +40,7 @@ export class ClosingEntryService {
   private transactionRepo = AppDataSource.getRepository(Transaction);
   private accountRepo = AppDataSource.getRepository(Account);
   private journalEntryRepo = AppDataSource.getRepository(JournalEntry);
+  private closedPeriodRepo = AppDataSource.getRepository(ClosedPeriod);
   private transactionService = new TransactionService();
 
   /**
@@ -59,6 +61,64 @@ export class ClosingEntryService {
     logInfo(`Period ${periodEndDate} ${isClosed ? 'is already closed' : 'is not closed'} for user ${userId}`, 'ClosingEntryService');
     
     return isClosed;
+  }
+
+  /**
+   * Check if a specific date falls within a closed period
+   */
+  async isDateInClosedPeriod(userId: number, date: Date): Promise<{ isLocked: boolean; closedPeriod?: ClosedPeriod }> {
+    logInfo(`Checking if date ${date.toISOString()} is in closed period for user ${userId}`, 'ClosingEntryService');
+
+    const closedPeriod = await this.closedPeriodRepo.findOne({
+      where: {
+        userId,
+        startDate: Between(new Date('1900-01-01'), date),
+        endDate: Between(date, new Date('2100-12-31'))
+      }
+    });
+
+    const isLocked = !!closedPeriod;
+    logInfo(`Date ${date.toISOString()} ${isLocked ? 'is locked' : 'is not locked'} for user ${userId}`, 'ClosingEntryService');
+    
+    return { isLocked, closedPeriod: closedPeriod || undefined };
+  }
+
+  /**
+   * Create or find retained earnings account for a user
+   */
+  async ensureRetainedEarningsAccount(userId: number): Promise<Account> {
+    logInfo(`Ensuring retained earnings account exists for user ${userId}`, 'ClosingEntryService');
+
+    // First, try to find existing retained earnings account
+    let retainedEarningsAccount = await this.accountRepo.findOne({
+      where: {
+        user: { id: userId },
+        financialCategory: FinancialCategory.RETAINED_EARNINGS
+      }
+    });
+
+    if (!retainedEarningsAccount) {
+      logInfo(`Creating retained earnings account for user ${userId}`, 'ClosingEntryService');
+      
+      // Create retained earnings account
+      retainedEarningsAccount = this.accountRepo.create({
+        name: "Retained Earnings",
+        type: AccountType.EQUITY,
+        category: "Owner's Equity",
+        subcategory: "Retained Earnings",
+        financialCategory: FinancialCategory.RETAINED_EARNINGS,
+        financialSubcategory: "RETAINED_EARNINGS",
+        balance: 0,
+        user: { id: userId }
+      });
+
+      await this.accountRepo.save(retainedEarningsAccount);
+      logSuccess(`Created retained earnings account for user ${userId}`, 'ClosingEntryService');
+    } else {
+      logInfo(`Found existing retained earnings account for user ${userId}`, 'ClosingEntryService');
+    }
+
+    return retainedEarningsAccount;
   }
 
   /**
@@ -238,21 +298,8 @@ export class ClosingEntryService {
         };
       }
 
-      // Get retained earnings account
-      const retainedEarningsAccount = await this.accountRepo.findOne({
-        where: {
-          user: { id: userId },
-          financialCategory: FinancialCategory.RETAINED_EARNINGS
-        }
-      });
-
-      if (!retainedEarningsAccount) {
-        logError(`Retained earnings account not found for user ${userId}`, 'ClosingEntryService');
-        return {
-          success: false,
-          message: "Retained earnings account not found. Please ensure you have a retained earnings account set up."
-        };
-      }
+      // Ensure retained earnings account exists
+      const retainedEarningsAccount = await this.ensureRetainedEarningsAccount(userId);
 
       // Build journal entries for closing
       const entries: Array<{
@@ -305,11 +352,41 @@ export class ClosingEntryService {
 
       const result = await this.transactionService.createTransaction(closingTransactionData);
       
-      logSuccess(`Successfully created closing entries for period ${request.periodEndDate} for user ${userId}`, 'ClosingEntryService');
+      // Create closed period record to lock the period
+      const endDate = new Date(request.periodEndDate);
+      let startDate: Date;
+      
+      if (request.periodType === 'monthly') {
+        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+      } else if (request.periodType === 'quarterly') {
+        const quarter = Math.floor(endDate.getMonth() / 3);
+        startDate = new Date(endDate.getFullYear(), quarter * 3, 1);
+      } else {
+        startDate = new Date(endDate.getFullYear(), 0, 1);
+      }
+
+      const closedPeriod = this.closedPeriodRepo.create({
+        userId,
+        startDate,
+        endDate,
+        periodType: request.periodType,
+        closingTransactionId: result.transaction.id,
+        metadata: {
+          closedBy: `User ${userId}`,
+          totalEntries: entries.length,
+          netIncome: preview.netIncome,
+          revenueAccounts: preview.revenueAccounts.length,
+          expenseAccounts: preview.expenseAccounts.length
+        }
+      });
+
+      await this.closedPeriodRepo.save(closedPeriod);
+      
+      logSuccess(`Successfully created closing entries and locked period ${request.periodEndDate} for user ${userId}`, 'ClosingEntryService');
 
       return {
         success: true,
-        message: `Books closed for ${request.periodEndDate}. Net income: $${preview.netIncome.toFixed(2)} transferred to Retained Earnings.`,
+        message: `Books closed for ${request.periodEndDate}. Net income: $${preview.netIncome.toFixed(2)} transferred to Retained Earnings. This period is now locked.`,
         transactionId: result.transaction.id.toString(),
         netIncome: preview.netIncome,
         entriesCreated: entries.length

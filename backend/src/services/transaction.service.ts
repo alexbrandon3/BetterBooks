@@ -2,8 +2,9 @@ import { AppDataSource } from "../config/data-source";
 import { Transaction } from "../entities/Transaction";
 import { JournalEntry } from "../entities/JournalEntry";
 import { Account, AccountType } from "../entities/Account";
+import { ClosedPeriod } from "../entities/ClosedPeriod";
 import { CreateTransactionDTO, UpdateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
-import { In } from "typeorm";
+import { In, Between } from "typeorm";
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { TransactionTemplateService } from './transactionTemplate.service';
 
@@ -25,6 +26,7 @@ interface TransactionResult {
 export class TransactionService {
   private transactionRepo = AppDataSource.getRepository(Transaction);
   private accountRepo = AppDataSource.getRepository(Account);
+  private closedPeriodRepo = AppDataSource.getRepository(ClosedPeriod);
   private userRepo = AppDataSource.getRepository("User");
 
   async getTransactions(userId: number): Promise<Transaction[]> {
@@ -150,6 +152,23 @@ export class TransactionService {
         throw new Error("One or more accounts not found or not owned by user");
       }
       logSuccess('Account ownership validated', 'TransactionService');
+
+      // Check if transaction date falls within a closed period (skip for closing entries)
+      if (transactionData.type !== TransactionType.CLOSING_ENTRY) {
+        const closedPeriod = await this.closedPeriodRepo.findOne({
+          where: {
+            userId: transactionData.userId,
+            startDate: Between(new Date('1900-01-01'), transactionData.date),
+            endDate: Between(transactionData.date, new Date('2100-12-31'))
+          }
+        });
+
+        if (closedPeriod) {
+          logError(`Transaction date ${transactionData.date.toISOString()} falls within closed period for user ${transactionData.userId}`, 'TransactionService');
+          throw new Error(`Cannot create transaction for ${transactionData.date.toLocaleDateString()}. This period is locked due to book closure.`);
+        }
+        logSuccess('Period locking validated', 'TransactionService');
+      }
 
       // Create a map for quick account lookup
       const accountMap = new Map(accounts.map(account => [account.id, account]));
