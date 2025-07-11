@@ -311,12 +311,20 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
           {/* Preview Table */}
           {preview && !isAlreadyClosed && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Closing Entry Preview</h3>
+              <div className="p-3 bg-blue-100 border border-blue-200 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">📋 Closing Entry Preview</h3>
+                <p className="text-blue-800 text-sm">
+                  These entries will reset your income and expense accounts for this period and transfer the net income to Retained Earnings.
+                </p>
+              </div>
               
               {/* Revenue Accounts */}
               {preview.revenueAccounts.length > 0 && (
                 <div>
-                  <h4 className="text-md font-medium text-gray-700 mb-2">Revenue Accounts (Debit to Close)</h4>
+                  <h4 className="text-md font-medium text-green-700 mb-2 flex items-center">
+                    <span className="mr-2">📈</span>
+                    Revenue Accounts (Debit to Close)
+                  </h4>
                   <div className="bg-gray-50 rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-gray-100">
@@ -343,7 +351,10 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
               {/* Expense Accounts */}
               {preview.expenseAccounts.length > 0 && (
                 <div>
-                  <h4 className="text-md font-medium text-gray-700 mb-2">Expense Accounts (Credit to Close)</h4>
+                  <h4 className="text-md font-medium text-red-700 mb-2 flex items-center">
+                    <span className="mr-2">📉</span>
+                    Expense Accounts (Credit to Close)
+                  </h4>
                   <div className="bg-gray-50 rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-gray-100">
@@ -368,16 +379,29 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
               )}
 
               {/* Net Income Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">Net Income</span>
-                  <span className={`text-lg font-bold ${preview.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className="text-lg font-semibold text-blue-900">💰 Net Income → Retained Earnings</span>
+                  <span className={`text-xl font-bold ${preview.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(preview.netIncome)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {preview.netIncome >= 0 ? 'Profit' : 'Loss'} for {selectedPeriod && formatPeriodDisplay(selectedPeriod)}
+                <p className="text-sm text-blue-700 mt-1">
+                  This amount will be transferred to your Retained Earnings account
                 </p>
+              </div>
+
+              {/* Warning about period locking */}
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center text-yellow-800">
+                  <span className="mr-2">⚠️</span>
+                  <span className="text-sm font-medium">Important:</span>
+                </div>
+                <ul className="text-sm text-yellow-700 mt-1 space-y-1">
+                  <li>• This period will be locked after closing</li>
+                  <li>• No new transactions can be added to this period</li>
+                  <li>• Total entries to be created: {preview.totalEntries}</li>
+                </ul>
               </div>
 
               {/* Close Books Button */}
