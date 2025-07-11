@@ -1,9 +1,5 @@
 import { TransactionType, EntryType, TransactionTemplate } from '../types/transaction.types';
 import { AccountType } from '../entities/Account';
-import { AppDataSource } from '../config/data-source';
-import { TransactionTemplate as TransactionTemplateEntity } from '../entities/TransactionTemplate';
-import { User } from '../entities/User';
-import {  logSuccess, logError } from '../utils/logger';
 
 export class TransactionTemplateService {
   private static systemTemplates: TransactionTemplate[] = [
@@ -205,109 +201,6 @@ export class TransactionTemplateService {
 
   static getSystemTemplates(): TransactionTemplate[] {
     return this.systemTemplates;
-  }
-
-  static async getUserTemplates(userId: number): Promise<TransactionTemplate[]> {
-    try {
-      const templateRepo = AppDataSource.getRepository(TransactionTemplateEntity);
-      const userTemplates = await templateRepo.find({
-        where: { user: { id: userId } },
-        order: { usageCount: 'DESC', name: 'ASC' }
-      });
-
-      return userTemplates.map(template => ({
-        type: template.type,
-        name: template.name,
-        description: template.description,
-        requiredAccounts: template.requiredAccounts,
-        optionalAccounts: template.optionalAccounts
-      }));
-    } catch (error) {
-      logError(`Error fetching user templates: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionTemplateService');
-      return [];
-    }
-  }
-
-  static async getAllTemplates(userId: number): Promise<TransactionTemplate[]> {
-    const systemTemplates = this.getSystemTemplates();
-    const userTemplates = await this.getUserTemplates(userId);
-    
-    return [...systemTemplates, ...userTemplates];
-  }
-
-  static async createUserTemplate(
-    userId: number,
-    templateData: {
-      name: string;
-      description: string;
-      type: TransactionType;
-      requiredAccounts: any[];
-      optionalAccounts?: any[];
-    }
-  ): Promise<TransactionTemplate> {
-    try {
-      const templateRepo = AppDataSource.getRepository(TransactionTemplateEntity);
-      const userRepo = AppDataSource.getRepository(User);
-      
-      const user = await userRepo.findOne({ where: { id: userId } });
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      const template = templateRepo.create({
-        ...templateData,
-        user,
-        isSystemTemplate: false,
-        usageCount: 0
-      });
-
-      const savedTemplate = await templateRepo.save(template);
-      logSuccess(`User template created: ${savedTemplate.name}`, 'TransactionTemplateService');
-
-      return {
-        type: savedTemplate.type,
-        name: savedTemplate.name,
-        description: savedTemplate.description,
-        requiredAccounts: savedTemplate.requiredAccounts,
-        optionalAccounts: savedTemplate.optionalAccounts
-      };
-    } catch (error) {
-      logError(`Error creating user template: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionTemplateService');
-      throw error;
-    }
-  }
-
-  static async updateTemplateUsage(templateId: number): Promise<void> {
-    try {
-      const templateRepo = AppDataSource.getRepository(TransactionTemplateEntity);
-      const template = await templateRepo.findOne({ where: { id: templateId } });
-      
-      if (template && !template.isSystemTemplate) {
-        template.usageCount += 1;
-        await templateRepo.save(template);
-      }
-    } catch (error) {
-      logError(`Error updating template usage: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionTemplateService');
-    }
-  }
-
-  static async deleteUserTemplate(templateId: number, userId: number): Promise<void> {
-    try {
-      const templateRepo = AppDataSource.getRepository(TransactionTemplateEntity);
-      const template = await templateRepo.findOne({
-        where: { id: templateId, user: { id: userId }, isSystemTemplate: false }
-      });
-
-      if (!template) {
-        throw new Error('Template not found or not owned by user');
-      }
-
-      await templateRepo.remove(template);
-      logSuccess(`User template deleted: ${template.name}`, 'TransactionTemplateService');
-    } catch (error) {
-      logError(`Error deleting user template: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionTemplateService');
-      throw error;
-    }
   }
 
   static getTemplateByType(type: TransactionType): TransactionTemplate | undefined {
