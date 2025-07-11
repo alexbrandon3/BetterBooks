@@ -8,6 +8,8 @@ interface CloseBooksModalProps {
   onClose: () => void;
 }
 
+type PeriodType = 'monthly' | 'quarterly' | 'yearly';
+
 interface ClosingEntryPreview {
   revenueAccounts: Array<{
     accountId: number;
@@ -33,6 +35,7 @@ interface CloseBooksResponse {
 }
 
 const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) => {
+  const [selectedPeriodType, setSelectedPeriodType] = useState<PeriodType>('monthly');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [preview, setPreview] = useState<ClosingEntryPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,10 +46,20 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
   useEffect(() => {
     if (isOpen && !selectedPeriod) {
       const now = new Date();
-      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setSelectedPeriod(format(lastDayOfMonth, 'yyyy-MM-dd'));
+      if (selectedPeriodType === 'monthly') {
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        setSelectedPeriod(format(lastDayOfMonth, 'yyyy-MM-dd'));
+      } else if (selectedPeriodType === 'quarterly') {
+        const quarter = Math.floor(now.getMonth() / 3);
+        const lastMonthOfQuarter = (quarter + 1) * 3 - 1;
+        const lastDayOfQuarter = new Date(now.getFullYear(), lastMonthOfQuarter + 1, 0);
+        setSelectedPeriod(format(lastDayOfQuarter, 'yyyy-MM-dd'));
+      } else if (selectedPeriodType === 'yearly') {
+        const lastDayOfYear = new Date(now.getFullYear(), 11, 31);
+        setSelectedPeriod(format(lastDayOfYear, 'yyyy-MM-dd'));
+      }
     }
-  }, [isOpen, selectedPeriod]);
+  }, [isOpen, selectedPeriod, selectedPeriodType]);
 
   const handlePreview = async () => {
     if (!selectedPeriod) {
@@ -63,7 +76,8 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          periodEndDate: selectedPeriod
+          periodEndDate: selectedPeriod,
+          periodType: selectedPeriodType
         })
       });
 
@@ -107,7 +121,7 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
         },
         body: JSON.stringify({
           periodEndDate: selectedPeriod,
-          periodType: 'monthly'
+          periodType: selectedPeriodType
         })
       });
 
@@ -139,14 +153,39 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
     const options = [];
     const now = new Date();
     
-    // Generate options for the last 12 months
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 0);
-      const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      options.push({
-        value: format(lastDayOfMonth, 'yyyy-MM-dd'),
-        label: format(lastDayOfMonth, 'MMMM yyyy')
-      });
+    if (selectedPeriodType === 'monthly') {
+      // Generate options for the last 12 months
+      for (let i = 0; i < 12; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 0);
+        const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        options.push({
+          value: format(lastDayOfMonth, 'yyyy-MM-dd'),
+          label: format(lastDayOfMonth, 'MMMM yyyy')
+        });
+      }
+    } else if (selectedPeriodType === 'quarterly') {
+      // Generate options for the last 8 quarters
+      for (let i = 0; i < 8; i++) {
+        const quarter = Math.floor(now.getMonth() / 3) - i;
+        const year = now.getFullYear() + Math.floor(quarter / 4);
+        const quarterInYear = ((quarter % 4) + 4) % 4;
+        const lastMonthOfQuarter = (quarterInYear + 1) * 3 - 1;
+        const lastDayOfQuarter = new Date(year, lastMonthOfQuarter + 1, 0);
+        options.push({
+          value: format(lastDayOfQuarter, 'yyyy-MM-dd'),
+          label: `Q${quarterInYear + 1} ${year}`
+        });
+      }
+    } else if (selectedPeriodType === 'yearly') {
+      // Generate options for the last 5 years
+      for (let i = 0; i < 5; i++) {
+        const year = now.getFullYear() - i;
+        const lastDayOfYear = new Date(year, 11, 31);
+        options.push({
+          value: format(lastDayOfYear, 'yyyy-MM-dd'),
+          label: `${year}`
+        });
+      }
     }
     
     return options;
@@ -184,9 +223,49 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
         <div className="p-6 space-y-6">
           {/* Period Selection */}
           <div className="space-y-4">
+            {/* Period Type Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Closing Period
+                Period Type
+              </label>
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setSelectedPeriodType('monthly')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    selectedPeriodType === 'monthly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setSelectedPeriodType('quarterly')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    selectedPeriodType === 'quarterly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Quarterly
+                </button>
+                <button
+                  onClick={() => setSelectedPeriodType('yearly')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    selectedPeriodType === 'yearly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Yearly
+                </button>
+              </div>
+            </div>
+
+            {/* Period Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select {selectedPeriodType.charAt(0).toUpperCase() + selectedPeriodType.slice(1)} Period
               </label>
               <select
                 value={selectedPeriod}

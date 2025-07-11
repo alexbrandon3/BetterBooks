@@ -31,11 +31,11 @@ export class BooksController {
       }
 
       // Validate period type
-      if (periodType !== 'monthly') {
+      if (!['monthly', 'quarterly', 'yearly'].includes(periodType)) {
         logError('Invalid period type', 'BooksController');
         res.status(400).json({ 
           error: "Invalid period type",
-          details: "Only 'monthly' is currently supported"
+          details: "Only 'monthly', 'quarterly', and 'yearly' are supported"
         });
         return;
       }
@@ -97,7 +97,7 @@ export class BooksController {
         return;
       }
 
-      const { periodEndDate } = req.body;
+      const { periodEndDate, periodType = 'monthly' } = req.body;
 
       // Validate required fields
       if (!periodEndDate) {
@@ -105,6 +105,16 @@ export class BooksController {
         res.status(400).json({ 
           error: "Missing required field",
           details: "periodEndDate is required"
+        });
+        return;
+      }
+
+      // Validate period type
+      if (!['monthly', 'quarterly', 'yearly'].includes(periodType)) {
+        logError('Invalid period type', 'BooksController');
+        res.status(400).json({ 
+          error: "Invalid period type",
+          details: "Only 'monthly', 'quarterly', and 'yearly' are supported"
         });
         return;
       }
@@ -120,9 +130,9 @@ export class BooksController {
         return;
       }
 
-      logInfo(`Generating closing entry preview for user ${user.id}, period: ${periodEndDate}`, 'BooksController');
+      logInfo(`Generating closing entry preview for user ${user.id}, period: ${periodEndDate}, type: ${periodType}`, 'BooksController');
       
-      const preview = await this.closingEntryService.generateClosingEntryPreview(user.id, periodEndDate);
+      const preview = await this.closingEntryService.generateClosingEntryPreview(user.id, periodEndDate, periodType);
       
       logSuccess(`Closing entry preview generated for user ${user.id}`, 'BooksController');
       res.status(200).json({

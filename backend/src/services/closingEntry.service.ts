@@ -9,7 +9,7 @@ import { Between, In } from "typeorm";
 
 export interface ClosingEntryRequest {
   periodEndDate: string;
-  periodType: 'monthly';
+  periodType: 'monthly' | 'quarterly' | 'yearly';
 }
 
 export interface ClosingEntryResult {
@@ -136,13 +136,25 @@ export class ClosingEntryService {
    */
   async generateClosingEntryPreview(
     userId: number, 
-    periodEndDate: string
+    periodEndDate: string,
+    periodType: 'monthly' | 'quarterly' | 'yearly' = 'monthly'
   ): Promise<ClosingEntryPreview> {
-    logInfo(`Generating closing entry preview for period ending ${periodEndDate} for user ${userId}`, 'ClosingEntryService');
+    logInfo(`Generating closing entry preview for ${periodType} period ending ${periodEndDate} for user ${userId}`, 'ClosingEntryService');
 
     // Parse the period end date
     const endDate = new Date(periodEndDate);
-    const startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1); // Start of month
+    let startDate: Date;
+    
+    if (periodType === 'monthly') {
+      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1); // Start of month
+    } else if (periodType === 'quarterly') {
+      const quarter = Math.floor(endDate.getMonth() / 3);
+      startDate = new Date(endDate.getFullYear(), quarter * 3, 1); // Start of quarter
+    } else if (periodType === 'yearly') {
+      startDate = new Date(endDate.getFullYear(), 0, 1); // Start of year
+    } else {
+      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1); // Default to monthly
+    }
 
     // Get all income and expense accounts
     const accounts = await this.getIncomeExpenseAccounts(userId);
@@ -206,7 +218,7 @@ export class ClosingEntryService {
       }
 
       // Generate preview to get account balances
-      const preview = await this.generateClosingEntryPreview(userId, request.periodEndDate);
+      const preview = await this.generateClosingEntryPreview(userId, request.periodEndDate, request.periodType);
 
       // Check if there are any transactions in the period
       if (preview.totalEntries === 0) {
