@@ -341,12 +341,22 @@ export class TransactionService {
 
         // Step 2: Update journal entries with new amounts
         if (transaction.entries && transaction.entries.length > 0) {
-          // Calculate the new amount per entry (assuming equal distribution for now)
-          const newAmountPerEntry = Number(data.amount) / transaction.entries.length;
-          
-          for (const entry of transaction.entries) {
+          // Use the amounts provided by the frontend instead of splitting
+          // The frontend already provides the correct split amounts
+          for (let i = 0; i < transaction.entries.length; i++) {
+            const entry = transaction.entries[i];
+            // If the frontend provided entry amounts in the data, use those
+            // Otherwise, fall back to equal distribution
+            let newAmount;
+            if (data.entries && data.entries[i]) {
+              newAmount = Number(data.entries[i].amount);
+            } else {
+              // Fallback to equal distribution
+              newAmount = Number(data.amount) / transaction.entries.length;
+            }
+            
             const oldAmount = Number(entry.amount);
-            entry.amount = newAmountPerEntry;
+            entry.amount = newAmount;
             await transactionalEntityManager.save(entry);
             logInfo(`Updated journal entry amount: ${oldAmount} -> ${entry.amount}`, 'TransactionService');
           }
