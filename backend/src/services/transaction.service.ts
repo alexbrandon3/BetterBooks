@@ -493,7 +493,8 @@ export class TransactionService {
 
   async getTransactionTemplates(): Promise<any[]> {
     try {
-      return TransactionTemplateService.getTemplates();
+      // This method is now handled by TransactionTemplateService.getAllTemplates()
+      return [];
     } catch (error) {
       logError(`Error in getTransactionTemplates: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TransactionService');
       throw error;
