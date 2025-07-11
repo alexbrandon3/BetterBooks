@@ -3,6 +3,7 @@ import { Account } from "../entities/Account";
 import { TransactionService } from "./transaction.service";
 import { AccountService } from "./AccountService";
 import { logInfo, logSuccess, logError } from '../utils/logger';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export interface ExportOptions {
   format: 'csv' | 'pdf';
@@ -144,43 +145,231 @@ export class ExportService {
   ): Promise<ExportResult> {
     logInfo('Generating PDF export', 'ExportService');
 
-    const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+    try {
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+      const { height } = page.getSize();
 
-    // Generate a simple text report instead of PDF for now
-    const filename = `transactions_${new Date().toISOString().split('T')[0]}.report`;
+      // Embed the standard font
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    let reportContent = 'TRANSACTION REPORT\n';
-    reportContent += '==================\n\n';
-    reportContent += `Generated on: ${new Date().toLocaleDateString()}\n`;
-    reportContent += `Total Transactions: ${transactions.length}\n`;
-    reportContent += `Total Amount: $${totalAmount.toFixed(2)}\n\n`;
-    reportContent += 'Date\t\tDescription\t\tCategory\t\tType\t\tAmount\n';
-    reportContent += '----\t\t-----------\t\t--------\t\t----\t\t------\n';
+      // Set initial position
+      let yPos = height - 50;
+      const margin = 50;
+      const lineHeight = 20;
 
-    // Add transaction data
-    for (const transaction of transactions) {
-      const date = new Date(transaction.date).toLocaleDateString();
-      const description = transaction.description.length > 20 ? 
-        transaction.description.substring(0, 17) + '...' : transaction.description.padEnd(20);
-      const category = (transaction.category || 'Uncategorized').padEnd(15);
-      const type = transaction.type.padEnd(10);
-      const amount = parseFloat(transaction.amount.toString()).toFixed(2);
-      
-      reportContent += `${date}\t\t${description}\t\t${category}\t\t${type}\t\t$${amount}\n`;
+      // Title
+      page.drawText('TRANSACTION REPORT', {
+        x: margin,
+        y: yPos,
+        size: 24,
+        font: boldFont,
+        color: rgb(0, 0, 0)
+      });
+      yPos -= 40;
+
+      // Subtitle with date
+      page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, {
+        x: margin,
+        y: yPos,
+        size: 12,
+        font: font,
+        color: rgb(0.4, 0.4, 0.4)
+      });
+      yPos -= 30;
+
+      // Summary information
+      const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+      const incomeTransactions = transactions.filter(t => t.type === 'INCOME');
+      const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
+      const totalIncome = incomeTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+      const totalExpenses = expenseTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+
+      page.drawText(`Total Transactions: ${transactions.length}`, {
+        x: margin,
+        y: yPos,
+        size: 12,
+        font: font,
+        color: rgb(0, 0, 0)
+      });
+      yPos -= lineHeight;
+
+      page.drawText(`Total Income: $${totalIncome.toFixed(2)}`, {
+        x: margin,
+        y: yPos,
+        size: 12,
+        font: font,
+        color: rgb(0, 0.6, 0)
+      });
+      yPos -= lineHeight;
+
+      page.drawText(`Total Expenses: $${totalExpenses.toFixed(2)}`, {
+        x: margin,
+        y: yPos,
+        size: 12,
+        font: font,
+        color: rgb(0.8, 0, 0)
+      });
+      yPos -= lineHeight;
+
+      page.drawText(`Net Amount: $${totalAmount.toFixed(2)}`, {
+        x: margin,
+        y: yPos,
+        size: 14,
+        font: boldFont,
+        color: totalAmount >= 0 ? rgb(0, 0.6, 0) : rgb(0.8, 0, 0)
+      });
+      yPos -= 40;
+
+      // Table headers
+      const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
+      const columnWidths = [80, 200, 100, 80, 80];
+      const startX = margin;
+
+      // Draw header background
+      page.drawRectangle({
+        x: startX,
+        y: yPos - 15,
+        width: columnWidths.reduce((sum, width) => sum + width, 0),
+        height: 20,
+        color: rgb(0.9, 0.9, 0.9)
+      });
+
+      // Draw headers
+      let currentX = startX;
+      headers.forEach((header, index) => {
+        page.drawText(header, {
+          x: currentX + 5,
+          y: yPos,
+          size: 10,
+          font: boldFont,
+          color: rgb(0, 0, 0)
+        });
+        currentX += columnWidths[index];
+      });
+      yPos -= 25;
+
+      // Draw transaction rows
+      let rowCount = 0;
+      for (const transaction of transactions) {
+        // Check if we need a new page
+        if (yPos < 100) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          yPos = height - 50;
+          
+          // Redraw headers on new page
+          page.drawRectangle({
+            x: startX,
+            y: yPos - 15,
+            width: columnWidths.reduce((sum, width) => sum + width, 0),
+            height: 20,
+            color: rgb(0.9, 0.9, 0.9)
+          });
+
+          currentX = startX;
+          headers.forEach((header, index) => {
+            page.drawText(header, {
+              x: currentX + 5,
+              y: yPos,
+              size: 10,
+              font: boldFont,
+              color: rgb(0, 0, 0)
+            });
+            currentX += columnWidths[index];
+          });
+          yPos -= 25;
+        }
+
+        const date = new Date(transaction.date).toLocaleDateString();
+        const description = transaction.description.length > 30 ? 
+          transaction.description.substring(0, 27) + '...' : transaction.description;
+        const category = transaction.category || 'Uncategorized';
+        const type = transaction.type;
+        const amount = parseFloat(transaction.amount.toString()).toFixed(2);
+
+        // Alternate row colors
+        if (rowCount % 2 === 0) {
+          page.drawRectangle({
+            x: startX,
+            y: yPos - 15,
+            width: columnWidths.reduce((sum, width) => sum + width, 0),
+            height: 18,
+            color: rgb(0.98, 0.98, 0.98)
+          });
+        }
+
+        // Draw row data
+        currentX = startX;
+        page.drawText(date, {
+          x: currentX + 5,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        currentX += columnWidths[0];
+
+        page.drawText(description, {
+          x: currentX + 5,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        currentX += columnWidths[1];
+
+        page.drawText(category, {
+          x: currentX + 5,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        currentX += columnWidths[2];
+
+        page.drawText(type, {
+          x: currentX + 5,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+        currentX += columnWidths[3];
+
+        // Color code amounts based on type
+        const amountColor = type === 'INCOME' ? rgb(0, 0.6, 0) : rgb(0.8, 0, 0);
+        page.drawText(`$${amount}`, {
+          x: currentX + 5,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: amountColor
+        });
+
+        yPos -= 20;
+        rowCount++;
+      }
+
+      // Generate PDF bytes
+      const pdfBytes = await pdfDoc.save();
+      const filename = `transactions_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      logSuccess(`PDF export generated with ${transactions.length} transactions`, 'ExportService');
+
+      return {
+        data: Buffer.from(pdfBytes),
+        filename,
+        contentType: 'application/pdf',
+        totalTransactions: transactions.length,
+        totalAmount
+      };
+    } catch (error) {
+      logError(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`, 'ExportService');
+      throw error;
     }
-
-    logSuccess(`Text report generated with ${transactions.length} transactions`, 'ExportService');
-
-    return {
-      data: reportContent,
-      filename,
-      contentType: 'text/plain',
-      totalTransactions: transactions.length,
-      totalAmount
-    };
   }
-
-
 
   async generateFinancialSummary(userId: number, dateRange?: { startDate: string; endDate: string }): Promise<any> {
     logInfo(`Generating financial summary for user ${userId}`, 'ExportService');
