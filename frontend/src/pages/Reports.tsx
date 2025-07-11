@@ -9,6 +9,7 @@ import { DateRange } from '../types/common';
 import { toast } from 'react-hot-toast';
 import { useDrilldown } from '../hooks/useDrilldown';
 import DrilldownModal from '../components/DrilldownModal';
+import CloseBooksModal from '../components/reports/CloseBooksModal';
 
 // Constants for pagination
 const ITEMS_PER_PAGE = 10;
@@ -65,6 +66,7 @@ const Reports: React.FC = () => {
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
   const [incomeStatement, setIncomeStatement] = useState<IncomeStatement | null>(null);
   const drilldown = useDrilldown();
+  const [isCloseBooksModalOpen, setIsCloseBooksModalOpen] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -857,6 +859,15 @@ const Reports: React.FC = () => {
               </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
+              <button
+                onClick={() => setIsCloseBooksModalOpen(true)}
+                className="flex items-center space-x-2 bg-purple-600 text-white rounded-lg px-4 py-2 hover:bg-purple-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm font-medium">Close Books</span>
+              </button>
               <div className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -953,6 +964,12 @@ const Reports: React.FC = () => {
           subcategory={drilldown.subcategory}
           startDate={drilldown.startDate}
           endDate={drilldown.endDate}
+        />
+
+        {/* Close Books Modal */}
+        <CloseBooksModal
+          isOpen={isCloseBooksModalOpen}
+          onClose={() => setIsCloseBooksModalOpen(false)}
         />
       </div>
     </div>

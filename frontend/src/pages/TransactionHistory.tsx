@@ -303,6 +303,8 @@ const TransactionHistory: React.FC = () => {
         return 'text-red-600 bg-red-100';
       case 'TRANSFER':
         return 'text-blue-600 bg-blue-100';
+      case 'CLOSING_ENTRY':
+        return 'text-purple-600 bg-purple-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }

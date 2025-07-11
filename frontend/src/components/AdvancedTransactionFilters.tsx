@@ -331,6 +331,7 @@ const AdvancedTransactionFilters: React.FC<AdvancedFiltersProps> = ({
             <option value="LIABILITY_SETTLEMENT">Liability Settlement</option>
             <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
             <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
+            <option value="CLOSING_ENTRY">Closing Entry</option>
           </select>
         </div>
 
