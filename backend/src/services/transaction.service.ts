@@ -163,25 +163,29 @@ export class TransactionService {
         // Calculate balance change based on entry type and account type
         let balanceChange = 0;
         
+        // Ensure entry.amount is a number
+        const entryAmount = Number(entry.amount);
+        
         if (entry.type === EntryType.DEBIT) {
           // For ASSET and EXPENSE accounts, debit increases balance
           // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
           if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
-            balanceChange = entry.amount;
+            balanceChange = entryAmount;
           } else {
-            balanceChange = -entry.amount;
+            balanceChange = -entryAmount;
           }
         } else if (entry.type === EntryType.CREDIT) {
           // For ASSET and EXPENSE accounts, credit decreases balance
           // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
           if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
-            balanceChange = -entry.amount;
+            balanceChange = -entryAmount;
           } else {
-            balanceChange = entry.amount;
+            balanceChange = entryAmount;
           }
         }
 
-        const currentBalance = parseFloat(account.balance?.toString() || '0');
+        // Update account balance
+        const currentBalance = Number(account.balance || 0);
         const newBalance = currentBalance + balanceChange;
         
         // Check for negative balance on ASSET accounts (cash, checking, etc.)
@@ -238,26 +242,29 @@ export class TransactionService {
             // Calculate balance change based on entry type and account type
             let balanceChange = 0;
             
+            // Ensure entry.amount is a number
+            const entryAmount = Number(entry.amount);
+            
             if (entry.type === EntryType.DEBIT) {
               // For ASSET and EXPENSE accounts, debit increases balance
               // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
               if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
-                balanceChange = entry.amount;
+                balanceChange = entryAmount;
               } else {
-                balanceChange = -entry.amount;
+                balanceChange = -entryAmount;
               }
             } else if (entry.type === EntryType.CREDIT) {
               // For ASSET and EXPENSE accounts, credit decreases balance
               // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
               if (account.type === AccountType.ASSET || account.type === AccountType.EXPENSE) {
-                balanceChange = -entry.amount;
+                balanceChange = -entryAmount;
               } else {
-                balanceChange = entry.amount;
+                balanceChange = entryAmount;
               }
             }
 
             // Update account balance
-            const currentBalance = parseFloat(account.balance?.toString() || '0');
+            const currentBalance = Number(account.balance || 0);
             const newBalance = currentBalance + balanceChange;
             
             // Safety checks to prevent numeric overflow
@@ -396,26 +403,29 @@ export class TransactionService {
             // Calculate balance change to reverse (opposite of creation)
             let balanceChange = 0;
             
+            // Ensure entry.amount is a number
+            const entryAmount = Number(entry.amount);
+            
             if (entry.type === EntryType.DEBIT) {
               // For ASSET and EXPENSE accounts, debit increases balance, so reverse decreases it
               // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance, so reverse increases it
               if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = -entry.amount;
+                balanceChange = -entryAmount;
               } else {
-                balanceChange = entry.amount;
+                balanceChange = entryAmount;
               }
             } else if (entry.type === EntryType.CREDIT) {
               // For ASSET and EXPENSE accounts, credit decreases balance, so reverse increases it
               // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance, so reverse decreases it
               if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = entry.amount;
+                balanceChange = entryAmount;
               } else {
-                balanceChange = -entry.amount;
+                balanceChange = -entryAmount;
               }
             }
 
             // Update account balance (reverse the change)
-            const currentBalance = parseFloat(entry.account.balance?.toString() || '0');
+            const currentBalance = Number(entry.account.balance || 0);
             const newBalance = currentBalance + balanceChange;
             
             // Safety checks to prevent numeric overflow
@@ -584,26 +594,29 @@ export class TransactionService {
           // Calculate balance change based on entry type and account type
           let balanceChange = 0;
           
+          // Ensure entry.amount is a number
+          const entryAmount = Number(entry.amount);
+          
           if (entry.type === EntryType.DEBIT) {
             // For ASSET and EXPENSE accounts, debit increases balance
             // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance
             if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-              balanceChange = entry.amount;
+              balanceChange = entryAmount;
             } else {
-              balanceChange = -entry.amount;
+              balanceChange = -entryAmount;
             }
           } else if (entry.type === EntryType.CREDIT) {
             // For ASSET and EXPENSE accounts, credit decreases balance
             // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance
             if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-              balanceChange = -entry.amount;
+              balanceChange = -entryAmount;
             } else {
-              balanceChange = entry.amount;
+              balanceChange = entryAmount;
             }
           }
 
           // Update account balance
-          const currentBalance = parseFloat(entry.account.balance?.toString() || '0');
+          const currentBalance = Number(entry.account.balance || 0);
           const newBalance = currentBalance + balanceChange;
           
           // Safety checks to prevent numeric overflow
