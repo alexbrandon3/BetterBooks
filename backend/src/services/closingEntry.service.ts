@@ -158,13 +158,18 @@ export class ClosingEntryService {
 
     // Get all income and expense accounts
     const accounts = await this.getIncomeExpenseAccounts(userId);
+    console.log(`🔍 CLOSING DEBUG - Found ${accounts.length} income/expense accounts`);
     
     // Calculate balances for the period
     const accountBalances = await this.calculateAccountBalancesForPeriod(userId, startDate, endDate);
+    console.log(`🔍 CLOSING DEBUG - Account balances calculated for ${accountBalances.size} accounts`);
 
     // Separate accounts by type
-    const revenueAccounts = accounts
-      .filter(account => account.type === AccountType.INCOME)
+    const incomeAccounts = accounts.filter(account => account.type === AccountType.INCOME);
+    const expenseAccountsRaw = accounts.filter(account => account.type === AccountType.EXPENSE);
+    console.log(`🔍 CLOSING DEBUG - Found ${incomeAccounts.length} income accounts, ${expenseAccountsRaw.length} expense accounts`);
+    
+    const revenueAccounts = incomeAccounts
       .map(account => ({
         accountId: account.id,
         accountName: account.name,
@@ -172,8 +177,7 @@ export class ClosingEntryService {
       }))
       .filter(account => Math.abs(account.balance) > 0.01); // Only include accounts with non-zero balances
 
-    const expenseAccounts = accounts
-      .filter(account => account.type === AccountType.EXPENSE)
+    const expenseAccounts = expenseAccountsRaw
       .map(account => ({
         accountId: account.id,
         accountName: account.name,
@@ -221,6 +225,11 @@ export class ClosingEntryService {
       const preview = await this.generateClosingEntryPreview(userId, request.periodEndDate, request.periodType);
 
       // Check if there are any transactions in the period
+      console.log(`🔍 CLOSING DEBUG - Preview total entries: ${preview.totalEntries}`);
+      console.log(`🔍 CLOSING DEBUG - Revenue accounts: ${preview.revenueAccounts.length}`);
+      console.log(`🔍 CLOSING DEBUG - Expense accounts: ${preview.expenseAccounts.length}`);
+      console.log(`🔍 CLOSING DEBUG - Net income: ${preview.netIncome}`);
+      
       if (preview.totalEntries === 0) {
         logError(`No transactions found for period ending ${request.periodEndDate} for user ${userId}`, 'ClosingEntryService');
         return {
