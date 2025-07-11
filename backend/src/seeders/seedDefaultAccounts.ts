@@ -4,7 +4,7 @@ import { User } from "../entities/User";
 
 export const getDefaultAccounts = (userId: number) => {
   return [
-    // Assets
+    // ===== ASSETS =====
     {
       name: "Cash",
       type: AccountType.ASSET,
@@ -39,12 +39,67 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
+      name: "Petty Cash",
+      type: AccountType.ASSET,
+      category: "Bank",
+      subcategory: "Petty Cash",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "CASH_AND_EQUIVALENTS",
+      balance: 0,
+      isLiquid: true,
+      user: { id: userId }
+    },
+    {
       name: "Accounts Receivable",
       type: AccountType.ASSET,
       category: "Receivables",
       subcategory: "Accounts Receivable",
       financialCategory: FinancialCategory.CURRENT_ASSET,
       financialSubcategory: "ACCOUNTS_RECEIVABLE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Undeposited Funds",
+      type: AccountType.ASSET,
+      category: "Receivables",
+      subcategory: "Undeposited Funds",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "ACCOUNTS_RECEIVABLE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Inventory",
+      type: AccountType.ASSET,
+      category: "Inventory",
+      subcategory: "Product Inventory",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "INVENTORY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Prepaid Expenses",
+      type: AccountType.ASSET,
+      category: "Prepaid",
+      subcategory: "Prepaid Expenses",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "PREPAID_EXPENSES",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Security Deposits",
+      type: AccountType.ASSET,
+      category: "Deposits",
+      subcategory: "Security Deposit",
+      financialCategory: FinancialCategory.CURRENT_ASSET,
+      financialSubcategory: "OTHER_CURRENT_ASSET",
       balance: 0,
       isLiquid: false,
       user: { id: userId }
@@ -60,7 +115,8 @@ export const getDefaultAccounts = (userId: number) => {
       isLiquid: false,
       user: { id: userId }
     },
-    // Liabilities
+    
+    // ===== LIABILITIES =====
     {
       name: "Accounts Payable",
       type: AccountType.LIABILITY,
@@ -68,6 +124,28 @@ export const getDefaultAccounts = (userId: number) => {
       subcategory: "Accounts Payable",
       financialCategory: FinancialCategory.CURRENT_LIABILITY,
       financialSubcategory: "ACCOUNTS_PAYABLE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Payroll Liabilities",
+      type: AccountType.LIABILITY,
+      category: "Payroll",
+      subcategory: "Payroll Taxes",
+      financialCategory: FinancialCategory.CURRENT_LIABILITY,
+      financialSubcategory: "OTHER_CURRENT_LIABILITY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Sales Tax Payable",
+      type: AccountType.LIABILITY,
+      category: "Taxes",
+      subcategory: "Sales Tax",
+      financialCategory: FinancialCategory.CURRENT_LIABILITY,
+      financialSubcategory: "OTHER_CURRENT_LIABILITY",
       balance: 0,
       isLiquid: false,
       user: { id: userId }
@@ -94,7 +172,30 @@ export const getDefaultAccounts = (userId: number) => {
       isLiquid: false,
       user: { id: userId }
     },
-    // Income
+    {
+      name: "Interest Payable",
+      type: AccountType.LIABILITY,
+      category: "Loans",
+      subcategory: "Interest Payable",
+      financialCategory: FinancialCategory.CURRENT_LIABILITY,
+      financialSubcategory: "OTHER_CURRENT_LIABILITY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Deferred Revenue",
+      type: AccountType.LIABILITY,
+      category: "Revenue",
+      subcategory: "Deferred Revenue",
+      financialCategory: FinancialCategory.CURRENT_LIABILITY,
+      financialSubcategory: "OTHER_CURRENT_LIABILITY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    
+    // ===== INCOME ACCOUNTS (for closing entries) =====
     {
       name: "Sales Revenue",
       type: AccountType.INCOME,
@@ -118,6 +219,17 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
+      name: "Consulting Income",
+      type: AccountType.INCOME,
+      category: "Services",
+      subcategory: "Consulting",
+      financialCategory: FinancialCategory.OPERATING_REVENUE,
+      financialSubcategory: "SERVICE_REVENUE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
       name: "Interest Income",
       type: AccountType.INCOME,
       category: "Interest",
@@ -128,7 +240,74 @@ export const getDefaultAccounts = (userId: number) => {
       isLiquid: false,
       user: { id: userId }
     },
-    // Expenses
+    {
+      name: "Affiliate Income",
+      type: AccountType.INCOME,
+      category: "Online",
+      subcategory: "Affiliate Programs",
+      financialCategory: FinancialCategory.NON_OPERATING_REVENUE,
+      financialSubcategory: "OTHER_INCOME",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Miscellaneous Income",
+      type: AccountType.INCOME,
+      category: "Other",
+      subcategory: "Misc. Income",
+      financialCategory: FinancialCategory.NON_OPERATING_REVENUE,
+      financialSubcategory: "OTHER_INCOME",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Refund Income",
+      type: AccountType.INCOME,
+      category: "Adjustments",
+      subcategory: "Refund Income",
+      financialCategory: FinancialCategory.NON_OPERATING_REVENUE,
+      financialSubcategory: "OTHER_INCOME",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    
+    // ===== EXPENSE ACCOUNTS (for closing entries) =====
+    {
+      name: "Cost of Goods Sold",
+      type: AccountType.EXPENSE,
+      category: "Cost of Goods",
+      subcategory: "COGS",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "COST_OF_GOODS_SOLD",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Supplies Expense",
+      type: AccountType.EXPENSE,
+      category: "Office",
+      subcategory: "Supplies",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "OFFICE_SUPPLIES",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Software Subscriptions",
+      type: AccountType.EXPENSE,
+      category: "Technology",
+      subcategory: "Software",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "TECHNOLOGY_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
     {
       name: "Rent Expense",
       type: AccountType.EXPENSE,
@@ -141,7 +320,7 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
-      name: "Utilities",
+      name: "Utilities Expense",
       type: AccountType.EXPENSE,
       category: "Utilities",
       subcategory: "Utilities",
@@ -152,7 +331,7 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
-      name: "Payroll",
+      name: "Payroll Expense",
       type: AccountType.EXPENSE,
       category: "Salaries",
       subcategory: "Payroll",
@@ -163,23 +342,12 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
-      name: "Supplies",
+      name: "Payroll Taxes",
       type: AccountType.EXPENSE,
-      category: "Office",
-      subcategory: "Supplies",
+      category: "Payroll",
+      subcategory: "Payroll Taxes",
       financialCategory: FinancialCategory.OPERATING_EXPENSE,
-      financialSubcategory: "OFFICE_SUPPLIES",
-      balance: 0,
-      isLiquid: false,
-      user: { id: userId }
-    },
-    {
-      name: "Equipment Purchase",
-      type: AccountType.EXPENSE,
-      category: "Equipment",
-      subcategory: "Equipment Purchase",
-      financialCategory: FinancialCategory.OPERATING_EXPENSE,
-      financialSubcategory: "TECHNOLOGY_EXPENSE",
+      financialSubcategory: "TAX_EXPENSE",
       balance: 0,
       isLiquid: false,
       user: { id: userId }
@@ -218,33 +386,122 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
-      name: "Inventory",
-      type: AccountType.ASSET,
-      category: "Inventory",
-      subcategory: "Product Inventory",
-      financialCategory: FinancialCategory.CURRENT_ASSET,
-      financialSubcategory: "INVENTORY",
+      name: "Technology Expense",
+      type: AccountType.EXPENSE,
+      category: "Technology",
+      subcategory: "Technology Expense",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "TECHNOLOGY_EXPENSE",
       balance: 0,
       isLiquid: false,
       user: { id: userId }
     },
     {
-      name: "Prepaid Expenses",
-      type: AccountType.ASSET,
-      category: "Prepaid",
-      subcategory: "Prepaid Expenses",
-      financialCategory: FinancialCategory.CURRENT_ASSET,
-      financialSubcategory: "PREPAID_EXPENSES",
+      name: "Travel Expense",
+      type: AccountType.EXPENSE,
+      category: "Travel",
+      subcategory: "Travel Expense",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "TRAVEL_EXPENSE",
       balance: 0,
       isLiquid: false,
       user: { id: userId }
     },
-    // Equity
     {
-      name: "Owner's Equity",
+      name: "Meals & Entertainment",
+      type: AccountType.EXPENSE,
+      category: "Hospitality",
+      subcategory: "Meals",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "MEALS_AND_ENTERTAINMENT",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Postage & Delivery",
+      type: AccountType.EXPENSE,
+      category: "Operations",
+      subcategory: "Postage",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "OFFICE_SUPPLIES",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Bank Fees",
+      type: AccountType.EXPENSE,
+      category: "Financial",
+      subcategory: "Bank Fees",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "BANK_FEES",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Depreciation Expense",
+      type: AccountType.EXPENSE,
+      category: "Accounting",
+      subcategory: "Depreciation",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "DEPRECIATION_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Interest Expense",
+      type: AccountType.EXPENSE,
+      category: "Loans",
+      subcategory: "Loan Interest",
+      financialCategory: FinancialCategory.NON_OPERATING_EXPENSE,
+      financialSubcategory: "INTEREST_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Income Taxes",
+      type: AccountType.EXPENSE,
+      category: "Taxes",
+      subcategory: "Income Tax",
+      financialCategory: FinancialCategory.NON_OPERATING_EXPENSE,
+      financialSubcategory: "TAX_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Charitable Contributions",
+      type: AccountType.EXPENSE,
+      category: "Donations",
+      subcategory: "Charity",
+      financialCategory: FinancialCategory.NON_OPERATING_EXPENSE,
+      financialSubcategory: "OTHER_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Other Operating Expenses",
+      type: AccountType.EXPENSE,
+      category: "Other",
+      subcategory: "Other Operating",
+      financialCategory: FinancialCategory.OPERATING_EXPENSE,
+      financialSubcategory: "OTHER_EXPENSE",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    
+    // ===== EQUITY ACCOUNTS =====
+    {
+      name: "Retained Earnings",
       type: AccountType.EQUITY,
       category: "Owner's Equity",
-      subcategory: "Owner's Equity",
+      subcategory: "Retained Earnings",
       financialCategory: FinancialCategory.RETAINED_EARNINGS,
       financialSubcategory: "RETAINED_EARNINGS",
       balance: 0,
@@ -252,7 +509,18 @@ export const getDefaultAccounts = (userId: number) => {
       user: { id: userId }
     },
     {
-      name: "Drawings",
+      name: "Owner's Capital",
+      type: AccountType.EQUITY,
+      category: "Owner's Equity",
+      subcategory: "Capital Contributions",
+      financialCategory: FinancialCategory.EQUITY,
+      financialSubcategory: "OWNER_EQUITY",
+      balance: 0,
+      isLiquid: false,
+      user: { id: userId }
+    },
+    {
+      name: "Owner's Draw",
       type: AccountType.EQUITY,
       category: "Withdrawals",
       subcategory: "Drawings",

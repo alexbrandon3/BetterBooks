@@ -15,7 +15,7 @@ const journalEntryRepo = AppDataSource.getRepository(JournalEntry);
 
 
 export class AccountController extends BaseController {
-  async getAccounts(req: AuthenticatedRequest, res: Response): Promise<void> {
+  getAccounts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -35,7 +35,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async getAccountsWithRecalculatedBalances(req: AuthenticatedRequest, res: Response): Promise<void> {
+  getAccountsWithRecalculatedBalances = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -101,7 +101,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async getAccountBalances(req: AuthenticatedRequest, res: Response): Promise<void> {
+  getAccountBalances = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -167,7 +167,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async createAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+  createAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -190,7 +190,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async updateAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+  updateAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -218,7 +218,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async deleteAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+  deleteAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -228,11 +228,21 @@ export class AccountController extends BaseController {
 
       const { id } = req.params;
       const account = await accountRepo.findOne({
-        where: { id: Number(id), user: { id: user.id } }
+        where: { id: Number(id), user: { id: user.id } },
+        relations: ['journalEntries']
       });
 
       if (!account) {
         res.status(404).json({ message: 'Account not found' });
+        return;
+      }
+
+      // Check if account has journal entries (transactions)
+      if (account.journalEntries && account.journalEntries.length > 0) {
+        res.status(400).json({ 
+          message: 'Cannot delete account with existing transactions. Please delete all transactions for this account first.',
+          transactionCount: account.journalEntries.length
+        });
         return;
       }
 
@@ -244,7 +254,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async getAccountById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  getAccountById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) throw new AuthenticationError();
@@ -260,7 +270,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async suggestAccountMetadata(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  suggestAccountMetadata = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) throw new AuthenticationError();
@@ -286,7 +296,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async suggestAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+  suggestAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -308,7 +318,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async suggestAccountAutoCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  suggestAccountAutoCategory = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
@@ -330,7 +340,7 @@ export class AccountController extends BaseController {
     }
   }
 
-  async getAccountTemplates(req: AuthenticatedRequest, res: Response): Promise<void> {
+  getAccountTemplates = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const user = await getUser(req);
       if (!user) {
