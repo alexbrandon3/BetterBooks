@@ -320,7 +320,7 @@ export class TransactionService {
     try {
       const transaction = await this.transactionRepo.findOne({
         where: { id },
-        relations: ['entries', 'entries.account']
+        relations: ['entries', 'entries.account', 'user']
       });
 
       if (!transaction) {
@@ -329,58 +329,7 @@ export class TransactionService {
       }
 
       return await AppDataSource.transaction(async transactionalEntityManager => {
-        // Step 1: Reverse the old account balance changes
-        if (transaction.entries && transaction.entries.length > 0) {
-          for (const entry of transaction.entries) {
-            if (!entry.account) continue;
-
-            // Calculate balance change to reverse (opposite of original entry)
-            let balanceChange = 0;
-            
-            // Ensure entry.amount is a number
-            const entryAmount = Number(entry.amount);
-            
-            if (entry.type === EntryType.DEBIT) {
-              // For ASSET and EXPENSE accounts, debit increases balance, so reverse decreases it
-              // For LIABILITY, INCOME, and EQUITY accounts, debit decreases balance, so reverse increases it
-              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = -entryAmount;
-              } else {
-                balanceChange = entryAmount;
-              }
-            } else if (entry.type === EntryType.CREDIT) {
-              // For ASSET and EXPENSE accounts, credit decreases balance, so reverse increases it
-              // For LIABILITY, INCOME, and EQUITY accounts, credit increases balance, so reverse decreases it
-              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = entryAmount;
-              } else {
-                balanceChange = -entryAmount;
-              }
-            }
-
-            // Update account balance (reverse the old change)
-            const currentBalance = Number(entry.account.balance || 0);
-            const newBalance = currentBalance + balanceChange;
-            
-            // Safety checks
-            if (isNaN(newBalance) || !isFinite(newBalance)) {
-              logError(`Invalid balance calculation for account ${entry.account.name}: current=${currentBalance}, change=${balanceChange}, new=${newBalance}`, 'TransactionService');
-              throw new Error(`Invalid balance calculation for account ${entry.account.name}`);
-            }
-            
-            const maxBalance = 99999999.99;
-            if (Math.abs(newBalance) > maxBalance) {
-              logError(`Balance would exceed database limits for account ${entry.account.name}: ${newBalance}`, 'TransactionService');
-              throw new Error(`Balance would exceed database limits for account ${entry.account.name}`);
-            }
-            
-            entry.account.balance = Math.round(newBalance * 100) / 100;
-            await transactionalEntityManager.save(entry.account);
-            logInfo(`Reversed account ${entry.account.name} balance: ${currentBalance} + ${balanceChange} = ${entry.account.balance}`, 'TransactionService');
-          }
-        }
-
-        // Step 2: Update transaction fields
+        // Step 1: Update transaction fields
         transaction.description = data.description;
         transaction.date = data.date;
         transaction.type = data.type;
@@ -390,63 +339,21 @@ export class TransactionService {
         const updatedTransaction = await transactionalEntityManager.save(transaction);
         logSuccess(`Transaction fields updated: ${updatedTransaction.id}`, 'TransactionService');
 
-        // Step 3: Update journal entries with new amounts
+        // Step 2: Update journal entries with new amounts
         if (transaction.entries && transaction.entries.length > 0) {
           // Calculate the new amount per entry (assuming equal distribution for now)
           const newAmountPerEntry = Number(data.amount) / transaction.entries.length;
           
           for (const entry of transaction.entries) {
-            // Update the entry amount
+            const oldAmount = Number(entry.amount);
             entry.amount = newAmountPerEntry;
             await transactionalEntityManager.save(entry);
-            logInfo(`Updated journal entry amount: ${entry.amount}`, 'TransactionService');
+            logInfo(`Updated journal entry amount: ${oldAmount} -> ${entry.amount}`, 'TransactionService');
           }
         }
 
-        // Step 4: Apply new account balance changes
-        if (transaction.entries && transaction.entries.length > 0) {
-          for (const entry of transaction.entries) {
-            if (!entry.account) continue;
-
-            // Calculate new balance change
-            let balanceChange = 0;
-            const entryAmount = Number(entry.amount);
-            
-            if (entry.type === EntryType.DEBIT) {
-              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = entryAmount;
-              } else {
-                balanceChange = -entryAmount;
-              }
-            } else if (entry.type === EntryType.CREDIT) {
-              if (entry.account.type === AccountType.ASSET || entry.account.type === AccountType.EXPENSE) {
-                balanceChange = -entryAmount;
-              } else {
-                balanceChange = entryAmount;
-              }
-            }
-
-            // Update account balance with new change
-            const currentBalance = Number(entry.account.balance || 0);
-            const newBalance = currentBalance + balanceChange;
-            
-            // Safety checks
-            if (isNaN(newBalance) || !isFinite(newBalance)) {
-              logError(`Invalid balance calculation for account ${entry.account.name}: current=${currentBalance}, change=${balanceChange}, new=${newBalance}`, 'TransactionService');
-              throw new Error(`Invalid balance calculation for account ${entry.account.name}`);
-            }
-            
-            const maxBalance = 99999999.99;
-            if (Math.abs(newBalance) > maxBalance) {
-              logError(`Balance would exceed database limits for account ${entry.account.name}: ${newBalance}`, 'TransactionService');
-              throw new Error(`Balance would exceed database limits for account ${entry.account.name}`);
-            }
-            
-            entry.account.balance = Math.round(newBalance * 100) / 100;
-            await transactionalEntityManager.save(entry.account);
-            logSuccess(`Updated account ${entry.account.name} balance: ${currentBalance} + ${balanceChange} = ${entry.account.balance}`, 'TransactionService');
-          }
-        }
+        // Step 3: Recalculate all account balances from scratch
+        await this.recalculateAccountBalances(transaction.user.id);
 
         // Return the updated transaction with entries
         const fullTransaction = await transactionalEntityManager.findOne(Transaction, {
