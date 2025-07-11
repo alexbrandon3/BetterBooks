@@ -72,7 +72,9 @@ app.use('/api/recurring-transactions', recurringRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
+console.log('🔧 Mounting books routes at /api/books');
 app.use('/api/books', booksRoutes);
+console.log('✅ Books routes mounted successfully');
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
