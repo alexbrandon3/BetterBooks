@@ -410,7 +410,7 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
               <div className="p-3 bg-blue-100 border border-blue-200 rounded-lg">
                 <h3 className="text-lg font-semibold text-blue-900 mb-2">📋 Closing Entry Preview</h3>
                 <p className="text-blue-800 text-sm">
-                  These entries will reset your income and expense accounts for this period and transfer the net income to Retained Earnings.
+                  These journal entries will close your income and expense accounts for this period and transfer the net income to Retained Earnings. Each entry shows the debit (Dr.) and credit (Cr.) sides of the transaction.
                 </p>
               </div>
               
@@ -474,28 +474,78 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
                 </div>
               )}
 
-              {/* Net Income Summary */}
+              {/* Journal Entries Preview */}
               <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-semibold text-blue-900">💰 Net Income → Retained Earnings</span>
-                    <div className="group relative">
-                      <svg className="w-4 h-4 text-blue-600 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                        Cumulative profit your business has retained after distributions.
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                <h4 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+                  <span className="mr-2">📝</span>
+                  Journal Entries to be Created
+                </h4>
+                
+                {/* Revenue Account Entries */}
+                {preview.revenueAccounts.length > 0 && (
+                  <div className="mb-3">
+                    <h5 className="text-sm font-medium text-blue-800 mb-2">Close Revenue Accounts:</h5>
+                    {preview.revenueAccounts.map((account) => (
+                      <div key={account.accountId} className="bg-white rounded-lg p-3 mb-2 border border-blue-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="text-left">
+                            <span className="font-medium text-blue-900">Dr. {account.accountName}</span>
+                            <span className="block text-blue-700">{formatCurrency(account.balance)}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-medium text-blue-900">Cr. Retained Earnings</span>
+                            <span className="block text-blue-700">{formatCurrency(account.balance)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Expense Account Entries */}
+                {preview.expenseAccounts.length > 0 && (
+                  <div className="mb-3">
+                    <h5 className="text-sm font-medium text-blue-800 mb-2">Close Expense Accounts:</h5>
+                    {preview.expenseAccounts.map((account) => (
+                      <div key={account.accountId} className="bg-white rounded-lg p-3 mb-2 border border-blue-200">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="text-left">
+                            <span className="font-medium text-blue-900">Dr. Retained Earnings</span>
+                            <span className="block text-blue-700">{formatCurrency(account.balance)}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-medium text-blue-900">Cr. {account.accountName}</span>
+                            <span className="block text-blue-700">{formatCurrency(account.balance)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Net Income Summary */}
+                <div className="bg-white rounded-lg p-3 border border-green-200">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-md font-semibold text-green-900">💰 Net Income Transfer</span>
+                      <div className="group relative">
+                        <svg className="w-4 h-4 text-green-600 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                          Cumulative profit your business has retained after distributions.
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
                       </div>
                     </div>
+                    <span className={`text-lg font-bold ${preview.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(preview.netIncome)}
+                    </span>
                   </div>
-                  <span className={`text-xl font-bold ${preview.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(preview.netIncome)}
-                  </span>
+                  <p className="text-sm text-green-700 mt-1">
+                    {getToneMessage('explanation')}
+                  </p>
                 </div>
-                <p className="text-sm text-blue-700 mt-1">
-                  {getToneMessage('explanation')}
-                </p>
               </div>
 
               {/* Warning about period locking */}
@@ -507,7 +557,12 @@ const CloseBooksModal: React.FC<CloseBooksModalProps> = ({ isOpen, onClose }) =>
                 <ul className="text-sm text-yellow-700 mt-1 space-y-1">
                   <li>• This period will be locked after closing</li>
                   <li>• No new transactions can be added to this period</li>
-                  <li>• Total entries to be created: {preview.totalEntries}</li>
+                  <li>• Total journal entries to be created: {preview.totalEntries}</li>
+                  <li>• Revenue accounts to close: {preview.revenueAccounts.length}</li>
+                  <li>• Expense accounts to close: {preview.expenseAccounts.length}</li>
+                  {preview.netIncome !== 0 && (
+                    <li>• Net income transfer: {formatCurrency(preview.netIncome)}</li>
+                  )}
                 </ul>
               </div>
 
