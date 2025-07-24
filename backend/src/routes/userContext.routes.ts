@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+// import { authenticate } from "../middleware/auth"; // Deprecated – replaced by semantic context framework
 // import { UserContextController } from "../controllers/userContext.controller"; // Deprecated – replaced by semantic context framework
-import { AuthenticatedRequest } from "../types/express";
+// import { AuthenticatedRequest } from "../types/express"; // Deprecated – replaced by semantic context framework
 
 const router = Router();
 // const userContextController = new UserContextController(); // Deprecated – replaced by semantic context framework
