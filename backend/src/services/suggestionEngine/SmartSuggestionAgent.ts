@@ -208,11 +208,42 @@ export class SmartSuggestionAgent {
       financialCategory: a.financialCategory
     })));
     
+    // Determine expected account type based on business category
+    let expectedAccountType: string | null = null;
+    switch (businessKeywords.category) {
+      case 'Revenue & Sales':
+        expectedAccountType = 'INCOME';
+        break;
+      case 'Purchases & Inventory':
+        expectedAccountType = 'EXPENSE';
+        break;
+      case 'Operating Expenses':
+        expectedAccountType = 'EXPENSE';
+        break;
+      case 'Payroll & HR':
+        expectedAccountType = 'EXPENSE';
+        break;
+      case 'Taxes & Compliance':
+        expectedAccountType = 'EXPENSE';
+        break;
+      case 'Banking & Cash':
+        expectedAccountType = 'ASSET';
+        break;
+    }
+    
+    console.log('🎯 [SmartSuggest] Expected account type for category:', expectedAccountType);
+    
     let bestMatch = null;
     let bestScore = 0;
 
     for (const account of accounts) {
       let score = 0;
+      
+      // HIGHEST PRIORITY: Account type must match expected type
+      if (expectedAccountType && account.type !== expectedAccountType) {
+        console.log('⏭️ Skipping account', account.name, '- type', account.type, 'does not match expected', expectedAccountType);
+        continue;
+      }
       
       // Check for exact keyword matches in account name (highest priority)
       const exactKeywordMatch = businessKeywords.keywords.some((keyword: string) => 
@@ -220,26 +251,32 @@ export class SmartSuggestionAgent {
       );
       if (exactKeywordMatch) {
         score += 50;
+        console.log('✅ [SmartSuggest] Exact keyword match for', account.name, 'with keyword');
       }
       
       // Check category match
       const categoryMatch = account.category?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (categoryMatch) {
         score += 30;
+        console.log('✅ [SmartSuggest] Category match for', account.name);
       }
       
       // Check subcategory match
       const subcategoryMatch = account.subcategory?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (subcategoryMatch) {
         score += 20;
+        console.log('✅ [SmartSuggest] Subcategory match for', account.name);
       }
       
       // Bonus for recently used accounts
       const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
       if (daysSinceUpdate < 7) {
         score += 10;
+        console.log('✅ [SmartSuggest] Recently used bonus for', account.name);
       }
 
+      console.log('📊 [SmartSuggest] Account', account.name, 'final score:', score);
+      
       if (score > bestScore) {
         bestScore = score;
         bestMatch = { account, confidence: businessKeywords.confidence };
