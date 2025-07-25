@@ -303,28 +303,46 @@ export class SmartSuggestionAgent {
         account.name.toLowerCase().includes(keyword.toLowerCase())
       );
       if (exactKeywordMatch) {
-        score += 50;
+        score += 80; // Increased from 50
         console.log('✅ [SmartSuggest] Exact keyword match for', account.name, 'with keyword');
       }
       
-      // Check category match
+      // Check for category-specific account name matches (high priority)
+      let categorySpecificMatch = false;
+      if (businessKeywords.category === 'Purchases & Inventory') {
+        const purchaseKeywords = ['supplies', 'equipment', 'inventory', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions', 'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'];
+        categorySpecificMatch = purchaseKeywords.some(keyword => 
+          account.name.toLowerCase().includes(keyword.toLowerCase())
+        );
+      } else if (businessKeywords.category === 'Revenue & Sales') {
+        const revenueKeywords = ['sales', 'revenue', 'income', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment', 'customer', 'client', 'retail', 'wholesale', 'consulting', 'fee', 'project', 'billing', 'charged', 'receipt', 'received', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal'];
+        categorySpecificMatch = revenueKeywords.some(keyword => 
+          account.name.toLowerCase().includes(keyword.toLowerCase())
+        );
+      }
+      if (categorySpecificMatch) {
+        score += 60; // High priority for category-specific matches
+        console.log('✅ [SmartSuggest] Category-specific match for', account.name);
+      }
+      
+      // Check category field match
       const categoryMatch = account.category?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (categoryMatch) {
-        score += 30;
-        console.log('✅ [SmartSuggest] Category match for', account.name);
+        score += 40; // Increased from 30
+        console.log('✅ [SmartSuggest] Category field match for', account.name);
       }
       
       // Check subcategory match
       const subcategoryMatch = account.subcategory?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (subcategoryMatch) {
-        score += 20;
+        score += 30; // Increased from 20
         console.log('✅ [SmartSuggest] Subcategory match for', account.name);
       }
       
-      // Bonus for recently used accounts
+      // Bonus for recently used accounts (reduced weight)
       const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
       if (daysSinceUpdate < 7) {
-        score += 10;
+        score += 5; // Reduced from 10
         console.log('✅ [SmartSuggest] Recently used bonus for', account.name);
       }
 
