@@ -4,11 +4,13 @@ import api from '../utils/axios';
 interface AccountSuggestion {
   suggestedAccountId: number;
   suggestedAccountName: string;
-  reason: string;
   accountType: string;
-  confidence: number;
+  category: string;
+  financialCategory: string;
   suggestedEntryType: 'DEBIT' | 'CREDIT';
   detailedReason: string;
+  toneMessage?: string;
+  confidence: number;
 }
 
 interface UseSmartSuggestionProps {

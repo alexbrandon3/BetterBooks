@@ -3,11 +3,13 @@ import { Suggestion } from "../entities/Suggestion";
 import { Account } from "../entities/Account";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
+import { SmartSuggestionAgent } from './suggestionEngine/SmartSuggestionAgent';
 
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
   private accountRepo = AppDataSource.getRepository(Account);
   private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
+  private smartSuggestionAgent = new SmartSuggestionAgent();
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -101,7 +103,41 @@ export class SuggestionService {
         return await this.createSuggestionFromPreference(userPreference);
       }
 
-      // Step 2: Use keyword matching (current logic)
+      // Step 2: Try SmartSuggestionAgent (new logic)
+      console.log('🤖 Trying SmartSuggestionAgent...');
+      const agentResult = await this.smartSuggestionAgent.suggest({
+        description,
+        userId,
+        role: 'OWNER', // TODO: Use real role when available
+        contextOverrides: {}
+      });
+
+      if (agentResult && agentResult.confidence >= 50) {
+        console.log('✅ SmartSuggestionAgent provided suggestion:', agentResult);
+        
+        // Find the account by name to get the ID
+        const suggestedAccount = await this.accountRepo.findOne({
+          where: { 
+            name: agentResult.suggestedAccountName,
+            user: { id: userId }
+          }
+        });
+
+        if (suggestedAccount) {
+          return {
+            suggestedAccountId: suggestedAccount.id,
+            suggestedAccountName: agentResult.suggestedAccountName,
+            reason: agentResult.detailedReason,
+            accountType: agentResult.accountType,
+            confidence: agentResult.confidence,
+            suggestedEntryType: agentResult.suggestedEntryType,
+            detailedReason: agentResult.toneMessage
+          };
+        }
+      }
+
+      // Step 3: Fallback to keyword matching (existing logic)
+      console.log('🔄 Falling back to keyword matching...');
       return await this.findKeywordSuggestion(normalizedDescription, userId);
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
@@ -581,6 +617,8 @@ export class SuggestionService {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
   }
+
+
 
   private async findKeywordSuggestion(normalizedDescription: string, userId: number): Promise<{
     suggestedAccountId: number;

@@ -53,13 +53,15 @@ export interface AccountPayload {
 }
 
 export interface AccountSuggestion {
-  type: AccountType;
+  suggestedAccountId: number;
+  suggestedAccountName: string;
+  accountType: string;
   category: string;
-  subcategory: string;
-  financialCategory: FinancialCategory;
-  financialSubcategory: string;
-  explanation?: string;
-  confidence?: number;
+  financialCategory: string;
+  suggestedEntryType: 'DEBIT' | 'CREDIT';
+  detailedReason: string;
+  toneMessage?: string;
+  confidence: number;
 }
 
 export interface AccountTemplate {

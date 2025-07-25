@@ -4,7 +4,7 @@ import { JournalEntry } from "../types/journalEntry";
 import { cache, CACHE_KEYS, withCache, invalidateTransactions } from "../utils/cache";
 
 export interface TransactionForm {
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY';
   description: string;
   date: string;
   category: string;
@@ -25,7 +25,7 @@ export interface JournalEntryFields {
 
 // Backend API compatible interface
 export interface BackendTransactionForm {
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY';
   description: string;
   date: string;
   category: string;
@@ -170,7 +170,7 @@ export const updateTransaction = async (id: string, transaction: BackendTransact
 };
 
 export const updateTransactionPartial = async (id: string, updates: Partial<{
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL';
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY';
   description: string;
   date: string;
   category: string;
@@ -204,11 +204,13 @@ export const deleteTransaction = async (id: string): Promise<void> => {
 export const getSuggestedAccount = async (description: string): Promise<{ 
   suggestedAccountId: number; 
   suggestedAccountName: string; 
-  reason: string;
   accountType: string;
-  confidence: number;
+  category: string;
+  financialCategory: string;
   suggestedEntryType: 'DEBIT' | 'CREDIT';
   detailedReason: string;
+  toneMessage?: string;
+  confidence: number;
 } | null> => {
   const cacheKey = `${CACHE_KEYS.SUGGESTIONS}_${description.trim()}`;
   

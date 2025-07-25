@@ -30,7 +30,7 @@ import { TransactionTemplate } from '../types/transaction';
 
 interface TransactionForm {
   date: string;
-  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL";
+  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL" | "CLOSING_ENTRY";
   description: string;
   category: string;
   amount: number;
@@ -49,7 +49,7 @@ interface TransactionForm {
 interface BackendTransactionForm {
   description: string;
   date: string;
-  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL";
+  type: "INCOME" | "EXPENSE" | "TRANSFER" | "ADJUSTMENT" | "LOAN_PAYMENT" | "ASSET_PURCHASE" | "LIABILITY_SETTLEMENT" | "EQUITY_CONTRIBUTION" | "EQUITY_WITHDRAWAL" | "CLOSING_ENTRY";
   category: string;
   amount: number;
   entries: {
@@ -80,6 +80,13 @@ const Transactions = () => {
   const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
   const [suggestionConfidence, setSuggestionConfidence] = useState<number | null>(null);
+  const [suggestionToneMessage, setSuggestionToneMessage] = useState<string | null>(null);
+  const [suggestionAccountType, setSuggestionAccountType] = useState<string | null>(null);
+  const [suggestionCategory, setSuggestionCategory] = useState<string | null>(null);
+  const [suggestionFinancialCategory, setSuggestionFinancialCategory] = useState<string | null>(null);
+  const [suggestionEntryType, setSuggestionEntryType] = useState<'DEBIT' | 'CREDIT' | null>(null);
+  const [suggestionAccepted, setSuggestionAccepted] = useState<boolean>(false);
+  const [suggestionRejected, setSuggestionRejected] = useState<boolean>(false);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
@@ -372,6 +379,13 @@ const Transactions = () => {
             categorySuggestion?.confidence || 0,
             transactionTypeSuggestion?.confidence || 0
           ));
+          // Set tone message from account suggestion if available
+          setSuggestionToneMessage(accountSuggestion.toneMessage || null);
+          // Set new metadata fields
+          setSuggestionAccountType(accountSuggestion.accountType || null);
+          setSuggestionCategory(accountSuggestion.category || null);
+          setSuggestionFinancialCategory(accountSuggestion.financialCategory || null);
+          setSuggestionEntryType(accountSuggestion.suggestedEntryType || null);
         }
       } catch (error) {
         console.error('Failed to get suggestions:', error);
@@ -381,6 +395,13 @@ const Transactions = () => {
       // Clear suggestion when description is empty
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
+      setSuggestionToneMessage(null);
+      setSuggestionAccountType(null);
+      setSuggestionCategory(null);
+      setSuggestionFinancialCategory(null);
+      setSuggestionEntryType(null);
+      setSuggestionAccepted(false);
+      setSuggestionRejected(false);
     }
   };
 
@@ -409,6 +430,13 @@ const Transactions = () => {
     // Clear suggestion explanation when form is reset
     setSuggestionExplanation(null);
     setSuggestionConfidence(null);
+    setSuggestionToneMessage(null);
+    setSuggestionAccountType(null);
+    setSuggestionCategory(null);
+    setSuggestionFinancialCategory(null);
+    setSuggestionEntryType(null);
+    setSuggestionAccepted(false);
+    setSuggestionRejected(false);
   };
 
   // Function to check for potential negative balances
@@ -654,6 +682,13 @@ const Transactions = () => {
     // Clear suggestion explanation when user makes any changes or disables smart suggestions
     if (suggestionExplanation && !smartSuggestionsEnabled) setSuggestionExplanation(null);
     if (suggestionConfidence && !smartSuggestionsEnabled) setSuggestionConfidence(null);
+    if (suggestionToneMessage && !smartSuggestionsEnabled) setSuggestionToneMessage(null);
+    if (suggestionAccountType && !smartSuggestionsEnabled) setSuggestionAccountType(null);
+    if (suggestionCategory && !smartSuggestionsEnabled) setSuggestionCategory(null);
+    if (suggestionFinancialCategory && !smartSuggestionsEnabled) setSuggestionFinancialCategory(null);
+    if (suggestionEntryType && !smartSuggestionsEnabled) setSuggestionEntryType(null);
+    if (suggestionAccepted && !smartSuggestionsEnabled) setSuggestionAccepted(false);
+    if (suggestionRejected && !smartSuggestionsEnabled) setSuggestionRejected(false);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -687,6 +722,13 @@ const Transactions = () => {
     // Clear suggestion explanation when editing a transaction
     setSuggestionExplanation(null);
     setSuggestionConfidence(null);
+    setSuggestionToneMessage(null);
+    setSuggestionAccountType(null);
+    setSuggestionCategory(null);
+    setSuggestionFinancialCategory(null);
+    setSuggestionEntryType(null);
+    setSuggestionAccepted(false);
+    setSuggestionRejected(false);
   };
 
   const handleEditRecurringTransaction = (recurring: any) => {
@@ -721,6 +763,13 @@ const Transactions = () => {
     // Clear suggestion explanation when editing a recurring transaction
     setSuggestionExplanation(null);
     setSuggestionConfidence(null);
+    setSuggestionToneMessage(null);
+    setSuggestionAccountType(null);
+    setSuggestionCategory(null);
+    setSuggestionFinancialCategory(null);
+    setSuggestionEntryType(null);
+    setSuggestionAccepted(false);
+    setSuggestionRejected(false);
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -833,6 +882,13 @@ const Transactions = () => {
     if (!smartSuggestionsEnabled) {
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
+      setSuggestionToneMessage(null);
+      setSuggestionAccountType(null);
+      setSuggestionCategory(null);
+      setSuggestionFinancialCategory(null);
+      setSuggestionEntryType(null);
+      setSuggestionAccepted(false);
+      setSuggestionRejected(false);
     }
   }, [smartSuggestionsEnabled]);
 
@@ -979,7 +1035,7 @@ const Transactions = () => {
         </div>
 
         {/* Smart Suggestion Display */}
-        {suggestionExplanation && smartSuggestionsEnabled && (
+        {suggestionExplanation && smartSuggestionsEnabled && !suggestionRejected && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -989,22 +1045,71 @@ const Transactions = () => {
                 <div className="text-sm text-blue-700 mb-1">
                   {suggestionExplanation}
                 </div>
+                {suggestionAccountType && suggestionCategory && suggestionFinancialCategory && (
+                  <p className="text-xs text-blue-700 mt-1">
+                    <strong>Type:</strong> {suggestionAccountType} | <strong>Category:</strong> {suggestionCategory} | <strong>Financial:</strong> {suggestionFinancialCategory}
+                  </p>
+                )}
+                {suggestionEntryType && (
+                  <p className="text-xs text-blue-700 mt-1">
+                    <strong>Entry Type:</strong> {suggestionEntryType}
+                  </p>
+                )}
+                {suggestionToneMessage && (
+                  <div className="text-xs text-blue-600 mt-1 italic">
+                    {suggestionToneMessage}
+                  </div>
+                )}
                 {suggestionConfidence && (
                   <div className="text-xs text-blue-600">
                     Confidence: {suggestionConfidence}%
                   </div>
                 )}
+                
+                {/* Accept/Reject Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setSuggestionAccepted(true)}
+                    className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSuggestionRejected(true)}
+                    className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setSuggestionExplanation(null);
                   setSuggestionConfidence(null);
+                  setSuggestionToneMessage(null);
+                  setSuggestionAccountType(null);
+                  setSuggestionCategory(null);
+                  setSuggestionFinancialCategory(null);
+                  setSuggestionEntryType(null);
+                  setSuggestionAccepted(false);
+                  setSuggestionRejected(false);
                 }}
                 className="text-blue-500 hover:text-blue-700 text-sm"
               >
                 ✕
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Accepted Message */}
+        {suggestionAccepted && smartSuggestionsEnabled && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center">
+              <span className="text-green-700 text-sm">✅ Suggestion accepted. Thanks!</span>
             </div>
           </div>
         )}
