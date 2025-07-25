@@ -1035,7 +1035,7 @@ const Transactions = () => {
         </div>
 
         {/* Smart Suggestion Display */}
-        {suggestionExplanation && smartSuggestionsEnabled && !suggestionRejected && (
+        {suggestionExplanation && smartSuggestionsEnabled && !suggestionRejected && !suggestionAccepted && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -1070,14 +1070,30 @@ const Transactions = () => {
                 <div className="flex gap-2 mt-3">
                   <button
                     type="button"
-                    onClick={() => setSuggestionAccepted(true)}
+                    onClick={() => {
+                      setSuggestionAccepted(true);
+                      setSuggestionRejected(false);
+                    }}
                     className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors"
                   >
                     Accept
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSuggestionRejected(true)}
+                    onClick={() => {
+                      setSuggestionRejected(true);
+                      setSuggestionAccepted(false);
+                      // Reset form entries when rejecting
+                      const currentValues = watch();
+                      const resetEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
+                        { accountId: "", amount: "", type: "DEBIT" },
+                        { accountId: "", amount: "", type: "CREDIT" }
+                      ];
+                      reset({
+                        ...currentValues,
+                        entries: resetEntries
+                      });
+                    }}
                     className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
                   >
                     Reject

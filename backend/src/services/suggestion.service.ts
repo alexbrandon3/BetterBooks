@@ -113,7 +113,9 @@ export class SuggestionService {
       });
 
       if (agentResult && agentResult.confidence >= 50) {
-        console.log('✅ SmartSuggestionAgent provided suggestion:', agentResult);
+        console.log('✅ [SuggestionService] SmartSuggestionAgent provided suggestion:', agentResult);
+        console.log('🔎 [SuggestionService] Confidence Score:', agentResult.confidence);
+        console.log('🎯 [SuggestionService] Final Suggested Account:', agentResult.suggestedAccountName);
         
         // Find the account by name to get the ID
         const suggestedAccount = await this.accountRepo.findOne({
@@ -137,7 +139,12 @@ export class SuggestionService {
       }
 
       // Step 3: Fallback to keyword matching (existing logic)
-      console.log('🔄 Falling back to keyword matching...');
+      if (!agentResult) {
+        console.log('🔄 [SuggestionService] Agent returned null, falling back to keyword matching');
+      } else {
+        console.log('🔄 [SuggestionService] Agent confidence too low (', agentResult.confidence, '), falling back to keyword matching');
+      }
+      console.log('🔄 [SuggestionService] Falling back to keyword matching...');
       return await this.findKeywordSuggestion(normalizedDescription, userId);
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
@@ -636,7 +643,8 @@ export class SuggestionService {
         order: { updatedAt: 'DESC' } // Prioritize recently used accounts
       });
 
-      console.log('📊 Found user accounts:', userAccounts.length, userAccounts.map(acc => acc.name));
+      console.log('📊 [Fallback] Found user accounts:', userAccounts.length, userAccounts.map(acc => acc.name));
+      console.log('🔍 [Fallback] Searching for keyword match in description:', normalizedDescription);
       
       // Enhanced keyword mapping for SMALL BUSINESS accounting (reoriented from personal finance)
       const keywordMap = [
@@ -858,7 +866,7 @@ export class SuggestionService {
             matchedCategory = mapping;
             matchedKeyword = foundKeyword;
             bestPriority = mapping.priority;
-            console.log('✅ Found keyword match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+            console.log('✅ [Fallback] Found keyword match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
           }
         }
       }
@@ -945,7 +953,8 @@ export class SuggestionService {
         return null;
       }
 
-      console.log('✅ Best match found:', bestMatch.name, 'with score:', bestScore);
+      console.log('✅ [Fallback] Best match found:', bestMatch.name, 'with score:', bestScore);
+      console.log('🎯 [Fallback] Final suggested account:', bestMatch.name, 'type:', bestMatch.type);
 
       // Calculate confidence score (0-100)
       const maxPossibleScore = 130; // 50 + 20 + 30 + 15 + 10 + 5 (added priority bonus)

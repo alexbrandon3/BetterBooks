@@ -49,6 +49,12 @@ export class SmartSuggestionAgent {
       // Business-focused keyword analysis
       const businessKeywords = this.analyzeBusinessKeywords(normalizedDescription);
       
+      // Debug logging for keyword classification
+      console.log('🧠 [SmartSuggest] Keywords found:', businessKeywords.keywords);
+      console.log('🧠 [SmartSuggest] Classified Category:', businessKeywords.category);
+      console.log('🧠 [SmartSuggest] Confidence:', businessKeywords.confidence);
+      console.log('🧠 [SmartSuggest] Business Context:', businessKeywords.businessContext);
+      
       if (businessKeywords.confidence === 'LOW') {
         console.log('❌ Low confidence business keywords detected');
         return null;
@@ -62,7 +68,8 @@ export class SmartSuggestionAgent {
       );
 
       if (!bestMatch) {
-        console.log('❌ No suitable account match found');
+        console.log('❌ [SmartSuggest] No suitable account match found');
+        console.log('⚠️ [SmartSuggest] Agent will return null, triggering fallback logic');
         return null;
       }
 
@@ -193,6 +200,14 @@ export class SmartSuggestionAgent {
     businessKeywords: any,
     _description: string
   ): { account: Account; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null {
+    console.log('🔍 [SmartSuggest] Searching best match for category:', businessKeywords.category);
+    console.log('📂 [SmartSuggest] Available Accounts:', accounts.map((a: Account) => ({
+      name: a.name,
+      type: a.type,
+      category: a.category,
+      financialCategory: a.financialCategory
+    })));
+    
     let bestMatch = null;
     let bestScore = 0;
 
@@ -231,6 +246,9 @@ export class SmartSuggestionAgent {
       }
     }
 
+    console.log('✅ [SmartSuggest] Best Match:', bestMatch?.account?.name ?? 'No match found');
+    console.log('📊 [SmartSuggest] Best Score:', bestScore);
+    
     return bestMatch;
   }
 
