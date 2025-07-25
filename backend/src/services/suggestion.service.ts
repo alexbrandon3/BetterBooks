@@ -657,7 +657,16 @@ export class SuggestionService {
           priority: 1
         },
         {
-          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
+          keywords: [
+            // Core purchase terms
+            'purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery',
+            // Common variations and partial matches
+            'purchased', 'buying', 'bought', 'buy', 'procure', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost', 'goods', 'cogs', 'raw', 'component', 'part', 'tool', 'machinery',
+            // Business purchase terms
+            'order', 'ordered', 'ordering', 'shipping', 'shipped', 'delivery', 'delivered', 'receiving', 'received', 'stock', 'inventory', 'supplies', 'equipment', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions',
+            // Common business purchases
+            'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'
+          ],
           accountTypes: ['EXPENSE', 'ASSET'],
           categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials'],
           reason: 'Business purchase transaction',

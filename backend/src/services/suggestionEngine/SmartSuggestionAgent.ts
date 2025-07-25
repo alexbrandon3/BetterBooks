@@ -134,49 +134,98 @@ export class SmartSuggestionAgent {
     const businessCategories = [
       {
         name: 'Revenue & Sales',
-        keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client', 'retail', 'wholesale', 'consulting fee', 'service fee', 'project payment'],
+        keywords: [
+          // Core revenue terms
+          'sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client', 'retail', 'wholesale', 'consulting fee', 'service fee', 'project payment',
+          // Common variations and partial matches
+          'sell', 'selling', 'sold', 'sale', 'sales', 'revenue', 'income', 'earn', 'earning', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment', 'customer', 'client', 'retail', 'wholesale', 'consulting', 'fee', 'project',
+          // Business transaction terms
+          'billing', 'billed', 'charge', 'charged', 'receipt', 'received', 'payment', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal'
+        ],
         confidence: 'HIGH' as const,
         context: 'Business revenue transaction'
       },
       {
         name: 'Purchases & Inventory',
-        keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
+        keywords: [
+          // Core purchase terms
+          'purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery',
+          // Common variations and partial matches
+          'purchased', 'buying', 'bought', 'buy', 'procure', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost', 'goods', 'cogs', 'raw', 'component', 'part', 'tool', 'machinery',
+          // Business purchase terms
+          'order', 'ordered', 'ordering', 'shipping', 'shipped', 'delivery', 'delivered', 'receiving', 'received', 'stock', 'inventory', 'supplies', 'equipment', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions',
+          // Common business purchases
+          'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'
+        ],
         confidence: 'HIGH' as const,
         context: 'Business purchase transaction'
       },
       {
         name: 'Operating Expenses',
-        keywords: ['rent', 'lease', 'utilities', 'electricity', 'water', 'internet', 'phone', 'insurance', 'marketing', 'advertising', 'promotion', 'travel', 'transportation', 'meals', 'lodging', 'legal', 'attorney', 'accounting', 'bookkeeping', 'cpa', 'software', 'subscription', 'saas'],
+        keywords: [
+          // Core operating expense terms
+          'rent', 'lease', 'utilities', 'electricity', 'water', 'internet', 'phone', 'insurance', 'marketing', 'advertising', 'promotion', 'travel', 'transportation', 'meals', 'lodging', 'legal', 'attorney', 'accounting', 'bookkeeping', 'cpa', 'software', 'subscription', 'saas',
+          // Common variations and partial matches
+          'rental', 'leased', 'leasing', 'utility', 'electric', 'power', 'gas', 'sewer', 'trash', 'garbage', 'wifi', 'broadband', 'telephone', 'mobile', 'cell', 'cellular', 'insurance', 'marketing', 'advertise', 'promote', 'travel', 'transport', 'meal', 'lunch', 'dinner', 'breakfast', 'lodging', 'hotel', 'motel', 'legal', 'lawyer', 'attorney', 'accounting', 'bookkeeping', 'cpa', 'software', 'subscription', 'saas',
+          // Business expense terms
+          'office', 'workspace', 'co-working', 'meeting', 'conference', 'seminar', 'training', 'education', 'certification', 'license', 'permit', 'registration', 'membership', 'dues', 'fees', 'charges', 'bills', 'expenses', 'costs', 'overhead', 'operating', 'maintenance', 'repair', 'service', 'cleaning', 'janitorial', 'security', 'alarm', 'monitoring', 'backup', 'storage', 'cloud', 'hosting', 'domain', 'website', 'email', 'voip', 'phone system', 'internet service', 'broadband', 'fiber', 'cable', 'satellite'
+        ],
         confidence: 'MEDIUM' as const,
         context: 'Business operating expense'
       },
       {
         name: 'Payroll & HR',
-        keywords: ['payroll', 'wages', 'salary', 'employee', 'staff', 'bonus', 'commission', 'benefits', 'health insurance', 'retirement', '401k', 'pension'],
+        keywords: [
+          // Core payroll terms
+          'payroll', 'wages', 'salary', 'employee', 'staff', 'bonus', 'commission', 'benefits', 'health insurance', 'retirement', '401k', 'pension',
+          // Common variations and partial matches
+          'pay', 'paid', 'payment', 'wage', 'salary', 'employee', 'staff', 'worker', 'worker', 'bonus', 'commission', 'benefit', 'health', 'insurance', 'retirement', '401k', 'pension', 'hiring', 'hired', 'firing', 'fired', 'layoff', 'layoff', 'termination', 'terminated', 'resignation', 'resigned', 'quit', 'quitting',
+          // HR and employment terms
+          'hr', 'human resources', 'personnel', 'hiring', 'recruitment', 'interview', 'application', 'resume', 'cv', 'background check', 'drug test', 'physical', 'medical', 'dental', 'vision', 'life insurance', 'disability', 'workers comp', 'workers compensation', 'unemployment', 'social security', 'fica', 'medicare', 'withholding', 'garnish', 'garnishment', 'child support', 'alimony', 'tax withholding', 'federal tax', 'state tax', 'local tax'
+        ],
         confidence: 'MEDIUM' as const,
         context: 'Payroll and human resources'
       },
       {
         name: 'Taxes & Compliance',
-        keywords: ['tax', 'taxes', 'irs', 'income tax', 'sales tax', 'property tax', 'payroll tax', 'withholding', 'filing', 'compliance'],
+        keywords: [
+          // Core tax terms
+          'tax', 'taxes', 'irs', 'income tax', 'sales tax', 'property tax', 'payroll tax', 'withholding', 'filing', 'compliance',
+          // Common variations and partial matches
+          'tax', 'taxes', 'irs', 'income', 'sales', 'property', 'payroll', 'withholding', 'filing', 'compliance', 'audit', 'audited', 'auditing', 'penalty', 'penalties', 'fine', 'fines', 'late', 'extension', 'amendment', 'amended', 'quarterly', 'quarter', 'annual', 'yearly', 'monthly', 'weekly', 'daily',
+          // Tax and compliance terms
+          'federal tax', 'state tax', 'local tax', 'city tax', 'county tax', 'property tax', 'real estate tax', 'personal property tax', 'business tax', 'corporate tax', 'partnership tax', 'llc tax', 's-corp tax', 'c-corp tax', 'sole proprietorship tax', 'self-employment tax', 'estimated tax', 'quarterly tax', 'annual tax', 'extension', 'amendment', 'audit', 'penalty', 'interest', 'late fee', 'filing fee', 'processing fee', 'electronic filing', 'e-file', 'paper filing', 'mail', 'postal', 'certified mail', 'registered mail', 'return receipt', 'proof of mailing', 'postmark', 'postmarked'
+        ],
         confidence: 'MEDIUM' as const,
         context: 'Tax and compliance related'
       },
       {
         name: 'Banking & Cash',
-        keywords: ['atm', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank', 'business account', 'merchant account', 'payment processing'],
+        keywords: [
+          // Core banking terms
+          'atm', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank', 'business account', 'merchant account', 'payment processing',
+          // Common variations and partial matches
+          'atm', 'withdraw', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank', 'business account', 'merchant account', 'payment processing', 'deposit', 'deposited', 'depositing', 'transfer', 'transferred', 'transferring', 'wire', 'wired', 'wiring', 'ach', 'electronic', 'electronic transfer', 'direct deposit', 'direct debit', 'automatic payment', 'auto pay', 'recurring payment', 'scheduled payment', 'standing order', 'bank transfer', 'wire transfer', 'ach transfer', 'electronic transfer', 'direct deposit', 'direct debit', 'automatic payment', 'auto pay', 'recurring payment', 'scheduled payment', 'standing order',
+          // Banking and financial terms
+          'check', 'checking', 'savings', 'money market', 'cd', 'certificate of deposit', 'loan', 'credit line', 'line of credit', 'overdraft', 'overdraft protection', 'stop payment', 'cancel check', 'replacement check', 'duplicate check', 'check copy', 'bank statement', 'monthly statement', 'quarterly statement', 'annual statement', 'year-end statement', 'bank reconciliation', 'reconciled', 'reconciling', 'bank fees', 'monthly fee', 'quarterly fee', 'annual fee', 'maintenance fee', 'service charge', 'overdraft fee', 'nsf fee', 'returned check fee', 'stop payment fee', 'wire transfer fee', 'ach fee', 'electronic transfer fee', 'paper statement fee', 'check printing fee', 'replacement card fee', 'rush delivery fee', 'overnight delivery fee', 'express delivery fee', 'priority delivery fee'
+        ],
         confidence: 'LOW' as const,
         context: 'Cash and banking related'
       }
     ];
 
     // Find matching category
+    console.log('🔍 [SmartSuggest] Analyzing description:', description);
     for (const category of businessCategories) {
-      const foundKeywords = category.keywords.filter(keyword => 
-        description.includes(keyword)
-      );
+      console.log('🔍 [SmartSuggest] Checking category:', category.name, 'keywords:', category.keywords);
+      const foundKeywords = category.keywords.filter(keyword => {
+        const hasKeyword = description.includes(keyword);
+        console.log('🔍 [SmartSuggest] Keyword:', keyword, 'found:', hasKeyword);
+        return hasKeyword;
+      });
       
       if (foundKeywords.length > 0) {
+        console.log('✅ [SmartSuggest] Found keywords:', foundKeywords, 'for category:', category.name);
         return {
           category: category.name,
           confidence: category.confidence,

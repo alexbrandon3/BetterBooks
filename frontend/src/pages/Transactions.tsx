@@ -279,6 +279,7 @@ const Transactions = () => {
   };
 
   const handleDescriptionChange = async (desc: string) => {
+    console.log('🔄 handleDescriptionChange called with:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
     if (desc && smartSuggestionsEnabled) {
       try {
         // Get account, category, and transaction type suggestions in parallel
@@ -393,6 +394,7 @@ const Transactions = () => {
       }
     } else {
       // Clear suggestion when description is empty
+      console.log('🧹 Clearing suggestions - desc:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
       setSuggestionToneMessage(null);
@@ -973,6 +975,7 @@ const Transactions = () => {
             {...register("description")}
             aria-label="Transaction Description *"
             onChange={(e) => handleDescriptionChange(e.target.value)}
+            onInput={(e) => handleDescriptionChange(e.currentTarget.value)}
             placeholder="Enter transaction description to enable smart suggestions..."
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
           />
