@@ -219,8 +219,12 @@ export class SmartSuggestionAgent {
     for (const category of businessCategories) {
       console.log('🔍 [SmartSuggest] Checking category:', category.name, 'keywords:', category.keywords);
       const foundKeywords = category.keywords.filter(keyword => {
-        const hasKeyword = description.includes(keyword);
-        console.log('🔍 [SmartSuggest] Keyword:', keyword, 'found:', hasKeyword);
+        // Check for exact match first
+        const exactMatch = description.includes(keyword);
+        // Check for partial match (keyword starts with description or description starts with keyword)
+        const partialMatch = keyword.startsWith(description) || description.startsWith(keyword);
+        const hasKeyword = exactMatch || partialMatch;
+        console.log('🔍 [SmartSuggest] Keyword:', keyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword);
         return hasKeyword;
       });
       

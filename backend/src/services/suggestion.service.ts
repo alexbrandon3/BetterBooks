@@ -868,7 +868,15 @@ export class SuggestionService {
       let bestPriority = 999; // Start with high number (lower is better)
       
       for (const mapping of keywordMap) {
-        const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
+        const foundKeyword = mapping.keywords.find(keyword => {
+          // Check for exact match first
+          const exactMatch = normalizedDescription.includes(keyword);
+          // Check for partial match (keyword starts with description or description starts with keyword)
+          const partialMatch = keyword.startsWith(normalizedDescription) || normalizedDescription.startsWith(keyword);
+          const hasKeyword = exactMatch || partialMatch;
+          console.log('🔍 [Fallback] Keyword:', keyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword);
+          return hasKeyword;
+        });
         if (foundKeyword) {
           // Prioritize by priority number (lower number = higher priority)
           if (mapping.priority < bestPriority) {

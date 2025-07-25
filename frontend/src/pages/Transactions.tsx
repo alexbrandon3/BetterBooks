@@ -974,8 +974,18 @@ const Transactions = () => {
             type="text"
             {...register("description")}
             aria-label="Transaction Description *"
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            onInput={(e) => handleDescriptionChange(e.currentTarget.value)}
+            onChange={(e) => {
+              console.log('🔄 onChange triggered with:', e.target.value);
+              handleDescriptionChange(e.target.value);
+            }}
+            onInput={(e) => {
+              console.log('🔄 onInput triggered with:', e.currentTarget.value);
+              handleDescriptionChange(e.currentTarget.value);
+            }}
+            onKeyUp={(e) => {
+              console.log('🔄 onKeyUp triggered with:', e.currentTarget.value);
+              handleDescriptionChange(e.currentTarget.value);
+            }}
             placeholder="Enter transaction description to enable smart suggestions..."
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
           />
