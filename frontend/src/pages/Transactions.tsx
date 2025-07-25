@@ -972,10 +972,11 @@ const Transactions = () => {
           <label className="block text-sm font-medium text-gray-700">Description *</label>
           <input
             type="text"
-            {...register("description")}
             aria-label="Transaction Description *"
             onChange={(e) => {
               console.log('🔄 onChange triggered with:', e.target.value);
+              // Update form value directly
+              setValue("description", e.target.value);
               handleDescriptionChange(e.target.value);
             }}
             placeholder="Enter transaction description to enable smart suggestions..."

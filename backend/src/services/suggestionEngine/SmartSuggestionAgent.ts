@@ -220,9 +220,9 @@ export class SmartSuggestionAgent {
       console.log('🔍 [SmartSuggest] Checking category:', category.name, 'keywords:', category.keywords);
       const foundKeywords = category.keywords.filter(keyword => {
         // Check for exact match first
-        const exactMatch = description.includes(keyword);
+        const exactMatch = description.toLowerCase().includes(keyword.toLowerCase());
         // Check for partial match (keyword starts with description or description starts with keyword)
-        const partialMatch = keyword.startsWith(description) || description.startsWith(keyword);
+        const partialMatch = keyword.toLowerCase().startsWith(description.toLowerCase()) || description.toLowerCase().startsWith(keyword.toLowerCase());
         const hasKeyword = exactMatch || partialMatch;
         console.log('🔍 [SmartSuggest] Keyword:', keyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword);
         return hasKeyword;
