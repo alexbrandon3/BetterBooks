@@ -311,9 +311,11 @@ export class SmartSuggestionAgent {
       let categorySpecificMatch = false;
       if (businessKeywords.category === 'Purchases & Inventory') {
         const purchaseKeywords = ['supplies', 'equipment', 'inventory', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions', 'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'];
-        categorySpecificMatch = purchaseKeywords.some(keyword => 
-          account.name.toLowerCase().includes(keyword.toLowerCase())
-        );
+        categorySpecificMatch = purchaseKeywords.some(keyword => {
+          const hasKeyword = account.name.toLowerCase().includes(keyword.toLowerCase());
+          console.log('🔍 [SmartSuggest] Checking', account.name, 'for keyword:', keyword, 'found:', hasKeyword);
+          return hasKeyword;
+        });
       } else if (businessKeywords.category === 'Revenue & Sales') {
         const revenueKeywords = ['sales', 'revenue', 'income', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment', 'customer', 'client', 'retail', 'wholesale', 'consulting', 'fee', 'project', 'billing', 'charged', 'receipt', 'received', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal'];
         categorySpecificMatch = revenueKeywords.some(keyword => 
@@ -322,7 +324,7 @@ export class SmartSuggestionAgent {
       }
       if (categorySpecificMatch) {
         score += 60; // High priority for category-specific matches
-        console.log('✅ [SmartSuggest] Category-specific match for', account.name);
+        console.log('✅ [SmartSuggest] Category-specific match for', account.name, 'score +60');
       }
       
       // Check category field match
