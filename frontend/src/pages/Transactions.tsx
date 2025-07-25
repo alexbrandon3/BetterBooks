@@ -405,6 +405,21 @@ const Transactions = () => {
       setSuggestionEntryType(null);
       setSuggestionAccepted(false);
       setSuggestionRejected(false);
+      
+      // Also clear the form entries if description is completely empty
+      if (!desc || desc.trim().length === 0) {
+        console.log('🧹 Clearing form entries due to empty description');
+        const currentValues = watch();
+        const clearedEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
+          { accountId: "", amount: "", type: "DEBIT" },
+          { accountId: "", amount: "", type: "CREDIT" }
+        ];
+        reset({
+          ...currentValues,
+          description: "",
+          entries: clearedEntries
+        });
+      }
     }
   };
 
@@ -974,6 +989,7 @@ const Transactions = () => {
           <input
             type="text"
             aria-label="Transaction Description *"
+            value={watch("description") || ""}
             onChange={(e) => {
               console.log('🔄 onChange triggered with:', e.target.value);
               // Update form value directly

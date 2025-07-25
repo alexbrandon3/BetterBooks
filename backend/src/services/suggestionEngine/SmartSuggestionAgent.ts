@@ -61,6 +61,9 @@ export class SmartSuggestionAgent {
       }
 
       // Find best matching account
+      console.log('🔍 [SmartSuggest] Starting account matching for category:', businessKeywords.category);
+      console.log('🔍 [SmartSuggest] Available accounts:', userAccounts.map(a => ({ name: a.name, type: a.type, category: a.category })));
+      
       const bestMatch = this.findBestAccountMatch(
         userAccounts,
         businessKeywords,
@@ -72,6 +75,8 @@ export class SmartSuggestionAgent {
         console.log('⚠️ [SmartSuggest] Agent will return null, triggering fallback logic');
         return null;
       }
+      
+      console.log('✅ [SmartSuggest] Best match found:', bestMatch.account.name, 'with confidence:', bestMatch.confidence);
 
       // Determine entry type based on account type and business context
       const entryType = this.determineEntryType(bestMatch.account, businessKeywords);
@@ -350,11 +355,12 @@ export class SmartSuggestionAgent {
         console.log('✅ [SmartSuggest] Recently used bonus for', account.name);
       }
 
-      console.log('📊 [SmartSuggest] Account', account.name, 'final score:', score);
+      console.log('📊 [SmartSuggest] Account', account.name, 'final score:', score, 'best score so far:', bestScore);
       
       if (score > bestScore) {
         bestScore = score;
         bestMatch = { account, confidence: businessKeywords.confidence };
+        console.log('🏆 [SmartSuggest] New best match:', account.name, 'with score:', score);
       }
     }
 
