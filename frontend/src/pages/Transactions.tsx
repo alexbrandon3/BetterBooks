@@ -877,9 +877,10 @@ const Transactions = () => {
     fetchData();
   }, []);
 
-  // Clear suggestions when smart suggestions are disabled
+  // Handle smart suggestions toggle
   useEffect(() => {
     if (!smartSuggestionsEnabled) {
+      // Clear suggestions when disabled
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
       setSuggestionToneMessage(null);
@@ -889,8 +890,15 @@ const Transactions = () => {
       setSuggestionEntryType(null);
       setSuggestionAccepted(false);
       setSuggestionRejected(false);
+    } else {
+      // Re-trigger suggestions when re-enabled if there's a description
+      const currentDescription = watch('description');
+      if (currentDescription && currentDescription.trim().length > 0) {
+        console.log('🔄 Re-triggering suggestions for existing description:', currentDescription);
+        handleDescriptionChange(currentDescription);
+      }
     }
-  }, [smartSuggestionsEnabled]);
+  }, [smartSuggestionsEnabled, watch]);
 
   return (
     <div className="container mx-auto px-4 py-8">

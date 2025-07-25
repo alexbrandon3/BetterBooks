@@ -880,7 +880,8 @@ export class SuggestionService {
       let bestMatch = null;
       let bestScore = 0;
 
-      console.log('🔍 Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
+      console.log('🔍 [Fallback] Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
+      console.log('🔍 [Fallback] Available accounts after type filtering:', userAccounts.filter(acc => matchedCategory!.accountTypes.includes(acc.type)).map(acc => acc.name));
 
       for (const account of userAccounts) {
         if (!matchedCategory!.accountTypes.includes(account.type)) {
@@ -911,7 +912,7 @@ export class SuggestionService {
           account.name.toLowerCase().includes(cat.toLowerCase())
         );
         if (nameMatch) {
-          score += 30;
+          score += 40; // Increased from 30
           reasoning.push('category match in account name');
         }
         
@@ -920,7 +921,7 @@ export class SuggestionService {
           account.category?.toLowerCase().includes(cat.toLowerCase())
         );
         if (categoryMatch) {
-          score += 15;
+          score += 25; // Increased from 15
           reasoning.push('category field match');
         }
         
@@ -929,14 +930,14 @@ export class SuggestionService {
           account.subcategory?.toLowerCase().includes(cat.toLowerCase())
         );
         if (subcategoryMatch) {
-          score += 10;
+          score += 15; // Increased from 10
           reasoning.push('subcategory field match');
         }
 
-        // Bonus for recently used accounts
+        // Bonus for recently used accounts (reduced weight)
         const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
         if (daysSinceUpdate < 7) {
-          score += 5;
+          score += 3; // Reduced from 5
           reasoning.push('recently used account');
         }
 
