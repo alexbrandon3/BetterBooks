@@ -140,12 +140,12 @@ export class SmartSuggestionAgent {
       {
         name: 'Revenue & Sales',
         keywords: [
-          // Core revenue terms
+          // Core business revenue terms
           'sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment', 'customer', 'client', 'retail', 'wholesale', 'consulting fee', 'service fee', 'project payment',
-          // Common variations and partial matches
-          'sell', 'selling', 'sold', 'sale', 'sales', 'revenue', 'income', 'earn', 'earning', 'profit', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment', 'customer', 'client', 'retail', 'wholesale', 'consulting', 'fee', 'project',
           // Business transaction terms
-          'billing', 'billed', 'charge', 'charged', 'receipt', 'received', 'payment', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal'
+          'billing', 'billed', 'charge', 'charged', 'receipt', 'received', 'payment', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal',
+          // Business service terms
+          'consulting', 'professional service', 'contract work', 'project work', 'client work', 'customer work', 'service rendered', 'work completed', 'job completed', 'project completed'
         ],
         confidence: 'HIGH' as const,
         context: 'Business revenue transaction'
@@ -153,16 +153,16 @@ export class SmartSuggestionAgent {
       {
         name: 'Purchases & Inventory',
         keywords: [
-          // Core purchase terms
+          // Core business purchase terms
           'purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery',
-          // Common variations and partial matches
+          // Business purchase variations
           'purchased', 'buying', 'bought', 'buy', 'procure', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost', 'goods', 'cogs', 'raw', 'component', 'part', 'tool', 'machinery',
-          // Additional purchase variations
-          'bought', 'buying', 'purchased', 'purchasing', 'acquired', 'obtained', 'procured', 'ordered', 'ordering',
           // Business purchase terms
           'order', 'ordered', 'ordering', 'shipping', 'shipped', 'delivery', 'delivered', 'receiving', 'received', 'stock', 'inventory', 'supplies', 'equipment', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions',
           // Common business purchases
-          'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'
+          'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders',
+          // Business equipment and tools
+          'business equipment', 'office equipment', 'work equipment', 'professional tools', 'business tools', 'work tools', 'business supplies', 'office supplies', 'work supplies'
         ],
         confidence: 'HIGH' as const,
         context: 'Business purchase transaction'
@@ -170,12 +170,14 @@ export class SmartSuggestionAgent {
       {
         name: 'Operating Expenses',
         keywords: [
-          // Core operating expense terms
+          // Core business operating expense terms
           'rent', 'lease', 'utilities', 'electricity', 'water', 'internet', 'phone', 'insurance', 'marketing', 'advertising', 'promotion', 'travel', 'transportation', 'meals', 'lodging', 'legal', 'attorney', 'accounting', 'bookkeeping', 'cpa', 'software', 'subscription', 'saas',
-          // Common variations and partial matches
+          // Business expense variations
           'rental', 'leased', 'leasing', 'utility', 'electric', 'power', 'gas', 'sewer', 'trash', 'garbage', 'wifi', 'broadband', 'telephone', 'mobile', 'cell', 'cellular', 'insurance', 'marketing', 'advertise', 'promote', 'travel', 'transport', 'meal', 'lunch', 'dinner', 'breakfast', 'lodging', 'hotel', 'motel', 'legal', 'lawyer', 'attorney', 'accounting', 'bookkeeping', 'cpa', 'software', 'subscription', 'saas',
           // Business expense terms
-          'office', 'workspace', 'co-working', 'meeting', 'conference', 'seminar', 'training', 'education', 'certification', 'license', 'permit', 'registration', 'membership', 'dues', 'fees', 'charges', 'bills', 'expenses', 'costs', 'overhead', 'operating', 'maintenance', 'repair', 'service', 'cleaning', 'janitorial', 'security', 'alarm', 'monitoring', 'backup', 'storage', 'cloud', 'hosting', 'domain', 'website', 'email', 'voip', 'phone system', 'internet service', 'broadband', 'fiber', 'cable', 'satellite'
+          'office', 'workspace', 'co-working', 'meeting', 'conference', 'seminar', 'training', 'education', 'certification', 'license', 'permit', 'registration', 'membership', 'dues', 'fees', 'charges', 'bills', 'expenses', 'costs', 'overhead', 'operating', 'maintenance', 'repair', 'service', 'cleaning', 'janitorial', 'security', 'alarm', 'monitoring', 'backup', 'storage', 'cloud', 'hosting', 'domain', 'website', 'email', 'voip', 'phone system', 'internet service', 'broadband', 'fiber', 'cable', 'satellite',
+          // Business-specific terms
+          'business rent', 'office rent', 'commercial rent', 'business lease', 'office lease', 'commercial lease', 'business utilities', 'office utilities', 'business insurance', 'commercial insurance', 'business marketing', 'commercial advertising', 'business travel', 'work travel', 'business meals', 'work meals', 'business legal', 'commercial legal', 'business accounting', 'commercial accounting'
         ],
         confidence: 'MEDIUM' as const,
         context: 'Business operating expense'
@@ -183,12 +185,14 @@ export class SmartSuggestionAgent {
       {
         name: 'Payroll & HR',
         keywords: [
-          // Core payroll terms
+          // Core business payroll terms
           'payroll', 'wages', 'salary', 'employee', 'staff', 'bonus', 'commission', 'benefits', 'health insurance', 'retirement', '401k', 'pension',
-          // Common variations and partial matches
-          'pay', 'paid', 'payment', 'wage', 'salary', 'employee', 'staff', 'worker', 'worker', 'bonus', 'commission', 'benefit', 'health', 'insurance', 'retirement', '401k', 'pension', 'hiring', 'hired', 'firing', 'fired', 'layoff', 'layoff', 'termination', 'terminated', 'resignation', 'resigned', 'quit', 'quitting',
-          // HR and employment terms
-          'hr', 'human resources', 'personnel', 'hiring', 'recruitment', 'interview', 'application', 'resume', 'cv', 'background check', 'drug test', 'physical', 'medical', 'dental', 'vision', 'life insurance', 'disability', 'workers comp', 'workers compensation', 'unemployment', 'social security', 'fica', 'medicare', 'withholding', 'garnish', 'garnishment', 'child support', 'alimony', 'tax withholding', 'federal tax', 'state tax', 'local tax'
+          // Business payroll variations
+          'pay', 'paid', 'payment', 'wage', 'salary', 'employee', 'staff', 'worker', 'bonus', 'commission', 'benefit', 'health', 'insurance', 'retirement', '401k', 'pension', 'hiring', 'hired', 'firing', 'fired', 'layoff', 'layoff', 'termination', 'terminated', 'resignation', 'resigned', 'quit', 'quitting',
+          // Business HR and employment terms
+          'hr', 'human resources', 'personnel', 'hiring', 'recruitment', 'interview', 'application', 'resume', 'cv', 'background check', 'drug test', 'physical', 'medical', 'dental', 'vision', 'life insurance', 'disability', 'workers comp', 'workers compensation', 'unemployment', 'social security', 'fica', 'medicare', 'withholding', 'garnish', 'garnishment', 'child support', 'alimony', 'tax withholding', 'federal tax', 'state tax', 'local tax',
+          // Business-specific payroll terms
+          'business payroll', 'company payroll', 'employee payroll', 'staff payroll', 'business wages', 'company wages', 'employee wages', 'business salary', 'company salary', 'employee salary', 'business benefits', 'company benefits', 'employee benefits', 'business insurance', 'company insurance', 'employee insurance'
         ],
         confidence: 'MEDIUM' as const,
         context: 'Payroll and human resources'
@@ -196,12 +200,14 @@ export class SmartSuggestionAgent {
       {
         name: 'Taxes & Compliance',
         keywords: [
-          // Core tax terms
+          // Core business tax terms
           'tax', 'taxes', 'irs', 'income tax', 'sales tax', 'property tax', 'payroll tax', 'withholding', 'filing', 'compliance',
-          // Common variations and partial matches
+          // Business tax variations
           'tax', 'taxes', 'irs', 'income', 'sales', 'property', 'payroll', 'withholding', 'filing', 'compliance', 'audit', 'audited', 'auditing', 'penalty', 'penalties', 'fine', 'fines', 'late', 'extension', 'amendment', 'amended', 'quarterly', 'quarter', 'annual', 'yearly', 'monthly', 'weekly', 'daily',
-          // Tax and compliance terms
-          'federal tax', 'state tax', 'local tax', 'city tax', 'county tax', 'property tax', 'real estate tax', 'personal property tax', 'business tax', 'corporate tax', 'partnership tax', 'llc tax', 's-corp tax', 'c-corp tax', 'sole proprietorship tax', 'self-employment tax', 'estimated tax', 'quarterly tax', 'annual tax', 'extension', 'amendment', 'audit', 'penalty', 'interest', 'late fee', 'filing fee', 'processing fee', 'electronic filing', 'e-file', 'paper filing', 'mail', 'postal', 'certified mail', 'registered mail', 'return receipt', 'proof of mailing', 'postmark', 'postmarked'
+          // Business tax and compliance terms
+          'federal tax', 'state tax', 'local tax', 'city tax', 'county tax', 'property tax', 'real estate tax', 'personal property tax', 'business tax', 'corporate tax', 'partnership tax', 'llc tax', 's-corp tax', 'c-corp tax', 'sole proprietorship tax', 'self-employment tax', 'estimated tax', 'quarterly tax', 'annual tax', 'extension', 'amendment', 'audit', 'penalty', 'interest', 'late fee', 'filing fee', 'processing fee', 'electronic filing', 'e-file', 'paper filing', 'mail', 'postal', 'certified mail', 'registered mail', 'return receipt', 'proof of mailing', 'postmark', 'postmarked',
+          // Business-specific tax terms
+          'business tax', 'company tax', 'corporate tax', 'business income tax', 'company income tax', 'business sales tax', 'company sales tax', 'business property tax', 'company property tax', 'business payroll tax', 'company payroll tax', 'business withholding', 'company withholding', 'business filing', 'company filing', 'business compliance', 'company compliance'
         ],
         confidence: 'MEDIUM' as const,
         context: 'Tax and compliance related'
@@ -209,12 +215,14 @@ export class SmartSuggestionAgent {
       {
         name: 'Banking & Cash',
         keywords: [
-          // Core banking terms
+          // Core business banking terms
           'atm', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank', 'business account', 'merchant account', 'payment processing',
-          // Common variations and partial matches
+          // Business banking variations
           'atm', 'withdraw', 'withdrawal', 'cash', 'bank', 'credit union', 'chase', 'bank of america', 'wells fargo', 'citibank', 'us bank', 'business account', 'merchant account', 'payment processing', 'deposit', 'deposited', 'depositing', 'transfer', 'transferred', 'transferring', 'wire', 'wired', 'wiring', 'ach', 'electronic', 'electronic transfer', 'direct deposit', 'direct debit', 'automatic payment', 'auto pay', 'recurring payment', 'scheduled payment', 'standing order', 'bank transfer', 'wire transfer', 'ach transfer', 'electronic transfer', 'direct deposit', 'direct debit', 'automatic payment', 'auto pay', 'recurring payment', 'scheduled payment', 'standing order',
-          // Banking and financial terms
-          'check', 'checking', 'savings', 'money market', 'cd', 'certificate of deposit', 'loan', 'credit line', 'line of credit', 'overdraft', 'overdraft protection', 'stop payment', 'cancel check', 'replacement check', 'duplicate check', 'check copy', 'bank statement', 'monthly statement', 'quarterly statement', 'annual statement', 'year-end statement', 'bank reconciliation', 'reconciled', 'reconciling', 'bank fees', 'monthly fee', 'quarterly fee', 'annual fee', 'maintenance fee', 'service charge', 'overdraft fee', 'nsf fee', 'returned check fee', 'stop payment fee', 'wire transfer fee', 'ach fee', 'electronic transfer fee', 'paper statement fee', 'check printing fee', 'replacement card fee', 'rush delivery fee', 'overnight delivery fee', 'express delivery fee', 'priority delivery fee'
+          // Business banking and financial terms
+          'check', 'checking', 'savings', 'money market', 'cd', 'certificate of deposit', 'loan', 'credit line', 'line of credit', 'overdraft', 'overdraft protection', 'stop payment', 'cancel check', 'replacement check', 'duplicate check', 'check copy', 'bank statement', 'monthly statement', 'quarterly statement', 'annual statement', 'year-end statement', 'bank reconciliation', 'reconciled', 'reconciling', 'bank fees', 'monthly fee', 'quarterly fee', 'annual fee', 'maintenance fee', 'service charge', 'overdraft fee', 'nsf fee', 'returned check fee', 'stop payment fee', 'wire transfer fee', 'ach fee', 'electronic transfer fee', 'paper statement fee', 'check printing fee', 'replacement card fee', 'rush delivery fee', 'overnight delivery fee', 'express delivery fee', 'priority delivery fee',
+          // Business-specific banking terms
+          'business account', 'company account', 'business checking', 'company checking', 'business savings', 'company savings', 'business loan', 'company loan', 'business credit', 'company credit', 'business banking', 'company banking', 'business cash', 'company cash', 'business deposit', 'company deposit', 'business withdrawal', 'company withdrawal', 'business transfer', 'company transfer'
         ],
         confidence: 'LOW' as const,
         context: 'Cash and banking related'
@@ -310,28 +318,72 @@ export class SmartSuggestionAgent {
         account.name.toLowerCase().includes(keyword.toLowerCase())
       );
       if (exactKeywordMatch) {
-        score += 80; // Increased from 50
+        score += 100; // Highest priority for exact keyword matches
         console.log('✅ [SmartSuggest] Exact keyword match for', account.name, 'with keyword');
       }
       
       // Check for category-specific account name matches (high priority)
       let categorySpecificMatch = false;
+      let categorySpecificScore = 0;
       if (businessKeywords.category === 'Purchases & Inventory') {
-        const purchaseKeywords = ['supplies', 'equipment', 'inventory', 'materials', 'parts', 'tools', 'machinery', 'hardware', 'software', 'licenses', 'subscriptions', 'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'];
-        categorySpecificMatch = purchaseKeywords.some(keyword => {
-          const hasKeyword = account.name.toLowerCase().includes(keyword.toLowerCase());
-          console.log('🔍 [SmartSuggest] Checking', account.name, 'for keyword:', keyword, 'found:', hasKeyword);
+        // Primary purchase keywords (highest priority)
+        const primaryPurchaseKeywords = ['supplies', 'equipment', 'inventory', 'materials', 'parts', 'tools', 'machinery'];
+        const primaryMatch = primaryPurchaseKeywords.some(keyword => {
+          const accountNameLower = account.name.toLowerCase();
+          const keywordLower = keyword.toLowerCase();
+          
+          const hasKeyword = accountNameLower === keywordLower || 
+                           accountNameLower.includes(` ${keywordLower} `) ||
+                           accountNameLower.startsWith(`${keywordLower} `) ||
+                           accountNameLower.endsWith(` ${keywordLower}`);
+          
           return hasKeyword;
         });
+        if (primaryMatch) {
+          categorySpecificScore = 90; // Very high priority for primary purchase keywords
+          console.log('✅ [SmartSuggest] Primary purchase keyword match for', account.name, 'score +90');
+        } else {
+          // Secondary purchase keywords (medium priority)
+          const secondaryPurchaseKeywords = ['hardware', 'software', 'licenses', 'subscriptions', 'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'];
+          const secondaryMatch = secondaryPurchaseKeywords.some(keyword => {
+            const accountNameLower = account.name.toLowerCase();
+            const keywordLower = keyword.toLowerCase();
+            
+            // Use word boundary matching to avoid substring issues
+            const hasKeyword = accountNameLower === keywordLower || 
+                             accountNameLower.includes(` ${keywordLower} `) ||
+                             accountNameLower.startsWith(`${keywordLower} `) ||
+                             accountNameLower.endsWith(` ${keywordLower}`);
+            
+            console.log('🔍 [SmartSuggest] Checking', account.name, 'for secondary keyword:', keyword, 'found:', hasKeyword);
+            return hasKeyword;
+          });
+          if (secondaryMatch) {
+            categorySpecificScore = 70; // Medium priority for secondary purchase keywords
+            console.log('✅ [SmartSuggest] Secondary purchase keyword match for', account.name, 'score +70');
+          }
+        }
+        categorySpecificMatch = primaryMatch || categorySpecificScore > 0;
       } else if (businessKeywords.category === 'Revenue & Sales') {
         const revenueKeywords = ['sales', 'revenue', 'income', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment', 'customer', 'client', 'retail', 'wholesale', 'consulting', 'fee', 'project', 'billing', 'charged', 'receipt', 'received', 'paid', 'cash', 'check', 'credit', 'debit', 'transfer', 'deposit', 'withdrawal'];
-        categorySpecificMatch = revenueKeywords.some(keyword => 
-          account.name.toLowerCase().includes(keyword.toLowerCase())
-        );
+        categorySpecificMatch = revenueKeywords.some(keyword => {
+          const accountNameLower = account.name.toLowerCase();
+          const keywordLower = keyword.toLowerCase();
+          
+          const hasKeyword = accountNameLower === keywordLower || 
+                           accountNameLower.includes(` ${keywordLower} `) ||
+                           accountNameLower.startsWith(`${keywordLower} `) ||
+                           accountNameLower.endsWith(` ${keywordLower}`);
+          
+          return hasKeyword;
+        });
+        if (categorySpecificMatch) {
+          categorySpecificScore = 80;
+          console.log('✅ [SmartSuggest] Revenue keyword match for', account.name, 'score +80');
+        }
       }
       if (categorySpecificMatch) {
-        score += 60; // High priority for category-specific matches
-        console.log('✅ [SmartSuggest] Category-specific match for', account.name, 'score +60');
+        score += categorySpecificScore;
       }
       
       // Check category field match

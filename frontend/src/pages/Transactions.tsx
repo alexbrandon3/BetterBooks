@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   fetchTransactions,
   createTransaction,
@@ -91,6 +91,9 @@ const Transactions = () => {
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
   const [smartSuggestionsEnabled, setSmartSuggestionsEnabled] = useState(true);
+  
+  // Debounce timer for description changes to prevent interference with typing
+  const descriptionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const resolver: Resolver<TransactionForm> = async (values) => {
     const errors: any = {};
@@ -278,121 +281,125 @@ const Transactions = () => {
     return null;
   };
 
-  const handleDescriptionChange = async (desc: string) => {
+  const handleDescriptionChange = (desc: string) => {
     console.log('🔄 handleDescriptionChange called with:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
+    
+    // Clear any existing timeout
+    if (descriptionChangeTimeoutRef.current) {
+      clearTimeout(descriptionChangeTimeoutRef.current);
+    }
+    
     // Only trigger suggestions if we have at least 3 characters and smart suggestions are enabled
     if (desc && desc.trim().length >= 3 && smartSuggestionsEnabled) {
-      try {
-        // Get account, category, and transaction type suggestions in parallel
-        const [accountSuggestion, categorySuggestion, transactionTypeSuggestion] = await Promise.all([
-          getSuggestedAccount ? getSuggestedAccount(desc) : Promise.resolve(null),
-          getSuggestedCategory ? getSuggestedCategory(desc) : Promise.resolve(null),
-          getSuggestedTransactionType ? getSuggestedTransactionType(desc) : Promise.resolve(null)
-        ]);
+      // Debounce the suggestion API calls to prevent interference with typing
+      descriptionChangeTimeoutRef.current = setTimeout(async () => {
+        try {
+          // Get account, category, and transaction type suggestions in parallel
+          const [accountSuggestion, categorySuggestion, transactionTypeSuggestion] = await Promise.all([
+            getSuggestedAccount ? getSuggestedAccount(desc) : Promise.resolve(null),
+            getSuggestedCategory ? getSuggestedCategory(desc) : Promise.resolve(null),
+            getSuggestedTransactionType ? getSuggestedTransactionType(desc) : Promise.resolve(null)
+          ]);
 
-        // Handle account suggestion
-        if (accountSuggestion?.suggestedAccountId) {
-          // Get current form values using watch function
-          const currentValues = watch();
-          
-          console.log('🔍 Current form state:', {
-            suggestedEntryType: accountSuggestion.suggestedEntryType,
-            suggestedAccount: accountSuggestion.suggestedAccountName
-          });
-          
-          // Determine which entry to populate based on suggested entry type
-          let targetEntryIndex = 0; // Default to first entry
-          
-          if (accountSuggestion.suggestedEntryType === 'CREDIT') {
-            // For CREDIT suggestions, always use the second entry (index 1)
-            targetEntryIndex = 1;
-            console.log('✅ Placing CREDIT suggestion in second entry (index 1)');
-          } else if (accountSuggestion.suggestedEntryType === 'DEBIT') {
-            // For DEBIT suggestions, always use the first entry (index 0)
-            targetEntryIndex = 0;
-            console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
-          } else {
-            // Fallback logic
-            targetEntryIndex = 0;
-            console.log('✅ Placing suggestion in first entry (index 0) - fallback');
-          }
-          
-          // Don't suggest if the account is already in the target entry
-          if (fields[targetEntryIndex].accountId === String(accountSuggestion.suggestedAccountId)) {
-            console.log('❌ Account already in target entry, not suggesting');
-            return;
-          }
-          
-          const updatedEntries = [...fields];
-          
-          // Clear both entries first when we get a new suggestion, but preserve the IDs
-          updatedEntries[0] = { ...updatedEntries[0], accountId: "", amount: "", type: "DEBIT" };
-          updatedEntries[1] = { ...updatedEntries[1], accountId: "", amount: "", type: "CREDIT" };
-          
-          // Place the new suggestion in the correct entry
-          updatedEntries[targetEntryIndex].accountId = String(accountSuggestion.suggestedAccountId);
-          updatedEntries[targetEntryIndex].type = accountSuggestion.suggestedEntryType;
-          
-          // Smart default for the other entry
-          const otherEntryIndex = targetEntryIndex === 0 ? 1 : 0;
-          const defaultAccount = findDefaultAccountForEntry(
-            accountSuggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT',
-            usableAccounts
-          );
-          if (defaultAccount) {
-            updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
-            updatedEntries[otherEntryIndex].type = accountSuggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
-            console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
-          }
-          
-          console.log('📝 Updated entries:', updatedEntries);
-          
-          // Preserve the description and other form values, and update category if suggested
-          const updatedValues = {
-            ...currentValues, 
-            description: desc, // Preserve the description
-            entries: updatedEntries
-          };
+          // Handle account suggestion
+          if (accountSuggestion?.suggestedAccountId) {
+            // Get current form values using watch function
+            const currentValues = watch();
+            
+            console.log('🔍 Current form state:', {
+              suggestedEntryType: accountSuggestion.suggestedEntryType,
+              suggestedAccount: accountSuggestion.suggestedAccountName
+            });
+            
+            // Determine which entry to populate based on suggested entry type
+            let targetEntryIndex = 0; // Default to first entry
+            
+            if (accountSuggestion.suggestedEntryType === 'CREDIT') {
+              // For CREDIT suggestions, always use the second entry (index 1)
+              targetEntryIndex = 1;
+              console.log('✅ Placing CREDIT suggestion in second entry (index 1)');
+            } else if (accountSuggestion.suggestedEntryType === 'DEBIT') {
+              // For DEBIT suggestions, always use the first entry (index 0)
+              targetEntryIndex = 0;
+              console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
+            } else {
+              // Fallback logic
+              targetEntryIndex = 0;
+              console.log('✅ Placing suggestion in first entry (index 0) - fallback');
+            }
+            
+            // Don't suggest if the account is already in the target entry
+            if (fields[targetEntryIndex].accountId === String(accountSuggestion.suggestedAccountId)) {
+              console.log('❌ Account already in target entry, not suggesting');
+              return;
+            }
+            
+            const updatedEntries = [...fields];
+            
+            // Clear both entries first when we get a new suggestion, but preserve the IDs
+            updatedEntries[0] = { ...updatedEntries[0], accountId: "", amount: "", type: "DEBIT" };
+            updatedEntries[1] = { ...updatedEntries[1], accountId: "", amount: "", type: "CREDIT" };
+            
+            // Place the new suggestion in the correct entry
+            updatedEntries[targetEntryIndex].accountId = String(accountSuggestion.suggestedAccountId);
+            updatedEntries[targetEntryIndex].type = accountSuggestion.suggestedEntryType;
+            
+            // Smart default for the other entry
+            const otherEntryIndex = targetEntryIndex === 0 ? 1 : 0;
+            const defaultAccount = findDefaultAccountForEntry(
+              accountSuggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT',
+              usableAccounts
+            );
+            if (defaultAccount) {
+              updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
+              updatedEntries[otherEntryIndex].type = accountSuggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
+              console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
+            }
+            
+            console.log('📝 Updated entries:', updatedEntries);
+            
+            // Update form values without resetting to prevent interference with typing
+            // Only update the specific fields that need to change
+            setValue('entries', updatedEntries);
+            
+            // Add category suggestion if available
+            if (categorySuggestion?.suggestedCategory) {
+              setValue('category', categorySuggestion.suggestedCategory);
+              console.log('✅ Applied category suggestion:', categorySuggestion.suggestedCategory);
+            }
 
-          // Add category suggestion if available
-          if (categorySuggestion?.suggestedCategory) {
-            updatedValues.category = categorySuggestion.suggestedCategory;
-            console.log('✅ Applied category suggestion:', categorySuggestion.suggestedCategory);
+            // Add transaction type suggestion if available
+            if (transactionTypeSuggestion?.suggestedType) {
+              setValue('type', transactionTypeSuggestion.suggestedType as any);
+              console.log('✅ Applied transaction type suggestion:', transactionTypeSuggestion.suggestedType);
+            }
+            
+            // Set suggestion explanation and confidence - keep persistent until user dismissal
+            const combinedExplanation = [
+              accountSuggestion.detailedReason,
+              categorySuggestion?.detailedReason,
+              transactionTypeSuggestion?.detailedReason
+            ].filter(Boolean).join('\n\n');
+            
+            setSuggestionExplanation(combinedExplanation);
+            setSuggestionConfidence(Math.max(
+              accountSuggestion.confidence, 
+              categorySuggestion?.confidence || 0,
+              transactionTypeSuggestion?.confidence || 0
+            ));
+            // Set tone message from account suggestion if available
+            setSuggestionToneMessage(accountSuggestion.toneMessage || null);
+            // Set new metadata fields
+            setSuggestionAccountType(accountSuggestion.accountType || null);
+            setSuggestionCategory(accountSuggestion.category || null);
+            setSuggestionFinancialCategory(accountSuggestion.financialCategory || null);
+            setSuggestionEntryType(accountSuggestion.suggestedEntryType || null);
           }
-
-          // Add transaction type suggestion if available
-          if (transactionTypeSuggestion?.suggestedType) {
-            updatedValues.type = transactionTypeSuggestion.suggestedType as any;
-            console.log('✅ Applied transaction type suggestion:', transactionTypeSuggestion.suggestedType);
-          }
-          
-          reset(updatedValues);
-          
-          // Set suggestion explanation and confidence - keep persistent until user dismissal
-          const combinedExplanation = [
-            accountSuggestion.detailedReason,
-            categorySuggestion?.detailedReason,
-            transactionTypeSuggestion?.detailedReason
-          ].filter(Boolean).join('\n\n');
-          
-          setSuggestionExplanation(combinedExplanation);
-          setSuggestionConfidence(Math.max(
-            accountSuggestion.confidence, 
-            categorySuggestion?.confidence || 0,
-            transactionTypeSuggestion?.confidence || 0
-          ));
-          // Set tone message from account suggestion if available
-          setSuggestionToneMessage(accountSuggestion.toneMessage || null);
-          // Set new metadata fields
-          setSuggestionAccountType(accountSuggestion.accountType || null);
-          setSuggestionCategory(accountSuggestion.category || null);
-          setSuggestionFinancialCategory(accountSuggestion.financialCategory || null);
-          setSuggestionEntryType(accountSuggestion.suggestedEntryType || null);
+        } catch (error) {
+          console.error('Failed to get suggestions:', error);
+          // Silent failure for minor fetches like smart suggestions
         }
-      } catch (error) {
-        console.error('Failed to get suggestions:', error);
-        // Silent failure for minor fetches like smart suggestions
-      }
+      }, 300); // 300ms debounce delay
     } else {
       // Clear suggestion when description is too short, empty, or smart suggestions disabled
       console.log('🧹 Clearing suggestions - desc:', desc, 'length:', desc?.length, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
@@ -409,16 +416,11 @@ const Transactions = () => {
       // Also clear the form entries if description is completely empty
       if (!desc || desc.trim().length === 0) {
         console.log('🧹 Clearing form entries due to empty description');
-        const currentValues = watch();
         const clearedEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
           { accountId: "", amount: "", type: "DEBIT" },
           { accountId: "", amount: "", type: "CREDIT" }
         ];
-        reset({
-          ...currentValues,
-          description: "",
-          entries: clearedEntries
-        });
+        setValue('entries', clearedEntries);
       }
     }
   };
@@ -917,6 +919,15 @@ const Transactions = () => {
       }
     }
   }, [smartSuggestionsEnabled, watch]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionChangeTimeoutRef.current) {
+        clearTimeout(descriptionChangeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
