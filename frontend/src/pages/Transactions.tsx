@@ -280,7 +280,8 @@ const Transactions = () => {
 
   const handleDescriptionChange = async (desc: string) => {
     console.log('🔄 handleDescriptionChange called with:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
-    if (desc && smartSuggestionsEnabled) {
+    // Only trigger suggestions if we have at least 3 characters and smart suggestions are enabled
+    if (desc && desc.trim().length >= 3 && smartSuggestionsEnabled) {
       try {
         // Get account, category, and transaction type suggestions in parallel
         const [accountSuggestion, categorySuggestion, transactionTypeSuggestion] = await Promise.all([
@@ -393,8 +394,8 @@ const Transactions = () => {
         // Silent failure for minor fetches like smart suggestions
       }
     } else {
-      // Clear suggestion when description is empty
-      console.log('🧹 Clearing suggestions - desc:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
+      // Clear suggestion when description is too short, empty, or smart suggestions disabled
+      console.log('🧹 Clearing suggestions - desc:', desc, 'length:', desc?.length, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
       setSuggestionToneMessage(null);
