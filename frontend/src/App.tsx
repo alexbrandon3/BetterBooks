@@ -44,7 +44,7 @@ const AppContent = () => {
   return (
     <div className={`min-h-screen bg-gray-50 ${isAuthenticated && !isLoading ? 'lg:flex' : ''}`}>
       <Navigation />
-      <div className={`overflow-auto ${isAuthenticated && !isLoading ? 'lg:flex-1' : ''}`}>
+      <div className={`overflow-auto ${isAuthenticated && !isLoading ? 'lg:flex-1 lg:ml-80' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
