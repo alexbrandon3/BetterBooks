@@ -211,6 +211,8 @@ export const getSuggestedAccount = async (description: string): Promise<{
   detailedReason: string;
   toneMessage?: string;
   confidence: number;
+  learningSource?: string;
+  patternData?: any;
 } | null> => {
   const cacheKey = `${CACHE_KEYS.SUGGESTIONS}_${description.trim()}`;
   
@@ -225,6 +227,26 @@ export const getSuggestedAccount = async (description: string): Promise<{
       return null;
     }
   }, { ttl: 10 * 60 * 1000 }); // 10 minute cache for suggestions
+};
+
+export const saveSuggestionFeedback = async (data: {
+  description: string;
+  suggestedAccountId: number;
+  suggestedAccountName: string;
+  confidence: number;
+  feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED';
+  selectedAccountId?: number;
+  selectedAccountName?: string;
+  userReason?: string;
+  suggestionMetadata?: any;
+  contextData?: any;
+}): Promise<void> => {
+  try {
+    await api.post('/suggestions/save-feedback', data);
+    console.log('✅ Suggestion feedback saved:', data.feedbackType);
+  } catch (error) {
+    console.error("Error saving suggestion feedback:", error);
+  }
 };
 
 export const getSuggestedCategory = async (description: string): Promise<{ 

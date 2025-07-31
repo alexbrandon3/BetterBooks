@@ -181,6 +181,78 @@ export class SuggestionController extends BaseController {
     }
   }
 
+  async saveSuggestionFeedback(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('💾 Save suggestion feedback request:', {
+        body: req.body,
+        userId: req.user.userId
+      });
+      
+      const { 
+        description, 
+        suggestedAccountId, 
+        suggestedAccountName, 
+        confidence, 
+        feedbackType, 
+        selectedAccountId, 
+        selectedAccountName, 
+        userReason, 
+        suggestionMetadata, 
+        contextData 
+      } = req.body;
+      
+      // Validate required fields
+      if (!description || typeof description !== 'string') {
+        this.sendError(res, 400, 'Description is required and must be a string');
+        return;
+      }
+
+      if (!suggestedAccountId || typeof suggestedAccountId !== 'number') {
+        this.sendError(res, 400, 'SuggestedAccountId is required and must be a number');
+        return;
+      }
+
+      if (!suggestedAccountName || typeof suggestedAccountName !== 'string') {
+        this.sendError(res, 400, 'SuggestedAccountName is required and must be a string');
+        return;
+      }
+
+      if (!confidence || typeof confidence !== 'number') {
+        this.sendError(res, 400, 'Confidence is required and must be a number');
+        return;
+      }
+
+      if (!feedbackType || !['ACCEPTED', 'REJECTED', 'IGNORED'].includes(feedbackType)) {
+        this.sendError(res, 400, 'FeedbackType must be ACCEPTED, REJECTED, or IGNORED');
+        return;
+      }
+
+      const userId = req.user.userId;
+      console.log('💾 Saving feedback for description:', description, 'feedbackType:', feedbackType, 'userId:', userId);
+      
+      await this.suggestionService.saveSuggestionFeedback({
+        userId,
+        description,
+        suggestedAccountId,
+        suggestedAccountName,
+        confidence,
+        feedbackType,
+        selectedAccountId,
+        selectedAccountName,
+        userReason,
+        suggestionMetadata,
+        contextData
+      });
+      
+      console.log('✅ Feedback saved successfully');
+      
+      this.sendResponse(res, 200, { message: 'Feedback saved successfully' });
+    } catch (error) {
+      console.error('❌ Error in saveSuggestionFeedback:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
   async suggestCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       console.log('🔍 Category suggestion request:', {

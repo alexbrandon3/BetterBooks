@@ -7,6 +7,7 @@ import {
   getSuggestedAccount,
   getSuggestedCategory,
   getSuggestedTransactionType,
+  saveSuggestionFeedback,
   JournalEntryFields,
   BalanceWarning,
   TransactionResponse,
@@ -87,6 +88,7 @@ const Transactions = () => {
   const [suggestionEntryType, setSuggestionEntryType] = useState<'DEBIT' | 'CREDIT' | null>(null);
   const [suggestionAccepted, setSuggestionAccepted] = useState<boolean>(false);
   const [suggestionRejected, setSuggestionRejected] = useState<boolean>(false);
+  const [currentSuggestion, setCurrentSuggestion] = useState<any>(null);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
@@ -281,6 +283,39 @@ const Transactions = () => {
     return null;
   };
 
+  const sendSuggestionFeedback = async (feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED', selectedAccountId?: number, selectedAccountName?: string) => {
+    if (!currentSuggestion) return;
+
+    try {
+      await saveSuggestionFeedback({
+        description: watch('description'),
+        suggestedAccountId: currentSuggestion.suggestedAccountId,
+        suggestedAccountName: currentSuggestion.suggestedAccountName,
+        confidence: currentSuggestion.confidence,
+        feedbackType,
+        selectedAccountId,
+        selectedAccountName,
+        suggestionMetadata: {
+          accountType: currentSuggestion.accountType,
+          category: currentSuggestion.category,
+          financialCategory: currentSuggestion.financialCategory,
+          suggestedEntryType: currentSuggestion.suggestedEntryType,
+          toneMessage: currentSuggestion.toneMessage,
+          detailedReason: currentSuggestion.detailedReason,
+          learningSource: currentSuggestion.learningSource,
+          patternData: currentSuggestion.patternData
+        },
+        contextData: {
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          sessionId: Math.random().toString(36).substring(7)
+        }
+      });
+    } catch (error) {
+      console.error('Error sending suggestion feedback:', error);
+    }
+  };
+
   const handleDescriptionChange = (desc: string) => {
     console.log('🔄 handleDescriptionChange called with:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
     
@@ -303,6 +338,9 @@ const Transactions = () => {
 
           // Handle account suggestion
           if (accountSuggestion?.suggestedAccountId) {
+            // Store current suggestion for feedback
+            setCurrentSuggestion(accountSuggestion);
+            
             // Get current form values using watch function
             const currentValues = watch();
             
@@ -539,6 +577,28 @@ const Transactions = () => {
     setIsSubmitting(true);
     // Don't clear successMessage or error here
     try {
+      // Learn from manual account selection if there was a suggestion
+      if (currentSuggestion && !suggestionAccepted && !suggestionRejected) {
+        const validEntries = data.entries.filter(entry => entry.accountId && entry.amount);
+        const manuallySelectedAccounts = validEntries
+          .filter(entry => entry.accountId && entry.accountId !== String(currentSuggestion.suggestedAccountId))
+          .map(entry => ({
+            accountId: parseInt(entry.accountId),
+            accountName: accounts.find(acc => acc.id === parseInt(entry.accountId))?.name || 'Unknown'
+          }));
+
+        if (manuallySelectedAccounts.length > 0) {
+          console.log('🧠 Learning from manual account selection:', manuallySelectedAccounts);
+          // User selected different accounts than suggested
+          for (const selectedAccount of manuallySelectedAccounts) {
+            await sendSuggestionFeedback('REJECTED', 
+              selectedAccount.accountId, 
+              selectedAccount.accountName
+            );
+          }
+        }
+      }
+
       // Calculate net amount (debits - credits)
       // For INCOME: positive amount (credits > debits)
       // For EXPENSE: positive amount (debits > credits)
@@ -1112,9 +1172,20 @@ const Transactions = () => {
                 <div className="flex gap-2 mt-3">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setSuggestionAccepted(true);
                       setSuggestionRejected(false);
+                      
+                      // Send feedback for accepted suggestion
+                      const currentValues = watch();
+                      const selectedAccountId = currentValues.entries.find((entry: any) => 
+                        entry.accountId === String(currentSuggestion?.suggestedAccountId)
+                      )?.accountId;
+                      
+                      await sendSuggestionFeedback('ACCEPTED', 
+                        selectedAccountId ? parseInt(selectedAccountId) : undefined,
+                        currentSuggestion?.suggestedAccountName
+                      );
                     }}
                     className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors"
                   >
@@ -1122,9 +1193,13 @@ const Transactions = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setSuggestionRejected(true);
                       setSuggestionAccepted(false);
+                      
+                      // Send feedback for rejected suggestion
+                      await sendSuggestionFeedback('REJECTED');
+                      
                       // Reset form entries when rejecting
                       const currentValues = watch();
                       const resetEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
@@ -1144,7 +1219,10 @@ const Transactions = () => {
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  // Send feedback for ignored suggestion
+                  await sendSuggestionFeedback('IGNORED');
+                  
                   setSuggestionExplanation(null);
                   setSuggestionConfidence(null);
                   setSuggestionToneMessage(null);
@@ -1154,6 +1232,7 @@ const Transactions = () => {
                   setSuggestionEntryType(null);
                   setSuggestionAccepted(false);
                   setSuggestionRejected(false);
+                  setCurrentSuggestion(null);
                 }}
                 className="text-blue-500 hover:text-blue-700 text-sm"
               >

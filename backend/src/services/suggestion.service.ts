@@ -4,12 +4,14 @@ import { Account } from "../entities/Account";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
 import { SmartSuggestionAgent } from './suggestionEngine/SmartSuggestionAgent';
+import { MemoryBasedLearning } from './suggestionEngine/MemoryBasedLearning';
 
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
   private accountRepo = AppDataSource.getRepository(Account);
   private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
   private smartSuggestionAgent = new SmartSuggestionAgent();
+  private memoryLearning = new MemoryBasedLearning();
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -79,6 +81,8 @@ export class SuggestionService {
     confidence: number;
     suggestedEntryType: 'DEBIT' | 'CREDIT';
     detailedReason: string;
+    learningSource?: string;
+    patternData?: any;
   } | null> {
     try {
       console.log('🔍 SuggestionService: Processing description:', description, 'userId:', userId);
@@ -101,6 +105,42 @@ export class SuggestionService {
       if (userPreference) {
         console.log('✅ Found user preference for:', normalizedDescription);
         return await this.createSuggestionFromPreference(userPreference);
+      }
+
+      // Step 2: Try memory-based learning (new highest priority after preferences)
+      console.log('🧠 Trying memory-based learning...');
+      const userAccounts = await this.accountRepo.find({
+        where: { user: { id: userId } },
+        order: { updatedAt: 'DESC' }
+      });
+      
+      const memorySuggestion = await this.memoryLearning.findMemoryBasedSuggestion(
+        userId, 
+        normalizedDescription, 
+        userAccounts
+      );
+      
+      if (memorySuggestion && memorySuggestion.confidence >= 60) {
+        console.log('✅ [SuggestionService] Memory-based learning provided suggestion:', memorySuggestion);
+        
+        // Find the account to get additional details
+        const suggestedAccount = await this.accountRepo.findOne({
+          where: { id: memorySuggestion.accountId }
+        });
+        
+        if (suggestedAccount) {
+          return {
+            suggestedAccountId: memorySuggestion.accountId,
+            suggestedAccountName: memorySuggestion.accountName,
+            reason: memorySuggestion.reason,
+            accountType: suggestedAccount.type,
+            confidence: memorySuggestion.confidence,
+            suggestedEntryType: this.determineEntryType(suggestedAccount),
+            detailedReason: memorySuggestion.reason,
+            learningSource: memorySuggestion.learningSource,
+            patternData: memorySuggestion.patternData
+          };
+        }
       }
 
       // Step 2: Try SmartSuggestionAgent (new logic)
@@ -183,6 +223,43 @@ export class SuggestionService {
       console.log('💾 Saved user preference:', normalizedDescription, '->', accountId);
     } catch (error) {
       logError(`Failed to save user preference: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+    }
+  }
+
+  async saveSuggestionFeedback(data: {
+    userId: number;
+    description: string;
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    confidence: number;
+    feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED';
+    selectedAccountId?: number;
+    selectedAccountName?: string;
+    userReason?: string;
+    suggestionMetadata: any;
+    contextData: any;
+  }): Promise<void> {
+    try {
+      console.log('💾 [SuggestionService] Saving suggestion feedback:', {
+        userId: data.userId,
+        description: data.description,
+        feedbackType: data.feedbackType
+      });
+
+      // Save feedback for memory learning
+      await this.memoryLearning.saveFeedback(data);
+
+      // If accepted, also save as user preference
+      if (data.feedbackType === 'ACCEPTED' && data.selectedAccountId) {
+        await this.saveUserPreference(data.description, data.selectedAccountId, data.userId);
+      }
+
+      // Update user preferences based on feedback patterns
+      await this.memoryLearning.updateUserPreferences(data.userId);
+
+      console.log('✅ [SuggestionService] Feedback saved and preferences updated');
+    } catch (error) {
+      logError(`Failed to save suggestion feedback: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
     }
   }
 
@@ -623,6 +700,23 @@ export class SuggestionService {
       .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
+  }
+
+  private determineEntryType(account: Account): 'DEBIT' | 'CREDIT' {
+    switch (account.type) {
+      case 'EXPENSE':
+        return 'DEBIT';
+      case 'INCOME':
+        return 'CREDIT';
+      case 'ASSET':
+        return 'DEBIT';
+      case 'LIABILITY':
+        return 'CREDIT';
+      case 'EQUITY':
+        return 'CREDIT';
+      default:
+        return 'DEBIT';
+    }
   }
 
 

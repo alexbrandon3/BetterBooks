@@ -19,6 +19,7 @@ import { Suggestion } from "../entities/Suggestion";
 import { ClosedPeriod } from "../entities/ClosedPeriod";
 import { SplitTransaction } from "../entities/SplitTransaction";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
+import { SuggestionFeedback } from "../entities/SuggestionFeedback";
 
 const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`;
 
@@ -47,7 +48,8 @@ export const AppDataSource = new DataSource({
     Suggestion,
     ClosedPeriod,
     SplitTransaction,
-    UserSuggestionPreference
+    UserSuggestionPreference,
+    SuggestionFeedback
   ],
   migrations: [__dirname + "/../migrations/*.ts"],
   subscribers: [],
