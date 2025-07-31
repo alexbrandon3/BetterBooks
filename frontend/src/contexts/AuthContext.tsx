@@ -36,14 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('🚨 AUTHCONTEXT DEBUG - Initializing auth...');
       const token = localStorage.getItem('token');
       if (token) {
-        console.log('🚨 AUTHCONTEXT DEBUG - Token found, setting authenticated');
         setIsAuthenticated(true);
         await fetchUserProfile(token);
       } else {
-        console.log('🚨 AUTHCONTEXT DEBUG - No token found');
         setIsLoading(false);
       }
     };
@@ -53,13 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (token: string) => {
     try {
-      console.log("🚨 AUTHCONTEXT DEBUG - Fetching user profile...");
-      console.log("Fetching user profile with token:", token.substring(0, 20) + "...");
       const response = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log("User profile response:", response.data);
-      console.log("🔍 AuthContext - Setting user data:", response.data);
       setUser(response.data);
       setIsAuthenticated(true);
     } catch (error: any) {
@@ -67,13 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Only clear token if it's a 401 (unauthorized) error
       if (error.response?.status === 401) {
-        console.log("Token is invalid, clearing authentication");
         localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
       } else {
         // For other errors (network, server errors), keep the token but show error
-        console.log("Network or server error, keeping token for retry");
         toast.error('Unable to verify authentication. Please try again.');
       }
     } finally {
@@ -82,11 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (token: string) => {
-    console.log("Login function called with token:", token.substring(0, 20) + "...");
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
     setIsLoading(true);
-    console.log("Set isAuthenticated to true, now fetching user profile...");
     fetchUserProfile(token);
   };
 

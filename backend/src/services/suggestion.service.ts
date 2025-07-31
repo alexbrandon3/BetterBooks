@@ -85,10 +85,8 @@ export class SuggestionService {
     patternData?: any;
   } | null> {
     try {
-      console.log('🔍 SuggestionService: Processing description:', description, 'userId:', userId);
       
       if (!description || description.trim().length === 0) {
-        console.log('❌ Empty description provided');
         return null;
       }
 
@@ -98,17 +96,13 @@ export class SuggestionService {
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .trim();
       
-      console.log('📝 Normalized description:', normalizedDescription);
-      
       // Step 1: Check user preferences first (highest priority)
       const userPreference = await this.findUserPreference(normalizedDescription, userId);
       if (userPreference) {
-        console.log('✅ Found user preference for:', normalizedDescription);
         return await this.createSuggestionFromPreference(userPreference);
       }
 
       // Step 2: Try memory-based learning (new highest priority after preferences)
-      console.log('🧠 Trying memory-based learning...');
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: userId } },
         order: { updatedAt: 'DESC' }
@@ -121,7 +115,6 @@ export class SuggestionService {
       );
       
       if (memorySuggestion && memorySuggestion.confidence >= 60) {
-        console.log('✅ [SuggestionService] Memory-based learning provided suggestion:', memorySuggestion);
         
         // Find the account to get additional details
         const suggestedAccount = await this.accountRepo.findOne({
@@ -144,7 +137,6 @@ export class SuggestionService {
       }
 
       // Step 2: Try SmartSuggestionAgent (new logic)
-      console.log('🤖 Trying SmartSuggestionAgent...');
       const agentResult = await this.smartSuggestionAgent.suggest({
         description,
         userId,
@@ -153,9 +145,6 @@ export class SuggestionService {
       });
 
       if (agentResult && agentResult.confidence >= 50) {
-        console.log('✅ [SuggestionService] SmartSuggestionAgent provided suggestion:', agentResult);
-        console.log('🔎 [SuggestionService] Confidence Score:', agentResult.confidence);
-        console.log('🎯 [SuggestionService] Final Suggested Account:', agentResult.suggestedAccountName);
         
         // Find the account by name to get the ID
         const suggestedAccount = await this.accountRepo.findOne({
@@ -220,7 +209,6 @@ export class SuggestionService {
       }
 
       await this.userPreferenceRepo.save(preference);
-      console.log('💾 Saved user preference:', normalizedDescription, '->', accountId);
     } catch (error) {
       logError(`Failed to save user preference: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
     }
@@ -241,13 +229,6 @@ export class SuggestionService {
     contextData: any;
   }): Promise<void> {
     try {
-      console.log('💾 [SuggestionService] Saving suggestion feedback:', {
-        userId: data.userId,
-        description: data.description,
-        feedbackType: data.feedbackType,
-        rejectionReason: data.rejectionReason
-      });
-
       // Save feedback for memory learning
       await this.memoryLearning.saveFeedback(data);
 
@@ -258,8 +239,6 @@ export class SuggestionService {
 
       // Update user preferences based on feedback patterns
       await this.memoryLearning.updateUserPreferences(data.userId);
-
-      console.log('✅ [SuggestionService] Feedback saved and preferences updated');
     } catch (error) {
       logError(`Failed to save suggestion feedback: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
     }
@@ -272,10 +251,8 @@ export class SuggestionService {
     detailedReason: string;
   } | null> {
     try {
-      console.log('🔍 SuggestionService: Processing category suggestion for description:', description, 'userId:', userId);
       
       if (!description || description.trim().length === 0) {
-        console.log('❌ Empty description provided');
         return null;
       }
 
@@ -284,8 +261,6 @@ export class SuggestionService {
         .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .trim();
-      
-      console.log('📝 Normalized description for category suggestion:', normalizedDescription);
       
       // Use the same keyword mapping as account suggestions but extract category information
       const keywordMap = [

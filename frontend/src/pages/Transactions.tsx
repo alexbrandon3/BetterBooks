@@ -319,7 +319,6 @@ const Transactions = () => {
   };
 
   const handleDescriptionChange = (desc: string) => {
-    console.log('🔄 handleDescriptionChange called with:', desc, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
     
     // Clear any existing timeout
     if (descriptionChangeTimeoutRef.current) {
@@ -346,10 +345,7 @@ const Transactions = () => {
             // Get current form values using watch function
             const currentValues = watch();
             
-            console.log('🔍 Current form state:', {
-              suggestedEntryType: accountSuggestion.suggestedEntryType,
-              suggestedAccount: accountSuggestion.suggestedAccountName
-            });
+
             
             // Determine which entry to populate based on suggested entry type
             let targetEntryIndex = 0; // Default to first entry
@@ -357,20 +353,16 @@ const Transactions = () => {
             if (accountSuggestion.suggestedEntryType === 'CREDIT') {
               // For CREDIT suggestions, always use the second entry (index 1)
               targetEntryIndex = 1;
-              console.log('✅ Placing CREDIT suggestion in second entry (index 1)');
             } else if (accountSuggestion.suggestedEntryType === 'DEBIT') {
               // For DEBIT suggestions, always use the first entry (index 0)
               targetEntryIndex = 0;
-              console.log('✅ Placing DEBIT suggestion in first entry (index 0)');
             } else {
               // Fallback logic
               targetEntryIndex = 0;
-              console.log('✅ Placing suggestion in first entry (index 0) - fallback');
             }
             
             // Don't suggest if the account is already in the target entry
             if (fields[targetEntryIndex].accountId === String(accountSuggestion.suggestedAccountId)) {
-              console.log('❌ Account already in target entry, not suggesting');
               return;
             }
             
@@ -393,10 +385,7 @@ const Transactions = () => {
             if (defaultAccount) {
               updatedEntries[otherEntryIndex].accountId = String(defaultAccount.id);
               updatedEntries[otherEntryIndex].type = accountSuggestion.suggestedEntryType === 'CREDIT' ? 'DEBIT' : 'CREDIT';
-              console.log(`✅ Auto-populated other entry with: ${defaultAccount.name}`);
             }
-            
-            console.log('📝 Updated entries:', updatedEntries);
             
             // Update form values without resetting to prevent interference with typing
             // Only update the specific fields that need to change
@@ -405,13 +394,11 @@ const Transactions = () => {
             // Add category suggestion if available
             if (categorySuggestion?.suggestedCategory) {
               setValue('category', categorySuggestion.suggestedCategory);
-              console.log('✅ Applied category suggestion:', categorySuggestion.suggestedCategory);
             }
 
             // Add transaction type suggestion if available
             if (transactionTypeSuggestion?.suggestedType) {
               setValue('type', transactionTypeSuggestion.suggestedType as any);
-              console.log('✅ Applied transaction type suggestion:', transactionTypeSuggestion.suggestedType);
             }
             
             // Set suggestion explanation and confidence - keep persistent until user dismissal
@@ -442,7 +429,7 @@ const Transactions = () => {
       }, 300); // 300ms debounce delay
     } else {
       // Clear suggestion when description is too short, empty, or smart suggestions disabled
-      console.log('🧹 Clearing suggestions - desc:', desc, 'length:', desc?.length, 'smartSuggestionsEnabled:', smartSuggestionsEnabled);
+      
       setSuggestionExplanation(null);
       setSuggestionConfidence(null);
       setSuggestionToneMessage(null);
@@ -455,7 +442,7 @@ const Transactions = () => {
       
       // Also clear the form entries if description is completely empty
       if (!desc || desc.trim().length === 0) {
-        console.log('🧹 Clearing form entries due to empty description');
+
         const clearedEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
           { accountId: "", amount: "", type: "DEBIT" },
           { accountId: "", amount: "", type: "CREDIT" }
@@ -590,7 +577,7 @@ const Transactions = () => {
           }));
 
         if (manuallySelectedAccounts.length > 0) {
-          console.log('🧠 Learning from manual account selection:', manuallySelectedAccounts);
+  
           // User selected different accounts than suggested
           for (const selectedAccount of manuallySelectedAccounts) {
             await sendSuggestionFeedback('REJECTED', 
@@ -616,12 +603,7 @@ const Transactions = () => {
       // For EXPENSE transactions, the amount should be the debit side
       const totalAmount = data.type === "INCOME" ? creditTotal : debitTotal;
 
-      console.log('💰 Amount calculation:', {
-        debitTotal,
-        creditTotal,
-        transactionType: data.type,
-        calculatedAmount: totalAmount
-      });
+
 
       // Create backend-compatible transaction data
       const backendTransactionData: BackendTransactionForm = {
@@ -638,7 +620,7 @@ const Transactions = () => {
         }))
       };
 
-      console.log('📤 Backend transaction data:', JSON.stringify(backendTransactionData, null, 2));
+
 
       if (editingTransactionId) {
         await updateTransaction(editingTransactionId, backendTransactionData);
@@ -659,7 +641,7 @@ const Transactions = () => {
           accountId: parseInt(data.entries[0]?.accountId) || 0
         };
         
-        console.log('📤 Updating recurring transaction:', JSON.stringify(recurringData, null, 2));
+
         await updateRecurringTransaction(editingRecurringId, recurringData);
         setSuccessMessage("Recurring transaction updated successfully!");
         toast.success("Recurring transaction updated successfully!");
@@ -680,7 +662,7 @@ const Transactions = () => {
             accountId: parseInt(data.entries[0]?.accountId) || 0
           };
           
-          console.log('📤 Creating recurring transaction:', JSON.stringify(recurringData, null, 2));
+
           await createRecurringTransaction(recurringData);
           setSuccessMessage("Recurring transaction created successfully!");
           toast.success("Recurring transaction created successfully!");
@@ -880,19 +862,13 @@ const Transactions = () => {
         })
       ]);
       
-      console.log('📊 Fetched data:', {
-        transactions: transactionsData,
-        accounts: accountsData,
-        recurring: recurringData,
-        recurringType: typeof recurringData,
-        isArray: Array.isArray(recurringData)
-      });
+
       
       // Safety check for transactions data
       if (transactionsData && transactionsData.transactions) {
         setTransactions(transactionsData.transactions);
       } else {
-        console.warn('⚠️ No transactions data found, setting empty array');
+
         setTransactions([]);
       }
       setAccounts(accountsData);
@@ -976,7 +952,7 @@ const Transactions = () => {
       // Re-trigger suggestions when re-enabled if there's a description
       const currentDescription = watch('description');
       if (currentDescription && currentDescription.trim().length > 0) {
-        console.log('🔄 Re-triggering suggestions for existing description:', currentDescription);
+
         handleDescriptionChange(currentDescription);
       }
     }
@@ -1064,7 +1040,7 @@ const Transactions = () => {
             aria-label="Transaction Description *"
             value={watch("description") || ""}
             onChange={(e) => {
-              console.log('🔄 onChange triggered with:', e.target.value);
+      
               // Update form value directly
               setValue("description", e.target.value);
               handleDescriptionChange(e.target.value);
@@ -1422,7 +1398,7 @@ const Transactions = () => {
         </div>
       ) : (
         <>
-          {console.log('🔍 Debug - transactions state:', transactions, 'type:', typeof transactions, 'isArray:', Array.isArray(transactions))}
+  
           <TransactionList
             transactions={transactions}
             accounts={accounts}

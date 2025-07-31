@@ -35,8 +35,6 @@ export class MemoryBasedLearning {
    */
   async analyzeUserPatterns(userId: number, description: string): Promise<LearningPattern[]> {
     try {
-      console.log('🧠 [MemoryLearning] Analyzing patterns for user:', userId, 'description:', description);
-      
       const normalizedDescription = this.normalizeDescription(description);
       
       // Get all feedback for this user
@@ -47,7 +45,6 @@ export class MemoryBasedLearning {
       });
 
       if (userFeedback.length === 0) {
-        console.log('📊 [MemoryLearning] No feedback data available for user');
         return [];
       }
 
@@ -108,7 +105,6 @@ export class MemoryBasedLearning {
         
         // Skip if this account has been rejected more than 50% of the time for similar descriptions
         if (rejectionRate > 0.5 && descriptionRejections > 0) {
-          console.log(`🚫 [MemoryLearning] Skipping account ${pattern.accountName} due to high rejection rate: ${rejectionRate}`);
           continue;
         }
 
@@ -131,7 +127,6 @@ export class MemoryBasedLearning {
         }
       }
 
-      console.log(`📊 [MemoryLearning] Found ${patterns.length} valid patterns`);
       return patterns;
 
     } catch (error) {
@@ -149,12 +144,9 @@ export class MemoryBasedLearning {
     userAccounts: Account[]
   ): Promise<MemoryBasedSuggestion | null> {
     try {
-      console.log('🧠 [MemoryLearning] Finding memory-based suggestion for:', description);
-      
       const patterns = await this.analyzeUserPatterns(userId, description);
       
       if (patterns.length === 0) {
-        console.log('📊 [MemoryLearning] No patterns found');
         return null;
       }
 
@@ -163,7 +155,6 @@ export class MemoryBasedLearning {
       const validPatterns = patterns.filter(pattern => availableAccountIds.has(pattern.accountId));
 
       if (validPatterns.length === 0) {
-        console.log('📊 [MemoryLearning] No valid patterns for current accounts');
         return null;
       }
 
@@ -171,7 +162,6 @@ export class MemoryBasedLearning {
       const bestPattern = this.findBestPattern(validPatterns, description);
       
       if (!bestPattern) {
-        console.log('📊 [MemoryLearning] No suitable pattern found');
         return null;
       }
 
@@ -190,7 +180,6 @@ export class MemoryBasedLearning {
         patternData: bestPattern
       };
 
-      console.log('✅ [MemoryLearning] Memory-based suggestion:', suggestion);
       return suggestion;
 
     } catch (error) {
@@ -217,12 +206,6 @@ export class MemoryBasedLearning {
     contextData: any;
   }): Promise<void> {
     try {
-      console.log('💾 [MemoryLearning] Saving feedback:', {
-        userId: data.userId,
-        description: data.description,
-        feedbackType: data.feedbackType,
-        rejectionReason: data.rejectionReason
-      });
 
       const feedback = this.feedbackRepo.create({
         userId: data.userId,
@@ -254,11 +237,8 @@ export class MemoryBasedLearning {
       } else if (data.feedbackType === 'REJECTED' && !data.selectedAccountId) {
         // User rejected suggestion without selecting alternative
         // Learn to avoid the suggested account for this description
-        console.log('✅ [MemoryLearning] Learned to avoid suggested account');
-        
         // Handle side-specific rejections
         if (data.rejectionReason?.includes('side only')) {
-          console.log('🎯 [MemoryLearning] Side-specific rejection detected:', data.rejectionReason);
           // This will be used in pattern analysis to avoid suggesting that specific side
         }
       }
@@ -273,8 +253,6 @@ export class MemoryBasedLearning {
         has_alternative_selection: !!data.selectedAccountId
       });
 
-      console.log('✅ [MemoryLearning] Feedback saved successfully');
-
     } catch (error) {
       console.error('❌ [MemoryLearning] Error saving feedback:', error);
     }
@@ -285,7 +263,6 @@ export class MemoryBasedLearning {
    */
   async updateUserPreferences(userId: number): Promise<void> {
     try {
-      console.log('🔄 [MemoryLearning] Updating user preferences for:', userId);
       
       // Get recent successful patterns (high success rate)
       const recentFeedback = await this.feedbackRepo.find({
@@ -350,7 +327,6 @@ export class MemoryBasedLearning {
           }
 
           await this.preferenceRepo.save(preference);
-          console.log('💾 [MemoryLearning] Updated preference for:', description, '->', pattern.accountName);
         }
       }
 

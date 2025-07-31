@@ -22,9 +22,24 @@ app.get('/test', (_, res) => {
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - allow all origins for now to debug
+// CORS configuration - restrict to frontend URL only
+const allowedOrigins = [
+  'https://betterbooks-frontend.onrender.com',
+  'http://localhost:3000', // For local development
+  'http://localhost:5173'  // Vite dev server
+];
+
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
@@ -37,15 +52,13 @@ if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
-// Debug middleware to log all requests
-app.use((req, _res, next) => {
-  console.log(`🔍 ROUTE DEBUG - ${req.method} ${req.originalUrl}`);
-  console.log(`📨 Path: ${req.path}, Base URL: ${req.baseUrl}`);
-  console.log(`🌐 Origin: ${req.headers.origin || 'no origin'}`);
-  console.log(`🔑 Authorization: ${req.headers.authorization ? 'Present' : 'Missing'}`);
-  console.log(`📦 Body: ${JSON.stringify(req.body)}`);
-  next();
-});
+// Remove debug middleware in production
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, _res, next) => {
+    console.log(`🔍 ROUTE DEBUG - ${req.method} ${req.originalUrl}`);
+    next();
+  });
+}
 
 // Body parsing middleware
 app.use(express.json());
@@ -72,20 +85,14 @@ app.use('/api/recurring-transactions', recurringRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
-console.log('🔧 Mounting books routes at /api/books');
 app.use('/api/books', booksRoutes);
-console.log('✅ Books routes mounted successfully');
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
-  console.log(`🔍 404 DEBUG - Path: ${req.path}, Base URL: ${req.baseUrl}`);
-  console.log(`📋 404 DEBUG - Available routes: /api/auth, /api/accounts, /api/transactions, /api/recurring-transactions, /api/goals, /api/suggestions, /api/reports, /api/books`);
   res.status(404).json({ 
     message: 'Route not found', 
     path: req.originalUrl,
-    method: req.method,
-    availableRoutes: ['/api/auth', '/api/accounts', '/api/transactions', '/api/recurring-transactions', '/api/goals', '/api/suggestions', '/api/reports', '/api/books']
+    method: req.method
   });
 });
 

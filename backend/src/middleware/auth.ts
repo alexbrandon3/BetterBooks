@@ -30,10 +30,14 @@ export const authenticate = (
       return;
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-secret-key"
-    ) as JwtPayload;
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error("❌ AUTH ERROR: JWT_SECRET environment variable is not defined");
+      res.status(500).json({ message: "Server configuration error" });
+      return;
+    }
+
+    const decoded = jwt.verify(token, secret) as JwtPayload;
 
     const userRepository = AppDataSource.getRepository(User);
     userRepository.findOne({

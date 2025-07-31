@@ -556,10 +556,8 @@ export const seedDefaultAccounts = async () => {
     if (!exists) {
       const account = accountRepo.create(accountData);
       await accountRepo.save(account);
-      console.log(`Seeded account: ${accountData.name}`);
     }
   }
 
-  console.log("✅ Default accounts seeded.");
   await AppDataSource.destroy();
 };

@@ -11,33 +11,32 @@ export const authenticate = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  console.log(`🔐 AUTH DEBUG - ${req.method} ${req.path}`);
-  console.log(`🔑 Auth header present: ${!!req.headers.authorization}`);
-  
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log(`❌ AUTH FAILED - No valid auth header`);
       res.status(401).json({ message: "Unauthorized: No token provided" });
       return;
     }
 
     const token = authHeader.split(" ")[1];
-    const secret = process.env.JWT_SECRET || "your-secret-key";
+    const secret = process.env.JWT_SECRET;
+    
+    if (!secret) {
+      console.error("❌ AUTH ERROR: JWT_SECRET environment variable is not defined");
+      res.status(500).json({ message: "Server configuration error" });
+      return;
+    }
 
     const decoded = jwt.verify(token, secret) as JwtPayload;
-    console.log(`✅ AUTH SUCCESS - User ID: ${decoded.userId}`);
     
     const user = await AppDataSource.getRepository(User).findOneBy({ id: Number(decoded.userId) });
 
     if (!user) {
-      console.log(`❌ AUTH FAILED - User not found: ${decoded.userId}`);
       res.status(401).json({ message: "Unauthorized: User not found" });
       return;
     }
 
     (req as AuthenticatedRequest).user = decoded;
-    console.log(`✅ AUTH COMPLETE - Proceeding to route handler`);
     next();
   } catch (error) {
     console.error("❌ AUTH ERROR:", error);

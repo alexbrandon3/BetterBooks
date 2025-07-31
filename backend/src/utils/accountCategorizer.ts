@@ -187,15 +187,11 @@ const PERSONAL_KEYWORDS_DEMOTE_LIST = [
  * Enhanced account metadata suggestion with explanations and confidence levels
  */
 export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
-  console.log(`🔍 Categorizing account: "${name}"`);
-  
   // Normalize account name: lowercase, remove punctuation, trim whitespace
   const normalizedName = name.toLowerCase()
     .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
-
-  console.log(`📝 Normalized name: "${normalizedName}"`);
 
   // Check for personal keywords and demote confidence
   const hasPersonalKeywords = PERSONAL_KEYWORDS_DEMOTE_LIST.some(keyword => 
@@ -289,11 +285,8 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   for (const [alias, target] of Object.entries(aliasMap)) {
     if (processedName.includes(alias)) {
       processedName = processedName.replace(alias, target);
-      console.log(`🔄 Applied alias: "${alias}" -> "${target}", processed name: "${processedName}"`);
     }
   }
-
-  console.log(`🔧 Final processed name: "${processedName}"`);
 
   // Comprehensive business-focused keyword mappings
   const BUSINESS_ACCOUNT_KEYWORD_MAPPINGS = [
@@ -850,12 +843,9 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
 
   // Check both original normalized name and processed name (with aliases applied)
   for (const entry of BUSINESS_ACCOUNT_KEYWORD_MAPPINGS) {
-    console.log(`🔍 Checking keywords: [${entry.keywords.join(', ')}] against "${processedName}" and "${normalizedName}"`);
-    
     // Check if any keyword matches in the processed name
     if (entry.keywords.some(kw => processedName.includes(kw)) || 
         entry.keywords.some(kw => normalizedName.includes(kw))) {
-      console.log(`✅ Found match! Categorizing as: ${entry.result.category}`);
       
       let result = validateAccountMetadata(entry.result);
       
@@ -901,9 +891,7 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
   ];
 
   for (const match of flexibleMatches) {
-    console.log(`🔍 Checking pattern: ${match.pattern} against "${normalizedName}"`);
     if (match.pattern.test(normalizedName)) {
-      console.log(`✅ Pattern match found! Categorizing as: ${match.result.category}`);
       
       let result = validateAccountMetadata(match.result);
       result = applyEdgeCaseRules(name, result);
@@ -916,8 +904,6 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
       return result;
     }
   }
-
-  console.log(`❌ No matches found, using default categorization`);
 
   // If no specific match found, provide a reasonable default with low confidence
   let defaultResult = validateAccountMetadata({

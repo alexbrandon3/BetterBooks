@@ -335,7 +335,6 @@ export class TransactionService {
 
   async updateTransaction(id: string, data: UpdateTransactionDTO): Promise<Transaction> {
     logInfo(`Starting updateTransaction for ID: ${id}`, 'TransactionService');
-    console.log('🔍 BACKEND DEBUG - Received update data:', JSON.stringify(data, null, 2));
 
     try {
       const transaction = await this.transactionRepo.findOne({
@@ -347,9 +346,6 @@ export class TransactionService {
         logError(`Transaction not found: ${id}`, 'TransactionService');
         throw new Error(`Transaction with ID ${id} not found`);
       }
-
-      console.log('🔍 BACKEND DEBUG - Original transaction amount:', transaction.amount);
-      console.log('🔍 BACKEND DEBUG - Original entry amounts:', transaction.entries.map(e => e.amount));
 
       return await AppDataSource.transaction(async transactionalEntityManager => {
         // Step 1: Update transaction fields
@@ -373,11 +369,9 @@ export class TransactionService {
             let newAmount;
             if (data.entries && data.entries[i]) {
               newAmount = Number(data.entries[i].amount);
-              console.log(`🔍 BACKEND DEBUG - Using frontend amount for entry ${i}: ${newAmount}`);
             } else {
               // Fallback to equal distribution
               newAmount = Number(data.amount) / transaction.entries.length;
-              console.log(`🔍 BACKEND DEBUG - Using calculated amount for entry ${i}: ${newAmount}`);
             }
             
             const oldAmount = Number(entry.amount);
@@ -388,9 +382,7 @@ export class TransactionService {
         }
 
         // Step 3: Recalculate all account balances from scratch
-        console.log('🔍 BACKEND DEBUG - Starting balance recalculation...');
         await this.recalculateAccountBalances(transaction.user.id);
-        console.log('🔍 BACKEND DEBUG - Balance recalculation complete');
 
         // Return the updated transaction with entries
         const fullTransaction = await transactionalEntityManager.findOne(Transaction, {
@@ -654,13 +646,9 @@ export class TransactionService {
       // Process each transaction to update account balances
       for (const transaction of transactions) {
         if (!transaction.entries) continue;
-
-        console.log(`🔍 BACKEND DEBUG - Processing transaction ${transaction.id}: amount=${transaction.amount}, entries=${transaction.entries.length}`);
         
         for (const entry of transaction.entries) {
           if (!entry.account) continue;
-          
-          console.log(`🔍 BACKEND DEBUG - Entry: account=${entry.account.name}, amount=${entry.amount}, type=${entry.type}`);
 
           // Calculate balance change based on entry type and account type
           let balanceChange = 0;
@@ -689,8 +677,6 @@ export class TransactionService {
           // Update account balance
           const currentBalance = Number(entry.account.balance || 0);
           const newBalance = currentBalance + balanceChange;
-          
-          console.log(`🔍 BACKEND DEBUG - Balance calculation: ${currentBalance} + ${balanceChange} = ${newBalance}`);
           
           // Safety checks to prevent numeric overflow
           if (isNaN(newBalance) || !isFinite(newBalance)) {

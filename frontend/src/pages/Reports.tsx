@@ -49,15 +49,12 @@ function formatAccountCount(count: number, label: string = 'account'): string {
 }
 
 const Reports: React.FC = () => {
-  console.log('🔍 Reports component rendering');
   const { user } = useAuth();
-  console.log('👤 Current user:', user);
   const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement'>('balance-sheet');
   const [dateRange, setDateRange] = useState<DateRange>({
     start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
   });
-  console.log('📅 Date range:', dateRange);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -115,31 +112,22 @@ const Reports: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('🔄 Reports useEffect triggered');
     const fetchReports = async () => {
       try {
-        console.log('📥 Starting to fetch reports...');
         setLoading(true);
         setError(null);
         
-        console.log('📊 Fetching balance sheet...');
         const balanceSheetData = await fetchBalanceSheet();
-        console.log('📊 Balance sheet data received:', JSON.stringify(balanceSheetData, null, 2));
-        
-        console.log('💰 Fetching income statement...');
         const incomeStatementData = await fetchIncomeStatement(dateRange.start, dateRange.end);
-        console.log('💰 Income statement data received:', JSON.stringify(incomeStatementData, null, 2));
         
         setBalanceSheet(balanceSheetData);
         setIncomeStatement(incomeStatementData);
-        console.log('✅ Reports data set successfully');
       } catch (err) {
         console.error('❌ Error loading reports:', err);
         setError('Failed to load reports. Please try again.');
         toast.error('Failed to load reports. Please try again.');
       } finally {
         setLoading(false);
-        console.log('🏁 Loading finished');
       }
     };
 
@@ -791,7 +779,7 @@ const Reports: React.FC = () => {
     accountId?: number,
     subcategory?: string
   ) => {
-    console.log('🔍 Drill-down clicked:', { reportSection, type, accountId, subcategory });
+
     drilldown.openDrilldown(
       reportSection,
       type,

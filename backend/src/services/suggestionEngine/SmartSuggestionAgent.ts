@@ -26,12 +26,6 @@ export class SmartSuggestionAgent {
 
   async suggest(request: AgentSuggestionRequest): Promise<AgentSuggestionResult | null> {
     try {
-      console.log('🤖 SmartSuggestionAgent: Processing request:', {
-        description: request.description,
-        userId: request.userId,
-        role: request.role
-      });
-
       // Normalize description
       const normalizedDescription = this.normalizeDescription(request.description);
       
@@ -42,28 +36,17 @@ export class SmartSuggestionAgent {
       });
 
       if (userAccounts.length === 0) {
-        console.log('❌ No accounts found for user');
         return null;
       }
 
       // Business-focused keyword analysis
       const businessKeywords = this.analyzeBusinessKeywords(normalizedDescription);
       
-      // Debug logging for keyword classification
-      console.log('🧠 [SmartSuggest] Keywords found:', businessKeywords.keywords);
-      console.log('🧠 [SmartSuggest] Classified Category:', businessKeywords.category);
-      console.log('🧠 [SmartSuggest] Confidence:', businessKeywords.confidence);
-      console.log('🧠 [SmartSuggest] Business Context:', businessKeywords.businessContext);
-      
       if (businessKeywords.confidence === 'LOW') {
-        console.log('❌ Low confidence business keywords detected');
         return null;
       }
 
       // Find best matching account
-      console.log('🔍 [SmartSuggest] Starting account matching for category:', businessKeywords.category);
-      console.log('🔍 [SmartSuggest] Available accounts:', userAccounts.map(a => ({ name: a.name, type: a.type, category: a.category })));
-      
       const bestMatch = this.findBestAccountMatch(
         userAccounts,
         businessKeywords,
@@ -71,12 +54,8 @@ export class SmartSuggestionAgent {
       );
 
       if (!bestMatch) {
-        console.log('❌ [SmartSuggest] No suitable account match found');
-        console.log('⚠️ [SmartSuggest] Agent will return null, triggering fallback logic');
         return null;
       }
-      
-      console.log('✅ [SmartSuggest] Best match found:', bestMatch.account.name, 'with confidence:', bestMatch.confidence);
 
       // Determine entry type based on account type and business context
       const entryType = this.determineEntryType(bestMatch.account, businessKeywords);
@@ -104,7 +83,7 @@ export class SmartSuggestionAgent {
         confidence: confidenceNumber
       };
 
-      console.log('✅ SmartSuggestionAgent result:', result);
+
 
       // Log analytics
       await logAnalytics('smart_suggestion_agent_used', {
@@ -239,12 +218,10 @@ export class SmartSuggestionAgent {
         // Check for partial match (keyword starts with description or description starts with keyword)
         const partialMatch = keyword.toLowerCase().startsWith(description.toLowerCase()) || description.toLowerCase().startsWith(keyword.toLowerCase());
         const hasKeyword = exactMatch || partialMatch;
-        console.log('🔍 [SmartSuggest] Keyword:', keyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword);
         return hasKeyword;
       });
       
       if (foundKeywords.length > 0) {
-        console.log('✅ [SmartSuggest] Found keywords:', foundKeywords, 'for category:', category.name);
         return {
           category: category.name,
           confidence: category.confidence,
@@ -268,14 +245,6 @@ export class SmartSuggestionAgent {
     businessKeywords: any,
     _description: string
   ): { account: Account; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null {
-    console.log('🔍 [SmartSuggest] Searching best match for category:', businessKeywords.category);
-    console.log('📂 [SmartSuggest] Available Accounts:', accounts.map((a: Account) => ({
-      name: a.name,
-      type: a.type,
-      category: a.category,
-      financialCategory: a.financialCategory
-    })));
-    
     // Determine expected account type based on business category
     let expectedAccountType: string | null = null;
     switch (businessKeywords.category) {
@@ -298,8 +267,6 @@ export class SmartSuggestionAgent {
         expectedAccountType = 'ASSET';
         break;
     }
-    
-    console.log('🎯 [SmartSuggest] Expected account type for category:', expectedAccountType);
     
     let bestMatch = null;
     let bestScore = 0;
@@ -341,7 +308,6 @@ export class SmartSuggestionAgent {
         });
         if (primaryMatch) {
           categorySpecificScore = 90; // Very high priority for primary purchase keywords
-          console.log('✅ [SmartSuggest] Primary purchase keyword match for', account.name, 'score +90');
         } else {
           // Secondary purchase keywords (medium priority)
           const secondaryPurchaseKeywords = ['hardware', 'software', 'licenses', 'subscriptions', 'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'];
@@ -355,12 +321,10 @@ export class SmartSuggestionAgent {
                              accountNameLower.startsWith(`${keywordLower} `) ||
                              accountNameLower.endsWith(` ${keywordLower}`);
             
-            console.log('🔍 [SmartSuggest] Checking', account.name, 'for secondary keyword:', keyword, 'found:', hasKeyword);
             return hasKeyword;
           });
           if (secondaryMatch) {
             categorySpecificScore = 70; // Medium priority for secondary purchase keywords
-            console.log('✅ [SmartSuggest] Secondary purchase keyword match for', account.name, 'score +70');
           }
         }
         categorySpecificMatch = primaryMatch || categorySpecificScore > 0;
@@ -379,7 +343,6 @@ export class SmartSuggestionAgent {
         });
         if (categorySpecificMatch) {
           categorySpecificScore = 80;
-          console.log('✅ [SmartSuggest] Revenue keyword match for', account.name, 'score +80');
         }
       }
       if (categorySpecificMatch) {
@@ -390,34 +353,25 @@ export class SmartSuggestionAgent {
       const categoryMatch = account.category?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (categoryMatch) {
         score += 40; // Increased from 30
-        console.log('✅ [SmartSuggest] Category field match for', account.name);
       }
       
       // Check subcategory match
       const subcategoryMatch = account.subcategory?.toLowerCase().includes(businessKeywords.category.toLowerCase());
       if (subcategoryMatch) {
         score += 30; // Increased from 20
-        console.log('✅ [SmartSuggest] Subcategory match for', account.name);
       }
       
       // Bonus for recently used accounts (reduced weight)
       const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
       if (daysSinceUpdate < 7) {
         score += 5; // Reduced from 10
-        console.log('✅ [SmartSuggest] Recently used bonus for', account.name);
       }
 
-      console.log('📊 [SmartSuggest] Account', account.name, 'final score:', score, 'best score so far:', bestScore);
-      
       if (score > bestScore) {
         bestScore = score;
         bestMatch = { account, confidence: businessKeywords.confidence };
-        console.log('🏆 [SmartSuggest] New best match:', account.name, 'with score:', score);
       }
     }
-
-    console.log('✅ [SmartSuggest] Best Match:', bestMatch?.account?.name ?? 'No match found');
-    console.log('📊 [SmartSuggest] Best Score:', bestScore);
     
     return bestMatch;
   }
