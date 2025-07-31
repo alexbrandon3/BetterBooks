@@ -236,6 +236,7 @@ export class SuggestionService {
     selectedAccountId?: number;
     selectedAccountName?: string;
     userReason?: string;
+    rejectionReason?: string;
     suggestionMetadata: any;
     contextData: any;
   }): Promise<void> {
@@ -243,7 +244,8 @@ export class SuggestionService {
       console.log('💾 [SuggestionService] Saving suggestion feedback:', {
         userId: data.userId,
         description: data.description,
-        feedbackType: data.feedbackType
+        feedbackType: data.feedbackType,
+        rejectionReason: data.rejectionReason
       });
 
       // Save feedback for memory learning

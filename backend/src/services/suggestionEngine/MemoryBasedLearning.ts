@@ -67,84 +67,71 @@ export class MemoryBasedLearning {
       }>();
 
       for (const feedback of userFeedback) {
-        const accountId = feedback.selectedAccountId || feedback.suggestedAccountId;
-        const accountName = feedback.selectedAccountName || feedback.suggestedAccountName;
+        const accountId = feedback.suggestedAccountId;
+        const existing = accountPatterns.get(accountId);
         
-        if (!accountPatterns.has(accountId)) {
+        if (existing) {
+          existing.totalSuggestions++;
+          if (feedback.feedbackType === 'ACCEPTED') existing.acceptedCount++;
+          else if (feedback.feedbackType === 'REJECTED') existing.rejectedCount++;
+          else if (feedback.feedbackType === 'IGNORED') existing.ignoredCount++;
+          
+          existing.descriptions.push(feedback.description);
+          existing.lastUsed = feedback.createdAt;
+        } else {
           accountPatterns.set(accountId, {
             accountId,
-            accountName,
-            totalSuggestions: 0,
-            acceptedCount: 0,
-            rejectedCount: 0,
-            ignoredCount: 0,
-            descriptions: [],
+            accountName: feedback.suggestedAccountName,
+            totalSuggestions: 1,
+            acceptedCount: feedback.feedbackType === 'ACCEPTED' ? 1 : 0,
+            rejectedCount: feedback.feedbackType === 'REJECTED' ? 1 : 0,
+            ignoredCount: feedback.feedbackType === 'IGNORED' ? 1 : 0,
+            descriptions: [feedback.description],
             keywords: new Set(),
             categories: new Set(),
             lastUsed: feedback.createdAt,
-            avgConfidence: 0
+            avgConfidence: feedback.confidence
           });
         }
-
-        const pattern = accountPatterns.get(accountId)!;
-        pattern.totalSuggestions++;
-        pattern.avgConfidence += feedback.confidence;
-
-        // Count feedback types
-        switch (feedback.feedbackType) {
-          case 'ACCEPTED':
-            pattern.acceptedCount++;
-            break;
-          case 'REJECTED':
-            pattern.rejectedCount++;
-            break;
-          case 'IGNORED':
-            pattern.ignoredCount++;
-            break;
-        }
-
-        // Extract keywords and categories from metadata
-        if (feedback.suggestionMetadata?.businessKeywords?.keywords) {
-          feedback.suggestionMetadata.businessKeywords.keywords.forEach(keyword => 
-            pattern.keywords.add(keyword.toLowerCase())
-          );
-        }
-
-        if (feedback.suggestionMetadata?.category) {
-          pattern.categories.add(feedback.suggestionMetadata.category);
-        }
-
-        pattern.descriptions.push(feedback.description);
-        pattern.lastUsed = feedback.createdAt > pattern.lastUsed ? feedback.createdAt : pattern.lastUsed;
       }
 
-      // Convert to LearningPattern objects
+      // Convert to LearningPattern array and filter out heavily rejected accounts
       const patterns: LearningPattern[] = [];
-      for (const [accountId, pattern] of accountPatterns) {
-        const successRate = pattern.totalSuggestions > 0 ? pattern.acceptedCount / pattern.totalSuggestions : 0;
-        const avgConfidence = pattern.totalSuggestions > 0 ? pattern.avgConfidence / pattern.totalSuggestions : 0;
+      
+      for (const [, pattern] of accountPatterns) {
+        // Skip accounts that have been heavily rejected for this description
+        const descriptionRejections = pattern.descriptions
+          .filter(desc => desc.toLowerCase().includes(normalizedDescription.split(' ')[0])) // Check for keyword overlap
+          .length;
+        
+        const rejectionRate = pattern.rejectedCount / pattern.totalSuggestions;
+        
+        // Skip if this account has been rejected more than 50% of the time for similar descriptions
+        if (rejectionRate > 0.5 && descriptionRejections > 0) {
+          console.log(`🚫 [MemoryLearning] Skipping account ${pattern.accountName} due to high rejection rate: ${rejectionRate}`);
+          continue;
+        }
 
-        patterns.push({
-          description: normalizedDescription,
-          accountId: pattern.accountId,
-          accountName: pattern.accountName,
-          confidence: Math.round(avgConfidence),
-          usageCount: pattern.totalSuggestions,
-          successRate,
-          lastUsed: pattern.lastUsed,
-          businessKeywords: Array.from(pattern.keywords),
-          category: Array.from(pattern.categories)[0] || 'Unknown'
-        });
+        // Calculate success rate (acceptances / total)
+        const successRate = pattern.totalSuggestions > 0 ? pattern.acceptedCount / pattern.totalSuggestions : 0;
+        
+        // Only include patterns with some success or recent activity
+        if (successRate > 0 || pattern.totalSuggestions >= 2) {
+          patterns.push({
+            description: normalizedDescription,
+            accountId: pattern.accountId,
+            accountName: pattern.accountName,
+            confidence: pattern.avgConfidence,
+            usageCount: pattern.totalSuggestions,
+            successRate,
+            lastUsed: pattern.lastUsed,
+            businessKeywords: this.extractBusinessKeywords(normalizedDescription),
+            category: this.categorizeDescription(normalizedDescription)
+          });
+        }
       }
 
-      // Sort by success rate and usage count
-      patterns.sort((a, b) => {
-        const aScore = (a.successRate * 0.7) + (a.usageCount / 100 * 0.3);
-        const bScore = (b.successRate * 0.7) + (b.usageCount / 100 * 0.3);
-        return bScore - aScore;
-      });
-
-      console.log('🧠 [MemoryLearning] Found patterns:', patterns.length);
+      console.log(`📊 [MemoryLearning] Found ${patterns.length} valid patterns`);
       return patterns;
 
     } catch (error) {
@@ -225,6 +212,7 @@ export class MemoryBasedLearning {
     selectedAccountId?: number;
     selectedAccountName?: string;
     userReason?: string;
+    rejectionReason?: string;
     suggestionMetadata: any;
     contextData: any;
   }): Promise<void> {
@@ -232,7 +220,8 @@ export class MemoryBasedLearning {
       console.log('💾 [MemoryLearning] Saving feedback:', {
         userId: data.userId,
         description: data.description,
-        feedbackType: data.feedbackType
+        feedbackType: data.feedbackType,
+        rejectionReason: data.rejectionReason
       });
 
       const feedback = this.feedbackRepo.create({
@@ -245,6 +234,7 @@ export class MemoryBasedLearning {
         selectedAccountId: data.selectedAccountId,
         selectedAccountName: data.selectedAccountName,
         userReason: data.userReason,
+        rejectionReason: data.rejectionReason,
         suggestionMetadata: data.suggestionMetadata,
         contextData: data.contextData
       });
@@ -265,6 +255,12 @@ export class MemoryBasedLearning {
         // User rejected suggestion without selecting alternative
         // Learn to avoid the suggested account for this description
         console.log('✅ [MemoryLearning] Learned to avoid suggested account');
+        
+        // Handle side-specific rejections
+        if (data.rejectionReason?.includes('side only')) {
+          console.log('🎯 [MemoryLearning] Side-specific rejection detected:', data.rejectionReason);
+          // This will be used in pattern analysis to avoid suggesting that specific side
+        }
       }
 
       // Log analytics
@@ -273,6 +269,7 @@ export class MemoryBasedLearning {
         feedback_type: data.feedbackType,
         confidence: data.confidence,
         has_user_reason: !!data.userReason,
+        has_rejection_reason: !!data.rejectionReason,
         has_alternative_selection: !!data.selectedAccountId
       });
 
@@ -442,6 +439,31 @@ export class MemoryBasedLearning {
       .replace(/[^\w\s]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  private extractBusinessKeywords(description: string): string[] {
+    const keywords = description.toLowerCase().split(' ');
+    return keywords.filter(word => word.length > 2); // Filter out short words
+  }
+
+  private categorizeDescription(description: string): string {
+    const lowerDesc = description.toLowerCase();
+    
+    if (lowerDesc.includes('revenue') || lowerDesc.includes('sale') || lowerDesc.includes('income')) {
+      return 'Revenue & Sales';
+    } else if (lowerDesc.includes('purchase') || lowerDesc.includes('inventory') || lowerDesc.includes('supply')) {
+      return 'Purchases & Inventory';
+    } else if (lowerDesc.includes('expense') || lowerDesc.includes('cost') || lowerDesc.includes('utility')) {
+      return 'Operating Expenses';
+    } else if (lowerDesc.includes('payroll') || lowerDesc.includes('salary') || lowerDesc.includes('hr')) {
+      return 'Payroll & HR';
+    } else if (lowerDesc.includes('tax') || lowerDesc.includes('compliance') || lowerDesc.includes('legal')) {
+      return 'Taxes & Compliance';
+    } else if (lowerDesc.includes('bank') || lowerDesc.includes('cash') || lowerDesc.includes('checking')) {
+      return 'Banking & Cash';
+    } else {
+      return 'Other';
+    }
   }
 
   private async saveUserPreference(description: string, accountId: number, userId: number): Promise<void> {

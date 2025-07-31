@@ -36,11 +36,9 @@ export class SuggestionFeedback {
   @Column({ nullable: true })
   selectedAccountName: string;
 
-  @Column({ type: 'text', nullable: true })
-  userReason: string; // Optional user-provided reason for rejection
-
-  @Column({ type: 'jsonb', nullable: true })
-  suggestionMetadata: {
+  @Column({ type: 'text', nullable: true }) userReason: string;
+  @Column({ type: 'text', nullable: true }) rejectionReason: string;
+  @Column({ type: 'jsonb', nullable: true }) suggestionMetadata: {
     accountType: string;
     category: string;
     financialCategory: string;

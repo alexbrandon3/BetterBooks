@@ -230,6 +230,7 @@ export const getSuggestedAccount = async (description: string): Promise<{
 };
 
 export const saveSuggestionFeedback = async (data: {
+  userId: number;
   description: string;
   suggestedAccountId: number;
   suggestedAccountName: string;
@@ -238,8 +239,9 @@ export const saveSuggestionFeedback = async (data: {
   selectedAccountId?: number;
   selectedAccountName?: string;
   userReason?: string;
-  suggestionMetadata?: any;
-  contextData?: any;
+  suggestionMetadata: any;
+  contextData: any;
+  rejectionReason?: string;
 }): Promise<void> => {
   try {
     await api.post('/suggestions/save-feedback', data);

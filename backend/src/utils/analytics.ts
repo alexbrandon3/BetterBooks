@@ -3,7 +3,8 @@ export type AnalyticsEvent =
   | 'goal_created_from_suggestion'
   | 'suggestions_generated'
   | 'view_suggestions'
-  | 'smart_suggestion_agent_used';
+  | 'smart_suggestion_agent_used'
+  | 'suggestion_feedback_saved';
 
 export const logAnalytics = async (_event: AnalyticsEvent, _details?: Record<string, any>): Promise<void> => {
   // In production, this would send to an analytics service

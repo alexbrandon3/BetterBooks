@@ -183,53 +183,38 @@ export class SuggestionController extends BaseController {
 
   async saveSuggestionFeedback(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log('💾 Save suggestion feedback request:', {
-        body: req.body,
-        userId: req.user.userId
-      });
-      
-      const { 
-        description, 
-        suggestedAccountId, 
-        suggestedAccountName, 
-        confidence, 
-        feedbackType, 
-        selectedAccountId, 
-        selectedAccountName, 
-        userReason, 
-        suggestionMetadata, 
-        contextData 
+      const userId = req.user?.userId;
+      if (!userId) {
+        this.sendResponse(res, 401, { error: 'Unauthorized' });
+        return;
+      }
+
+      const {
+        description,
+        suggestedAccountId,
+        suggestedAccountName,
+        confidence,
+        feedbackType,
+        selectedAccountId,
+        selectedAccountName,
+        userReason,
+        rejectionReason,
+        suggestionMetadata,
+        contextData
       } = req.body;
-      
+
       // Validate required fields
-      if (!description || typeof description !== 'string') {
-        this.sendError(res, 400, 'Description is required and must be a string');
+      if (!description || !suggestedAccountId || !suggestedAccountName || !confidence || !feedbackType) {
+        this.sendResponse(res, 400, { error: 'Missing required fields' });
         return;
       }
 
-      if (!suggestedAccountId || typeof suggestedAccountId !== 'number') {
-        this.sendError(res, 400, 'SuggestedAccountId is required and must be a number');
+      // Validate feedback type
+      if (!['ACCEPTED', 'REJECTED', 'IGNORED'].includes(feedbackType)) {
+        this.sendResponse(res, 400, { error: 'Invalid feedback type' });
         return;
       }
 
-      if (!suggestedAccountName || typeof suggestedAccountName !== 'string') {
-        this.sendError(res, 400, 'SuggestedAccountName is required and must be a string');
-        return;
-      }
-
-      if (!confidence || typeof confidence !== 'number') {
-        this.sendError(res, 400, 'Confidence is required and must be a number');
-        return;
-      }
-
-      if (!feedbackType || !['ACCEPTED', 'REJECTED', 'IGNORED'].includes(feedbackType)) {
-        this.sendError(res, 400, 'FeedbackType must be ACCEPTED, REJECTED, or IGNORED');
-        return;
-      }
-
-      const userId = req.user.userId;
-      console.log('💾 Saving feedback for description:', description, 'feedbackType:', feedbackType, 'userId:', userId);
-      
       await this.suggestionService.saveSuggestionFeedback({
         userId,
         description,
@@ -240,16 +225,15 @@ export class SuggestionController extends BaseController {
         selectedAccountId,
         selectedAccountName,
         userReason,
+        rejectionReason,
         suggestionMetadata,
         contextData
       });
-      
-      console.log('✅ Feedback saved successfully');
-      
+
       this.sendResponse(res, 200, { message: 'Feedback saved successfully' });
     } catch (error) {
-      console.error('❌ Error in saveSuggestionFeedback:', error);
-      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+      console.error('Error saving suggestion feedback:', error);
+      this.sendResponse(res, 500, { error: 'Internal server error' });
     }
   }
 

@@ -283,7 +283,7 @@ const Transactions = () => {
     return null;
   };
 
-  const sendSuggestionFeedback = async (feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED', selectedAccountId?: number, selectedAccountName?: string) => {
+  const sendSuggestionFeedback = async (feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED', selectedAccountId?: number, selectedAccountName?: string, reason?: string) => {
     if (!currentSuggestion) return;
 
     try {
@@ -309,7 +309,8 @@ const Transactions = () => {
           timestamp: new Date().toISOString(),
           userAgent: navigator.userAgent,
           sessionId: Math.random().toString(36).substring(7)
-        }
+        },
+        rejectionReason: reason
       });
     } catch (error) {
       console.error('Error sending suggestion feedback:', error);
@@ -1168,8 +1169,8 @@ const Transactions = () => {
                   </div>
                 )}
                 
-                {/* Accept/Reject Buttons */}
-                <div className="flex gap-2 mt-3">
+                {/* Enhanced Accept/Reject Buttons with Side-Specific Options */}
+                <div className="flex flex-wrap gap-2 mt-3">
                   <button
                     type="button"
                     onClick={async () => {
@@ -1189,8 +1190,69 @@ const Transactions = () => {
                     }}
                     className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors"
                   >
-                    Accept
+                    Accept Both
                   </button>
+                  
+                  {/* Side-specific reject buttons */}
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // Reject only the suggested side (DEBIT or CREDIT)
+                        const currentValues = watch();
+                        const suggestedEntryType = currentSuggestion?.suggestedEntryType;
+                        
+                        // Clear only the suggested entry
+                        const updatedEntries = [...currentValues.entries];
+                        if (suggestedEntryType === 'DEBIT') {
+                          updatedEntries[0] = { accountId: "", amount: "", type: "DEBIT" };
+                        } else if (suggestedEntryType === 'CREDIT') {
+                          updatedEntries[1] = { accountId: "", amount: "", type: "CREDIT" };
+                        }
+                        
+                        setValue('entries', updatedEntries);
+                        
+                        // Send feedback for partial rejection
+                        await sendSuggestionFeedback('REJECTED', undefined, undefined, 
+                          `Rejected ${suggestedEntryType} side only`
+                        );
+                      }}
+                      className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
+                      title={`Reject only the ${currentSuggestion?.suggestedEntryType} side`}
+                    >
+                      Reject {currentSuggestion?.suggestedEntryType}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // Reject only the auto-populated side
+                        const currentValues = watch();
+                        const suggestedEntryType = currentSuggestion?.suggestedEntryType;
+                        const autoPopulatedEntryType = suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT';
+                        
+                        // Clear only the auto-populated entry
+                        const updatedEntries = [...currentValues.entries];
+                        if (autoPopulatedEntryType === 'DEBIT') {
+                          updatedEntries[0] = { accountId: "", amount: "", type: "DEBIT" };
+                        } else if (autoPopulatedEntryType === 'CREDIT') {
+                          updatedEntries[1] = { accountId: "", amount: "", type: "CREDIT" };
+                        }
+                        
+                        setValue('entries', updatedEntries);
+                        
+                        // Send feedback for partial rejection
+                        await sendSuggestionFeedback('REJECTED', undefined, undefined, 
+                          `Rejected ${autoPopulatedEntryType} side only`
+                        );
+                      }}
+                      className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
+                      title={`Reject only the ${currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT'} side`}
+                    >
+                      Reject {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT'}
+                    </button>
+                  </div>
+                  
                   <button
                     type="button"
                     onClick={async () => {
@@ -1200,7 +1262,7 @@ const Transactions = () => {
                       // Send feedback for rejected suggestion
                       await sendSuggestionFeedback('REJECTED');
                       
-                      // Reset form entries when rejecting
+                      // Reset form entries when rejecting both
                       const currentValues = watch();
                       const resetEntries: { accountId: string; amount: string; type: "DEBIT" | "CREDIT" }[] = [
                         { accountId: "", amount: "", type: "DEBIT" },
@@ -1213,7 +1275,7 @@ const Transactions = () => {
                     }}
                     className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
                   >
-                    Reject
+                    Reject Both
                   </button>
                 </div>
               </div>
