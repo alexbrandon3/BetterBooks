@@ -10,7 +10,7 @@ import { SmartGoalSuggestions } from '../components/SmartGoalSuggestions';
 import GoalTrackerCard from '../components/GoalTrackerCard';
 import { FinancialGoal } from '../types/goal';
 import { toast } from 'react-hot-toast';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // Helper to format account counts with proper grammar
 function formatAccountCount(count: number, label: string = 'account'): string {
@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
@@ -228,31 +229,50 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-                      <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {getGreeting()}, {user?.email?.split('@')[0] || 'Business Owner'}! 👋
-            </h1>
-          <p className="text-gray-600">
-            Here's your financial overview for today
-          </p>
+        {/* Enhanced Header */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
+                {getGreeting()}, {user?.email?.split('@')[0] || 'Business Owner'}! 👋
+              </h1>
+              <p className="text-lg text-gray-600">
+                Here's your financial overview for today
+              </p>
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Last updated</div>
+                <div className="text-sm font-medium text-gray-700">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Financial Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Enhanced Financial Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {/* Total Cash */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Cash</p>
-                <p className={`text-2xl font-bold ${totalCash >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Cash</p>
+                <p className={`text-3xl font-bold ${totalCash >= 0 ? 'text-green-600' : 'text-red-600'} group-hover:scale-105 transition-transform duration-200`}>
                   {formatCurrency(totalCash)}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {cashAccounts.length} account{cashAccounts.length !== 1 ? 's' : ''}
+                </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl group-hover:scale-110 transition-transform duration-200">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
               </div>
@@ -260,48 +280,53 @@ const Dashboard = () => {
           </div>
 
           {/* Account Count */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Accounts</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatAccountCount(accounts.length)}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Accounts</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-200">
+                  {accounts?.length || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatAccountCount(accounts?.length || 0, 'account')}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl group-hover:scale-110 transition-transform duration-200">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          {/* Recent Transactions */}
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Recent Activity</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {recentTransactions.length} transactions
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Recent Activity</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-200">
+                  {recentTransactions?.length || 0}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">Last 10 transactions</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl group-hover:scale-110 transition-transform duration-200">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Quick Actions</p>
-                <p className="text-2xl font-bold text-gray-900">3 available</p>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Quick Actions</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-200">3</p>
+                <p className="text-xs text-gray-500 mt-1">Available actions</p>
               </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl group-hover:scale-110 transition-transform duration-200">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
@@ -331,144 +356,161 @@ const Dashboard = () => {
           {/* Right Column - Recent Transactions */}
           <div className="space-y-8">
             {/* Recent Transactions */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
-                <Link
-                  to="/transactions"
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-                >
-                  View All →
-                </Link>
-              </div>
-              
-              {recentTransactions.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="flex items-center">
+                  <div className="h-8 w-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl mr-3 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 text-sm">No recent transactions</p>
-                  <Link
-                    to="/transactions"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium mt-2 inline-block"
-                  >
-                    Create your first transaction
-                  </Link>
+                  <h3 className="text-xl font-semibold text-gray-900">Recent Transactions</h3>
                 </div>
-              ) : (
+                <button
+                  onClick={() => navigate('/transactions')}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors duration-200"
+                >
+                  View All
+                </button>
+              </div>
+              
+              {isLoading ? (
                 <div className="space-y-4">
-                  {recentTransactions.slice(0, 5).map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {transaction.description}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(transaction.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="ml-4 flex-shrink-0">
-                        <span className={`text-sm font-semibold ${
-                          transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatTransactionAmount(transaction)}
-                        </span>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                        <div className="h-5 bg-gray-200 rounded w-20"></div>
                       </div>
                     </div>
                   ))}
                 </div>
+              ) : error ? (
+                <div className="text-center py-8">
+                  <div className="text-red-500 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <button
+                    onClick={handleReload}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : recentTransactions && recentTransactions.length > 0 ? (
+                <div className="space-y-3">
+                  {recentTransactions.slice(0, 5).map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="group p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 cursor-pointer border border-gray-200 hover:border-blue-200"
+                      onClick={() => navigate('/transactions')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-900 transition-colors duration-200">
+                            {transaction.description}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(transaction.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.amount >= 0 ? '+' : ''}{formatTransactionAmount(transaction)}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 capitalize">
+                            {transaction.type.toLowerCase().replace('_', ' ')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-300 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500">No recent transactions</p>
+                  <p className="text-sm text-gray-400 mt-1">Start by adding your first transaction</p>
+                </div>
               )}
             </div>
 
-            {/* Account Balances Summary */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Balances</h2>
-              
-              {accounts.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-gray-500 text-sm">No accounts found</p>
-                  <Link
-                    to="/accounts"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium mt-2 inline-block"
-                  >
-                    Create your first account
-                  </Link>
+            {/* Account Balances */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+              <div className="flex items-center mb-6">
+                <div className="h-8 w-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl mr-3 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
                 </div>
-              ) : (
+                <h3 className="text-xl font-semibold text-gray-900">Account Balances</h3>
+              </div>
+              
+              {isLoading ? (
                 <div className="space-y-3">
-                  {(() => {
-                    // Prioritize balance sheet accounts with positive balances
-                    const balanceSheetAccounts = accounts.filter(account => {
-                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
-                      return (
-                        (account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY') &&
-                        balance > 0
-                      );
-                    }).sort((a, b) => {
-                      const balanceA = accountBalances.get(a.id) ?? Number(a.balance);
-                      const balanceB = accountBalances.get(b.id) ?? Number(b.balance);
-                      return balanceB - balanceA; // Sort by highest balance first
-                    });
-
-                    // Get other accounts (non-balance sheet or zero/negative balance)
-                    const otherAccounts = accounts.filter(account => {
-                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
-                      return !(
-                        (account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY') &&
-                        balance > 0
-                      );
-                    });
-
-                    // Combine prioritized accounts first, then others
-                    const displayAccounts = [...balanceSheetAccounts, ...otherAccounts].slice(0, 5);
-
-                    return displayAccounts.map((account) => {
-                      const balance = accountBalances.get(account.id) ?? Number(account.balance);
-                      const isBalanceSheet = account.type === 'ASSET' || account.type === 'LIABILITY' || account.type === 'EQUITY';
-                      const isPositiveBalance = balance > 0;
-                      
-                      return (
-                        <div key={account.id} className={`flex items-center justify-between p-2 rounded-lg ${
-                          isBalanceSheet && isPositiveBalance 
-                            ? account.type === 'ASSET' 
-                              ? 'bg-green-50 border border-green-100' 
-                              : account.type === 'LIABILITY' 
-                                ? 'bg-red-50 border border-red-100' 
-                                : 'bg-purple-50 border border-purple-100'
-                            : ''
-                        }`}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                        </div>
+                        <div className="h-5 bg-gray-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : accounts && accounts.length > 0 ? (
+                <div className="space-y-3">
+                  {accounts.slice(0, 5).map((account) => {
+                    const balance = accountBalances.get(account.id) ?? Number(account.balance);
+                    return (
+                      <div
+                        key={account.id}
+                        className="group p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-green-50 hover:to-emerald-50 transition-all duration-200 cursor-pointer border border-gray-200 hover:border-green-200"
+                        onClick={() => navigate('/accounts')}
+                      >
+                        <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-green-900 transition-colors duration-200">
                               {account.name}
                             </p>
-                            <p className="text-xs text-gray-500 capitalize">
-                              {account.type.toLowerCase()}
+                            <p className="text-xs text-gray-500 mt-1 capitalize">
+                              {account.type.toLowerCase().replace('_', ' ')}
                             </p>
                           </div>
-                          <div className="ml-4 flex-shrink-0">
-                            <span className={`text-sm font-semibold ${
-                              isBalanceNegative(balance) ? 'text-red-600' : 'text-gray-900'
-                            }`}>
+                          <div className="text-right ml-4">
+                            <p className={`text-sm font-semibold ${isBalanceNegative(balance) ? 'text-red-600' : 'text-green-600'}`}>
                               {formatAccountBalance(balance)}
-                            </span>
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {account.financialCategory?.toLowerCase().replace('_', ' ') || 'N/A'}
+                            </p>
                           </div>
                         </div>
-                      );
-                    });
-                  })()}
-                  
-                  {accounts.length > 5 && (
-                    <div className="pt-3 border-t border-gray-200">
-                      <Link
-                        to="/accounts"
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                      >
-                        View all {accounts.length} accounts →
-                      </Link>
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="text-gray-300 mb-3">
+                    <svg className="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-sm">No accounts found</p>
+                  <p className="text-xs text-gray-400 mt-1">Set up your accounts to get started</p>
                 </div>
               )}
             </div>
