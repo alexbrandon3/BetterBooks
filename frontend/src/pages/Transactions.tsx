@@ -1221,7 +1221,7 @@ const Transactions = () => {
                       className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
                       title={`Reject only the ${currentSuggestion?.suggestedEntryType} side`}
                     >
-                      Accept {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'credit' : 'debit'} line item, reject {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'debit' : 'credit'}
+                      Accept {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'credit' : 'debit'}, reject {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'debit' : 'credit'}
                     </button>
                     
                     <button
@@ -1250,7 +1250,7 @@ const Transactions = () => {
                       className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
                       title={`Reject only the ${currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT'} side`}
                     >
-                      Accept {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'credit' : 'debit'} line item, reject {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'debit' : 'credit'}
+                      Accept {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'debit' : 'credit'}, reject {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'credit' : 'debit'}
                     </button>
                   </div>
                   
