@@ -244,7 +244,7 @@ export class SuggestionService {
     }
   }
 
-  async suggestCategoryForDescription(description: string, userId: number): Promise<{
+  async suggestCategoryForDescription(description: string): Promise<{
     suggestedCategory: string;
     confidence: number;
     reason: string;

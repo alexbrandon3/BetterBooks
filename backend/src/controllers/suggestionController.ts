@@ -255,7 +255,7 @@ export class SuggestionController extends BaseController {
       const userId = req.user.userId;
       console.log('🔍 Getting category suggestion for description:', description, 'userId:', userId);
       
-      const suggestion = await this.suggestionService.suggestCategoryForDescription(description, userId);
+      const suggestion = await this.suggestionService.suggestCategoryForDescription(description);
       
       console.log('✅ Category suggestion result:', suggestion);
       
