@@ -7,6 +7,7 @@ import {
   fetchRecurringTransactions,
   createRecurringTransaction,
   deleteRecurringTransaction,
+  toggleRecurringTransaction,
 } from "../services/RecurringTransactionService";
 
 interface RecurringTransaction {
@@ -14,6 +15,8 @@ interface RecurringTransaction {
   description: string;
   amount: number;
   recurrencePattern: string;
+  nextRun: string;
+  isActive: boolean;
   account: {
     id: number;
     name: string;
@@ -93,6 +96,21 @@ const RecurringTransactions = () => {
     }
   };
 
+  const handleToggleActive = async (id: number, currentStatus: boolean) => {
+    try {
+      await toggleRecurringTransaction(id);
+      setRecurringTransactions(prev =>
+        prev.map(txn =>
+          txn.id === id ? { ...txn, isActive: !currentStatus } : txn
+        )
+      );
+      toast.success(`Recurring transaction ${currentStatus ? 'paused' : 'resumed'} successfully!`);
+    } catch (error) {
+      console.error("Failed to toggle recurring transaction status:", error);
+      toast.error('Failed to update recurring transaction status. Please try again.');
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
 
   return (
@@ -147,29 +165,52 @@ const RecurringTransactions = () => {
       <table className="w-full border">
         <thead>
           <tr>
-            <th role="columnheader" className="border px-4 py-2">Date</th>
+            <th role="columnheader" className="border px-4 py-2">Next Run</th>
             <th role="columnheader" className="border px-4 py-2">Description</th>
             <th role="columnheader" className="border px-4 py-2">Amount</th>
             <th role="columnheader" className="border px-4 py-2">Account</th>
+            <th role="columnheader" className="border px-4 py-2">Status</th>
             <th role="columnheader" className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           {recurringTransactions.map((txn: any) => (
             <tr key={txn.id}>
-              <td className="border px-4 py-2">-</td>
+              <td className="border px-4 py-2">
+                {txn.nextRun ? format(new Date(txn.nextRun), 'MMM dd, yyyy') : 'Not scheduled'}
+              </td>
               <td className="border px-4 py-2">{txn.description}</td>
               <td className="border px-4 py-2">${Math.abs(txn.amount).toFixed(2)}</td>
               <td className="border px-4 py-2">{txn.account.name}</td>
               <td className="border px-4 py-2">
-                <button
-                  onClick={() => handleDelete(txn.id)}
-                  className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
-                  title="Delete recurring transaction"
-                  aria-label="Delete recurring transaction"
-                >
-                  <span className="text-gray-600 hover:text-red-600">🗑️</span>
-                </button>
+                <span className={`px-2 py-1 rounded text-xs ${
+                  txn.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {txn.isActive ? 'Active' : 'Paused'}
+                </span>
+              </td>
+              <td className="border px-4 py-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleToggleActive(txn.id, txn.isActive)}
+                    className={`px-2 py-1 rounded text-xs ${
+                      txn.isActive 
+                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                        : 'bg-green-100 text-green-800 hover:bg-green-200'
+                    }`}
+                    title={txn.isActive ? 'Pause recurring transaction' : 'Resume recurring transaction'}
+                  >
+                    {txn.isActive ? '⏸️ Pause' : '▶️ Resume'}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(txn.id)}
+                    className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                    title="Delete recurring transaction"
+                    aria-label="Delete recurring transaction"
+                  >
+                    <span className="text-gray-600 hover:text-red-600">🗑️</span>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

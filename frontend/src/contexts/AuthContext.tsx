@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 export interface UserProfile {
   id: string;
   email: string;
+  displayName?: string;
   riskTolerance: RiskTolerance;
 }
 

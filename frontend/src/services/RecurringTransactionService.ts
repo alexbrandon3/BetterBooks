@@ -39,3 +39,13 @@ export const deleteRecurringTransaction = async (id: number) => {
     throw error;
   }
 };
+
+export const toggleRecurringTransaction = async (id: number) => {
+  try {
+    const response = await api.patch(`/recurring-transactions/${id}/toggle`);
+    return response.data;
+  } catch (error) {
+    console.error("Error toggling recurring transaction:", error);
+    throw error;
+  }
+};

@@ -12,6 +12,9 @@ import Reports from "./pages/Reports";
 import Accounts from "./pages/Accounts";
 import { useAuth } from "./contexts/AuthContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { OnboardingProvider } from "./contexts/OnboardingContext";
+import OnboardingModal from "./components/OnboardingModal";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "react-hot-toast";
 import NotFound from "./pages/NotFound";
 
@@ -96,12 +99,17 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <Router>
-      <AuthProvider>
-        <AppContent />
-        <Toaster position="top-right" />
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <OnboardingProvider>
+            <AppContent />
+            <OnboardingModal />
+            <Toaster position="top-right" />
+          </OnboardingProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

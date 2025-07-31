@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
+import api from '../utils/axios';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -12,6 +17,17 @@ const Settings: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleSaveDisplayName = async () => {
+    try {
+      await api.put('/auth/profile', { displayName });
+      toast.success('Display name updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      toast.error('Failed to update display name');
+      console.error('Error updating display name:', error);
+    }
   };
 
   return (
@@ -81,11 +97,67 @@ const Settings: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Display Name
+              </label>
+              {isEditing ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter display name"
+                  />
+                  <button
+                    onClick={handleSaveDisplayName}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setDisplayName(user?.displayName || '');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="text-gray-900">{displayName || 'Not set'}</div>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Risk Tolerance
               </label>
               <div className="text-gray-900 capitalize">
                 {user?.riskTolerance || 'Not set'}
               </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Dark Mode</div>
+                <div className="text-sm text-gray-500">Toggle dark theme</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isDarkMode}
+                  onChange={(e) => setIsDarkMode(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
             </div>
             <div className="pt-4">
               <button
