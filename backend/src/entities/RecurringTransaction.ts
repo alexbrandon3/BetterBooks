@@ -30,6 +30,9 @@ export class RecurringTransaction {
   @Column()
   nextRun!: Date;
 
+  @Column({ default: true })
+  isActive!: boolean;
+
   @Column({ type: "timestamp", nullable: true })
   endDate?: Date;
 

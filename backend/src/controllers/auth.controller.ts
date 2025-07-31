@@ -119,7 +119,7 @@ export class AuthController extends BaseController {
       const userRepository = AppDataSource.getRepository(User);
       const user = await userRepository.findOne({
         where: { id: Number(req.user?.userId) },
-        select: ["id", "email", "riskTolerance", "createdAt", "updatedAt"],
+        select: ["id", "email", "displayName", "riskTolerance", "createdAt", "updatedAt"],
       });
 
       if (!user) {
@@ -130,6 +130,48 @@ export class AuthController extends BaseController {
       this.sendResponse(res, 200, user);
     } catch (error) {
       console.error('GetMe error:', error);
+      this.sendError(res, 500, 'Internal server error');
+    }
+  }
+
+  async updateProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const { displayName } = req.body;
+      const userId = Number(req.user?.userId);
+
+      if (!userId) {
+        this.sendError(res, 401, 'User not authenticated');
+        return;
+      }
+
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        this.sendError(res, 404, 'User not found');
+        return;
+      }
+
+      // Update display name if provided
+      if (displayName !== undefined) {
+        user.displayName = displayName;
+      }
+
+      await userRepository.save(user);
+
+      this.sendResponse(res, 200, { 
+        message: 'Profile updated successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          riskTolerance: user.riskTolerance
+        }
+      });
+    } catch (error) {
+      console.error('UpdateProfile error:', error);
       this.sendError(res, 500, 'Internal server error');
     }
   }

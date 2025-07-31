@@ -4,7 +4,8 @@ import {
   getRecurringTransactions, 
   createRecurringTransaction, 
   updateRecurringTransaction,
-  deleteRecurringTransaction 
+  deleteRecurringTransaction,
+  toggleRecurringTransaction
 } from "../controllers/recurring.controller";
 import { wrapAsync } from "../utils/wrap";
 
@@ -32,6 +33,12 @@ router.delete(
   "/:id",
   authenticate,
   wrapAsync(deleteRecurringTransaction)
+);
+
+router.patch(
+  "/:id/toggle",
+  authenticate,
+  wrapAsync(toggleRecurringTransaction)
 );
 
 export default router; 

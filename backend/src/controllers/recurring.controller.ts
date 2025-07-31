@@ -188,4 +188,50 @@ export const updateRecurringTransaction = async (req: AuthenticatedRequest, res:
       details: error instanceof Error ? error.message : "Unknown error"
     });
   }
+};
+
+export const toggleRecurringTransaction = async (req: AuthenticatedRequest, res: Response) => {
+  logInfo('Starting toggleRecurringTransaction', 'RecurringController');
+  
+  try {
+    const user = await getUser(req);
+    if (!user) {
+      logError('Unauthorized - No user found', 'RecurringController');
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      logError('Missing transaction ID', 'RecurringController');
+      return res.status(400).json({ error: "Transaction ID is required" });
+    }
+
+    // Find the recurring transaction
+    const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
+    const transaction = await recurringTransactionRepo.findOne({
+      where: { id: Number(id), user: { id: user.id } }
+    });
+
+    if (!transaction) {
+      logError(`Recurring transaction not found: ${id}`, 'RecurringController');
+      return res.status(404).json({ error: "Recurring transaction not found" });
+    }
+
+    // Toggle the active status
+    transaction.isActive = !transaction.isActive;
+    const updatedTransaction = await recurringTransactionRepo.save(transaction);
+    
+    logSuccess(`Recurring transaction ${transaction.isActive ? 'activated' : 'deactivated'} successfully (ID: ${id})`, 'RecurringController');
+    
+    return res.status(200).json({
+      message: `Recurring transaction ${transaction.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: updatedTransaction.isActive
+    });
+  } catch (error) {
+    logError(`Error toggling recurring transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'RecurringController');
+    return res.status(500).json({ 
+      error: "Failed to toggle recurring transaction",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 }; 

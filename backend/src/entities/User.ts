@@ -23,6 +23,9 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ nullable: true })
+  displayName: string;
+
   @Column({
     type: 'enum',
     enum: RiskTolerance,
