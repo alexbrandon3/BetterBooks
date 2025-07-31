@@ -288,6 +288,7 @@ const Transactions = () => {
 
     try {
       await saveSuggestionFeedback({
+        userId: 1, // TODO: Get actual user ID from auth context
         description: watch('description'),
         suggestedAccountId: currentSuggestion.suggestedAccountId,
         suggestedAccountName: currentSuggestion.suggestedAccountName,
@@ -1190,7 +1191,7 @@ const Transactions = () => {
                     }}
                     className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors"
                   >
-                    Accept Both
+                    Accept both transaction items
                   </button>
                   
                   {/* Side-specific reject buttons */}
@@ -1220,7 +1221,7 @@ const Transactions = () => {
                       className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
                       title={`Reject only the ${currentSuggestion?.suggestedEntryType} side`}
                     >
-                      Reject {currentSuggestion?.suggestedEntryType}
+                      Accept {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'credit' : 'debit'} line item, reject {currentSuggestion?.suggestedEntryType === 'CREDIT' ? 'debit' : 'credit'}
                     </button>
                     
                     <button
@@ -1249,7 +1250,7 @@ const Transactions = () => {
                       className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200 transition-colors"
                       title={`Reject only the ${currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT'} side`}
                     >
-                      Reject {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'CREDIT' : 'DEBIT'}
+                      Accept {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'credit' : 'debit'} line item, reject {currentSuggestion?.suggestedEntryType === 'DEBIT' ? 'debit' : 'credit'}
                     </button>
                   </div>
                   
@@ -1275,7 +1276,7 @@ const Transactions = () => {
                     }}
                     className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
                   >
-                    Reject Both
+                    Reject both transaction items
                   </button>
                 </div>
               </div>
