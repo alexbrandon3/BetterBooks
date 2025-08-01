@@ -31,32 +31,40 @@ const Dashboard = () => {
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
+  const loadData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
         setIsLoading(true);
-        const [accountsData, transactionsData, balancesData] = await Promise.all([
-          fetchAccountsWithConsistentBalances(),
-          fetchRecentTransactions(10),
-          fetchAccountBalances()
-        ]);
-        
-        setAccounts(accountsData);
-        setRecentTransactions(transactionsData);
-        setAccountBalances(balancesData);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again.');
-        toast.error('Failed to load dashboard data. Please refresh the page.');
-      } finally {
-        setIsLoading(false);
       }
-    };
+      const [accountsData, transactionsData, balancesData] = await Promise.all([
+        fetchAccountsWithConsistentBalances(),
+        fetchRecentTransactions(10),
+        fetchAccountBalances()
+      ]);
+      
+      setAccounts(accountsData);
+      setRecentTransactions(transactionsData);
+      setAccountBalances(balancesData);
+      setLastUpdated(new Date());
+      setError(null);
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+      toast.error('Failed to load dashboard data. Please refresh the page.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -82,6 +90,72 @@ const Dashboard = () => {
     }, 0);
   }, [cashAccounts, accountBalances]);
 
+  // Smart notifications logic
+  const notifications = useMemo(() => {
+    const notifications = [];
+    
+    // Low cash balance notification
+    if (totalCash < 1000) {
+      notifications.push({
+        type: 'warning',
+        message: `Cash balance is low (${formatCurrency(totalCash)}). Consider reviewing your cash flow.`,
+        icon: '💰'
+      });
+    }
+    
+    // Unusual spending detection
+    if (recentTransactions.length > 0) {
+      const recentAmounts = recentTransactions.map(t => Math.abs(t.amount));
+      const avgAmount = recentAmounts.reduce((sum, amount) => sum + amount, 0) / recentAmounts.length;
+      const highAmountTransactions = recentAmounts.filter(amount => amount > avgAmount * 2);
+      
+      if (highAmountTransactions.length > 0) {
+        notifications.push({
+          type: 'info',
+          message: 'Unusual spending detected in recent transactions.',
+          icon: '📊'
+        });
+      }
+    }
+    
+    // Goal progress notifications
+    goals.forEach(goal => {
+      if (goal.progress >= 80 && goal.progress < 100) {
+        notifications.push({
+          type: 'success',
+          message: `You're close to your "${goal.title || 'goal'}"! ${Math.round(goal.progress)}% complete.`,
+          icon: '🎯'
+        });
+      }
+    });
+    
+    return notifications;
+  }, [totalCash, recentTransactions, goals]);
+
+  // Category summary calculation
+  const categorySummary = useMemo(() => {
+    const categories = new Map<string, { total: number; count: number; accounts: Account[] }>();
+    
+    accounts.forEach(account => {
+      const category = account.financialCategory || 'UNCATEGORIZED';
+      const balance = accountBalances.get(account.id) ?? Number(account.balance);
+      
+      if (!categories.has(category)) {
+        categories.set(category, { total: 0, count: 0, accounts: [] });
+      }
+      
+      const categoryData = categories.get(category)!;
+      categoryData.total += isNaN(balance) ? 0 : balance;
+      categoryData.count += 1;
+      categoryData.accounts.push(account);
+    });
+    
+    return Array.from(categories.entries()).map(([category, data]) => ({
+      category,
+      ...data
+    }));
+  }, [accounts, accountBalances]);
+
   // Memoize callback functions to prevent recreation on every render
   const formatTransactionAmount = useCallback((transaction: Transaction) => {
     const amount = Math.abs(transaction.amount);
@@ -106,6 +180,7 @@ const Dashboard = () => {
 
   // Memoize callback functions to prevent recreation on every render
   const handleReload = useCallback(() => window.location.reload(), []);
+  const handleRefresh = useCallback(() => loadData(true), []);
   const handleGoalSelected = useCallback((suggestedGoal: any) => {
     // Add to dismissed suggestions to remove it from the list
     setDismissedSuggestions(prev => new Set(prev).add(suggestedGoal.id));
@@ -134,6 +209,21 @@ const Dashboard = () => {
 
   const handleDismissSuggestion = useCallback((suggestionId: string) => {
     setDismissedSuggestions(prev => new Set(prev).add(suggestionId));
+  }, []);
+
+  // Helper function to format time ago
+  const formatTimeAgo = useCallback((date: Date) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
   }, []);
 
   // Loading skeleton component
@@ -231,6 +321,29 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Smart Notifications Banner */}
+        {notifications.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {notifications.map((notification, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-2xl border-l-4 ${
+                  notification.type === 'warning' 
+                    ? 'bg-yellow-50 border-yellow-400 text-yellow-800'
+                    : notification.type === 'success'
+                    ? 'bg-green-50 border-green-400 text-green-800'
+                    : 'bg-blue-50 border-blue-400 text-blue-800'
+                }`}
+              >
+                <div className="flex items-center">
+                  <span className="text-lg mr-3">{notification.icon}</span>
+                  <p className="text-sm font-medium">{notification.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Enhanced Header */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
@@ -242,17 +355,28 @@ const Dashboard = () => {
                 Here's your financial overview for today
               </p>
             </div>
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex items-center space-x-4">
               <div className="text-right">
                 <div className="text-sm text-gray-500">Last updated</div>
                 <div className="text-sm font-medium text-gray-700">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
+                  {formatTimeAgo(lastUpdated)}
                 </div>
               </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="p-2 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 disabled:opacity-50"
+                title="Refresh data"
+              >
+                <svg 
+                  className={`w-5 h-5 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -317,9 +441,9 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Enhanced Quick Actions */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-300 group">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600 mb-1">Quick Actions</p>
                 <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-200">3</p>
@@ -330,6 +454,26 @@ const Dashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => navigate('/transactions')}
+                className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+              >
+                ➕ Add Transaction
+              </button>
+              <button
+                onClick={() => navigate('/reports')}
+                className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+              >
+                📊 View Reports
+              </button>
+              <button
+                onClick={() => navigate('/accounts')}
+                className="w-full text-left p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+              >
+                🏦 Manage Accounts
+              </button>
             </div>
           </div>
         </div>
@@ -353,7 +497,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Right Column - Recent Transactions */}
+          {/* Right Column - Recent Transactions & Account Balances */}
           <div className="space-y-8">
             {/* Recent Transactions */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
@@ -439,8 +583,14 @@ const Dashboard = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
                   </div>
-                  <p className="text-gray-500">No recent transactions</p>
-                  <p className="text-sm text-gray-400 mt-1">Start by adding your first transaction</p>
+                  <p className="text-gray-500 mb-2">No recent transactions</p>
+                  <p className="text-sm text-gray-400 mb-4">Start by adding your first transaction</p>
+                  <button
+                    onClick={() => navigate('/transactions')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Add Your First Transaction
+                  </button>
                 </div>
               )}
             </div>
@@ -509,8 +659,40 @@ const Dashboard = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 text-sm">No accounts found</p>
-                  <p className="text-xs text-gray-400 mt-1">Set up your accounts to get started</p>
+                  <p className="text-gray-500 text-sm mb-2">No accounts found</p>
+                  <p className="text-xs text-gray-400 mb-4">Set up your accounts to get started</p>
+                  <button
+                    onClick={() => navigate('/accounts')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    Set Up Your First Account
+                  </button>
+                </div>
+              )}
+
+              {/* Category Summary */}
+              {categorySummary.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">By Category</h4>
+                  <div className="space-y-2">
+                    {categorySummary.map((category) => (
+                      <div key={category.category} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 capitalize">
+                            {category.category.toLowerCase().replace('_', ' ')}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {category.count} account{category.count !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${category.total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(category.total)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
