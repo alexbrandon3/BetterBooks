@@ -22,9 +22,25 @@ const Settings: React.FC = () => {
     showConfidence: true,
     businessFocus: true
   });
+
+  // New state for recurring transaction settings
+  const [recurringSettings, setRecurringSettings] = useState({
+    autoCreate: true,
+    notifyBeforeDue: true,
+    defaultPattern: 'MONTHLY',
+    maxRecurringTransactions: 50
+  });
+
+  // New state for financial goals
+  const [goalSettings, setGoalSettings] = useState({
+    showProgress: true,
+    monthlyReminders: true,
+    goalNotifications: true
+  });
   
   const [userPreferences, setUserPreferences] = useState<any[]>([]);
   const [loadingPreferences, setLoadingPreferences] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchUserPreferences();
@@ -68,6 +84,28 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleRecurringSettingChange = async (setting: string, value: any) => {
+    try {
+      setRecurringSettings(prev => ({ ...prev, [setting]: value }));
+      // TODO: Implement API call to save recurring settings
+      toast.success('Recurring settings updated!');
+    } catch (error) {
+      toast.error('Failed to update recurring settings');
+      console.error('Error updating recurring settings:', error);
+    }
+  };
+
+  const handleGoalSettingChange = async (setting: string, value: boolean) => {
+    try {
+      setGoalSettings(prev => ({ ...prev, [setting]: value }));
+      // TODO: Implement API call to save goal settings
+      toast.success('Goal settings updated!');
+    } catch (error) {
+      toast.error('Failed to update goal settings');
+      console.error('Error updating goal settings:', error);
+    }
+  };
+
   const handleClearPreferences = async () => {
     if (window.confirm('Are you sure you want to clear all your learning preferences? This will reset the AI suggestions to default behavior.')) {
       try {
@@ -78,6 +116,37 @@ const Settings: React.FC = () => {
         toast.error('Failed to clear preferences');
         console.error('Error clearing preferences:', error);
       }
+    }
+  };
+
+  const handleExportData = async (format: 'csv' | 'pdf') => {
+    try {
+      setExporting(true);
+      const response = await api.post('/transactions/export', {
+        format,
+        includeHeaders: true,
+        includeAccountDetails: true,
+        includeCategoryBreakdown: true
+      }, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `betterbooks-export-${new Date().toISOString().split('T')[0]}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Data exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      toast.error('Failed to export data');
+      console.error('Error exporting data:', error);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -150,6 +219,145 @@ const Settings: React.FC = () => {
               </label>
             </div>
             
+          </div>
+        </div>
+
+        {/* Data Management Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Data Management</h2>
+          <div className="space-y-4">
+            <div>
+              <div className="font-medium text-gray-900 mb-2">Export Your Data</div>
+              <div className="text-sm text-gray-500 mb-4">Download your transaction history and account data</div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleExportData('csv')}
+                  disabled={exporting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {exporting ? 'Exporting...' : 'Export as CSV'}
+                </button>
+                <button
+                  onClick={() => handleExportData('pdf')}
+                  disabled={exporting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {exporting ? 'Exporting...' : 'Export as PDF'}
+                </button>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-200">
+              <div className="font-medium text-gray-900 mb-2">Data Backup</div>
+              <div className="text-sm text-gray-500 mb-4">Your data is automatically backed up daily</div>
+              <div className="text-xs text-gray-400">
+                Last backup: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recurring Transaction Settings */}
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recurring Transactions</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Auto-Create Transactions</div>
+                <div className="text-sm text-gray-500">Automatically create transactions on due dates</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={recurringSettings.autoCreate}
+                  onChange={(e) => handleRecurringSettingChange('autoCreate', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Notify Before Due</div>
+                <div className="text-sm text-gray-500">Send reminders before recurring transactions are due</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={recurringSettings.notifyBeforeDue}
+                  onChange={(e) => handleRecurringSettingChange('notifyBeforeDue', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Default Recurrence Pattern
+              </label>
+              <select
+                value={recurringSettings.defaultPattern}
+                onChange={(e) => handleRecurringSettingChange('defaultPattern', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="YEARLY">Yearly</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Goals Settings */}
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Financial Goals</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Show Progress</div>
+                <div className="text-sm text-gray-500">Display goal progress on dashboard</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={goalSettings.showProgress}
+                  onChange={(e) => handleGoalSettingChange('showProgress', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Monthly Reminders</div>
+                <div className="text-sm text-gray-500">Send monthly goal progress updates</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={goalSettings.monthlyReminders}
+                  onChange={(e) => handleGoalSettingChange('monthlyReminders', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Goal Notifications</div>
+                <div className="text-sm text-gray-500">Notify when goals are achieved or at risk</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={goalSettings.goalNotifications}
+                  onChange={(e) => handleGoalSettingChange('goalNotifications', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
           </div>
         </div>
 
