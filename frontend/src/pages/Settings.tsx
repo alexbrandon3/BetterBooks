@@ -20,9 +20,7 @@ const Settings: React.FC = () => {
     autoSuggestions: true,
     learnFromChoices: true,
     showConfidence: true,
-    businessFocus: true,
-    powershellSyntax: true,
-    usePowerShellCommands: true
+    businessFocus: true
   });
   
   const [userPreferences, setUserPreferences] = useState<any[]>([]);
@@ -151,36 +149,7 @@ const Settings: React.FC = () => {
                 <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
               </label>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">PowerShell Syntax</div>
-                <div className="text-sm text-gray-500">Use PowerShell-friendly command syntax</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={suggestionSettings.powershellSyntax}
-                  onChange={(e) => handleSuggestionSettingChange('powershellSyntax', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">PowerShell Commands</div>
-                <div className="text-sm text-gray-500">Generate PowerShell-compatible commands</div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={suggestionSettings.usePowerShellCommands}
-                  onChange={(e) => handleSuggestionSettingChange('usePowerShellCommands', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
+            
           </div>
         </div>
 

@@ -325,11 +325,11 @@ export class SuggestionController extends BaseController {
     }
   }
 
-  async getSuggestionSettings(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getSuggestionSettings(_req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log('⚙️ Getting suggestion settings for userId:', req.user.userId);
+      console.log('⚙️ Getting suggestion settings');
       
-      const settings = await this.suggestionService.getSuggestionSettings(req.user.userId);
+      const settings = await this.suggestionService.getSuggestionSettings();
       
       console.log('✅ Suggestion settings retrieved:', settings);
       
@@ -342,9 +342,9 @@ export class SuggestionController extends BaseController {
 
   async updateSuggestionSettings(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log('⚙️ Updating suggestion settings for userId:', req.user.userId, 'settings:', req.body);
+      console.log('⚙️ Updating suggestion settings:', req.body);
       
-      await this.suggestionService.updateSuggestionSettings(req.user.userId, req.body);
+      await this.suggestionService.updateSuggestionSettings(req.body);
       
       console.log('✅ Suggestion settings updated successfully');
       

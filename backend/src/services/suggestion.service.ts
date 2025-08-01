@@ -1155,13 +1155,11 @@ export class SuggestionService {
     }
   }
 
-  async getSuggestionSettings(userId: number): Promise<{
+  async getSuggestionSettings(): Promise<{
     autoSuggestions: boolean;
     learnFromChoices: boolean;
     showConfidence: boolean;
     businessFocus: boolean;
-    powershellSyntax: boolean;
-    usePowerShellCommands: boolean;
   }> {
     try {
       // For now, return default settings
@@ -1170,9 +1168,7 @@ export class SuggestionService {
         autoSuggestions: true,
         learnFromChoices: true,
         showConfidence: true,
-        businessFocus: true,
-        powershellSyntax: true,
-        usePowerShellCommands: true
+        businessFocus: true
       };
     } catch (error) {
       logError(`Failed to get suggestion settings: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
@@ -1181,21 +1177,19 @@ export class SuggestionService {
         autoSuggestions: true,
         learnFromChoices: true,
         showConfidence: true,
-        businessFocus: true,
-        powershellSyntax: true,
-        usePowerShellCommands: true
+        businessFocus: true
       };
     }
   }
 
-  async updateSuggestionSettings(userId: number, settings: any): Promise<void> {
+  async updateSuggestionSettings(settings: any): Promise<void> {
     try {
       // For now, just log the settings update
       // In the future, this could be stored in a database table
-      console.log(`⚙️ Updated suggestion settings for user ${userId}:`, settings);
+      console.log(`⚙️ Updated suggestion settings:`, settings);
       
       // Validate settings
-      const validSettings = ['autoSuggestions', 'learnFromChoices', 'showConfidence', 'businessFocus', 'powershellSyntax', 'usePowerShellCommands'];
+      const validSettings = ['autoSuggestions', 'learnFromChoices', 'showConfidence', 'businessFocus'];
       for (const setting of validSettings) {
         if (typeof settings[setting] === 'boolean') {
           console.log(`✅ Setting ${setting} to ${settings[setting]}`);
