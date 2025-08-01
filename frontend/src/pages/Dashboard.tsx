@@ -236,7 +236,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
-                {getGreeting()}, {user?.email?.split('@')[0] || 'Business Owner'}! 👋
+                {getGreeting()}, {user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}! 👋
               </h1>
               <p className="text-lg text-gray-600">
                 Here's your financial overview for today
