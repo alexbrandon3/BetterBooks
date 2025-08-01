@@ -1130,4 +1130,80 @@ export class SuggestionService {
 
     return `${baseExplanation}${entryExplanation}${confidenceText}`;
   }
+
+  async getUserPreferences(userId: number): Promise<UserSuggestionPreference[]> {
+    try {
+      const preferences = await this.userPreferenceRepo.find({
+        where: { userId },
+        order: { lastUsed: 'DESC' }
+      });
+      
+      return preferences;
+    } catch (error) {
+      logError(`Failed to get user preferences: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return [];
+    }
+  }
+
+  async clearUserPreferences(userId: number): Promise<void> {
+    try {
+      await this.userPreferenceRepo.delete({ userId });
+      console.log(`✅ Cleared all preferences for user ${userId}`);
+    } catch (error) {
+      logError(`Failed to clear user preferences: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      throw error;
+    }
+  }
+
+  async getSuggestionSettings(userId: number): Promise<{
+    autoSuggestions: boolean;
+    learnFromChoices: boolean;
+    showConfidence: boolean;
+    businessFocus: boolean;
+    powershellSyntax: boolean;
+    usePowerShellCommands: boolean;
+  }> {
+    try {
+      // For now, return default settings
+      // In the future, this could be stored in a database table
+      return {
+        autoSuggestions: true,
+        learnFromChoices: true,
+        showConfidence: true,
+        businessFocus: true,
+        powershellSyntax: true,
+        usePowerShellCommands: true
+      };
+    } catch (error) {
+      logError(`Failed to get suggestion settings: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      // Return default settings on error
+      return {
+        autoSuggestions: true,
+        learnFromChoices: true,
+        showConfidence: true,
+        businessFocus: true,
+        powershellSyntax: true,
+        usePowerShellCommands: true
+      };
+    }
+  }
+
+  async updateSuggestionSettings(userId: number, settings: any): Promise<void> {
+    try {
+      // For now, just log the settings update
+      // In the future, this could be stored in a database table
+      console.log(`⚙️ Updated suggestion settings for user ${userId}:`, settings);
+      
+      // Validate settings
+      const validSettings = ['autoSuggestions', 'learnFromChoices', 'showConfidence', 'businessFocus', 'powershellSyntax', 'usePowerShellCommands'];
+      for (const setting of validSettings) {
+        if (typeof settings[setting] === 'boolean') {
+          console.log(`✅ Setting ${setting} to ${settings[setting]}`);
+        }
+      }
+    } catch (error) {
+      logError(`Failed to update suggestion settings: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      throw error;
+    }
+  }
 } 

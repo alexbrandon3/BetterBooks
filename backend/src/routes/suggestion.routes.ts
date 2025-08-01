@@ -24,4 +24,12 @@ router.post('/suggest-category', authenticate, suggestionController.suggestCateg
 // Add the suggest transaction type route
 router.post('/suggest-transaction-type', authenticate, suggestionController.suggestTransactionType.bind(suggestionController));
 
+// Add routes for user preferences management
+router.get('/preferences', authenticate, suggestionController.getUserPreferences.bind(suggestionController));
+router.delete('/preferences', authenticate, suggestionController.clearUserPreferences.bind(suggestionController));
+
+// Add routes for suggestion settings
+router.get('/settings', authenticate, suggestionController.getSuggestionSettings.bind(suggestionController));
+router.put('/settings', authenticate, suggestionController.updateSuggestionSettings.bind(suggestionController));
+
 export default router; 

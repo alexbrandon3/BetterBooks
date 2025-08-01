@@ -294,6 +294,66 @@ export class SuggestionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  async getUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('📋 Getting user preferences for userId:', req.user.userId);
+      
+      const preferences = await this.suggestionService.getUserPreferences(req.user.userId);
+      
+      console.log('✅ User preferences retrieved:', preferences.length, 'preferences');
+      
+      this.sendResponse(res, 200, preferences);
+    } catch (error) {
+      console.error('❌ Error getting user preferences:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async clearUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('🗑️ Clearing user preferences for userId:', req.user.userId);
+      
+      await this.suggestionService.clearUserPreferences(req.user.userId);
+      
+      console.log('✅ User preferences cleared successfully');
+      
+      this.sendResponse(res, 200, { message: 'Preferences cleared successfully' });
+    } catch (error) {
+      console.error('❌ Error clearing user preferences:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async getSuggestionSettings(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('⚙️ Getting suggestion settings for userId:', req.user.userId);
+      
+      const settings = await this.suggestionService.getSuggestionSettings(req.user.userId);
+      
+      console.log('✅ Suggestion settings retrieved:', settings);
+      
+      this.sendResponse(res, 200, settings);
+    } catch (error) {
+      console.error('❌ Error getting suggestion settings:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async updateSuggestionSettings(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('⚙️ Updating suggestion settings for userId:', req.user.userId, 'settings:', req.body);
+      
+      await this.suggestionService.updateSuggestionSettings(req.user.userId, req.body);
+      
+      console.log('✅ Suggestion settings updated successfully');
+      
+      this.sendResponse(res, 200, { message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('❌ Error updating suggestion settings:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 }
 
 export const getSuggestions = async (req: Request, res: Response) => {
