@@ -23,6 +23,59 @@ function formatAccountCount(count: number, label: string = 'account'): string {
   }
 }
 
+// Helper to format account types and categories in a user-friendly way
+function formatAccountText(text: string): string {
+  if (!text) return 'N/A';
+  
+  // Handle common account type and category patterns
+  const replacements: { [key: string]: string } = {
+    // Account Types
+    'ASSET': 'Asset',
+    'LIABILITY': 'Liability',
+    'EQUITY': 'Equity',
+    'REVENUE': 'Revenue',
+    'EXPENSE': 'Expense',
+    
+    // Financial Categories
+    'CURRENT_ASSET': 'Current Asset',
+    'FIXED_ASSET': 'Fixed Asset',
+    'LONG_TERM_ASSET': 'Long-term Asset',
+    'CURRENT_LIABILITY': 'Current Liability',
+    'LONG_TERM_LIABILITY': 'Long-term Liability',
+    'OWNERS_EQUITY': "Owner's Equity",
+    'RETAINED_EARNINGS': 'Retained Earnings',
+    'OPERATING_REVENUE': 'Operating Revenue',
+    'NON_OPERATING_REVENUE': 'Non-operating Revenue',
+    'OPERATING_EXPENSE': 'Operating Expense',
+    'NON_OPERATING_EXPENSE': 'Non-operating Expense',
+    'COST_OF_GOODS_SOLD': 'Cost of Goods Sold',
+    
+    // Common variations
+    'LONG_TERM': 'Long-term',
+    'NON_OPERATING': 'Non-operating',
+    'COST_OF_GOODS': 'Cost of Goods',
+    'RETAINED': 'Retained',
+    'OWNERS': "Owner's",
+    'OPERATING': 'Operating'
+  };
+  
+  let formatted = text;
+  
+  // Apply replacements
+  Object.entries(replacements).forEach(([pattern, replacement]) => {
+    const regex = new RegExp(pattern, 'gi');
+    formatted = formatted.replace(regex, replacement);
+  });
+  
+  // Handle underscores and convert to proper case
+  formatted = formatted
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+  
+  return formatted;
+}
+
 const Dashboard = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
@@ -89,6 +142,42 @@ const Dashboard = () => {
       return sum + balance;
     }, 0);
   }, [cashAccounts, accountBalances]);
+
+  // Smart sorting for accounts - prioritize balance sheet accounts with non-zero balances
+  const sortedAccounts = useMemo(() => {
+    if (!accounts || accounts.length === 0) return [];
+    
+    return [...accounts].sort((a, b) => {
+      const balanceA = accountBalances.get(a.id) ?? Number(a.balance);
+      const balanceB = accountBalances.get(b.id) ?? Number(b.balance);
+      
+      // Check if accounts are balance sheet accounts (ASSET, LIABILITY, EQUITY)
+      const isBalanceSheetA = ['ASSET', 'LIABILITY', 'EQUITY'].includes(a.type);
+      const isBalanceSheetB = ['ASSET', 'LIABILITY', 'EQUITY'].includes(b.type);
+      
+      // Check if balances are non-zero
+      const hasBalanceA = !isNaN(balanceA) && isFinite(balanceA) && balanceA !== 0;
+      const hasBalanceB = !isNaN(balanceB) && isFinite(balanceB) && balanceB !== 0;
+      
+      // Priority order:
+      // 1. Balance sheet accounts with non-zero balances
+      // 2. Balance sheet accounts with zero balances
+      // 3. Income statement accounts with non-zero balances
+      // 4. Income statement accounts with zero balances
+      
+      if (isBalanceSheetA && hasBalanceA && !(isBalanceSheetB && hasBalanceB)) return -1;
+      if (isBalanceSheetB && hasBalanceB && !(isBalanceSheetA && hasBalanceA)) return 1;
+      
+      if (isBalanceSheetA && !isBalanceSheetB) return -1;
+      if (isBalanceSheetB && !isBalanceSheetA) return 1;
+      
+      if (hasBalanceA && !hasBalanceB) return -1;
+      if (hasBalanceB && !hasBalanceA) return 1;
+      
+      // If same priority, sort by absolute balance (highest first)
+      return Math.abs(balanceB) - Math.abs(balanceA);
+    });
+  }, [accounts, accountBalances]);
 
   // Smart notifications logic
   const notifications = useMemo(() => {
@@ -620,9 +709,9 @@ const Dashboard = () => {
                     </div>
                   ))}
                 </div>
-              ) : accounts && accounts.length > 0 ? (
+              ) : sortedAccounts && sortedAccounts.length > 0 ? (
                 <div className="space-y-3">
-                  {accounts.slice(0, 5).map((account) => {
+                  {sortedAccounts.slice(0, 5).map((account) => {
                     const balance = accountBalances.get(account.id) ?? Number(account.balance);
                     return (
                       <div
@@ -635,8 +724,8 @@ const Dashboard = () => {
                             <p className="text-sm font-medium text-gray-900 truncate group-hover:text-green-900 transition-colors duration-200">
                               {account.name}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1 capitalize">
-                              {account.type.toLowerCase().replace('_', ' ')}
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatAccountText(account.type)}
                             </p>
                           </div>
                           <div className="text-right ml-4">
@@ -644,7 +733,7 @@ const Dashboard = () => {
                               {formatAccountBalance(balance)}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {account.financialCategory?.toLowerCase().replace('_', ' ') || 'N/A'}
+                              {formatAccountText(account.financialCategory)}
                             </p>
                           </div>
                         </div>
@@ -678,8 +767,8 @@ const Dashboard = () => {
                     {categorySummary.map((category) => (
                       <div key={category.category} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 capitalize">
-                            {category.category.toLowerCase().replace('_', ' ')}
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatAccountText(category.category)}
                           </p>
                           <p className="text-xs text-gray-500">
                             {category.count} account{category.count !== 1 ? 's' : ''}
