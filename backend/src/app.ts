@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './utils/errors';
-import authRoutes from './routes/routes';
+import authRoutes from './routes/auth.routes';
 import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
 import recurringRoutes from './routes/recurring.routes';

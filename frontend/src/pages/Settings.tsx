@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import api from '../utils/axios';
 
 const Settings: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -65,6 +65,10 @@ const Settings: React.FC = () => {
   const handleSaveDisplayName = async () => {
     try {
       await api.put('/auth/profile', { displayName });
+      
+      // Refresh user profile to get updated display name
+      await refreshUser();
+      
       toast.success('Display name updated successfully!');
       setIsEditing(false);
     } catch (error) {

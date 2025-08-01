@@ -17,6 +17,7 @@ interface AuthContextType {
   user: UserProfile | null;
   login: (token: string) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,7 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   user: null,
   login: () => {},
-  logout: () => {}
+  logout: () => {},
+  refreshUser: async () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -88,8 +90,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/login');
   };
 
+  const refreshUser = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      await fetchUserProfile(token);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
