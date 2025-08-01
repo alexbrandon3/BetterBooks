@@ -49,6 +49,7 @@ function formatAccountText(text: string): string {
     'OPERATING_EXPENSE': 'Operating Expense',
     'NON_OPERATING_EXPENSE': 'Non-operating Expense',
     'COST_OF_GOODS_SOLD': 'Cost of Goods Sold',
+    'DRAWINGS': 'Drawings',
     
     // Common variations
     'LONG_TERM': 'Long-term',
