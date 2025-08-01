@@ -2,7 +2,7 @@ import React from 'react';
 import { UseFormRegister, FieldErrors, FieldArrayWithId } from 'react-hook-form';
 import { Account } from '../../types/account';
 import { useFormContext } from 'react-hook-form';
-import { saveUserPreference } from '../../services/TransactionService';
+// Removed saveUserPreference import - no longer needed
 
 interface JournalEntryFieldsProps {
   entries: FieldArrayWithId[];
@@ -27,16 +27,11 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   showDescriptionFields = false,
   transactionDescription
 }) => {
-  // Handler for account selection to save user preference
+  // Handler for account selection - removed automatic preference saving
+  // Preferences will be saved when transaction is submitted instead
   const handleAccountSelection = async (accountId: string, description: string) => {
-    if (accountId && description && transactionDescription) {
-      try {
-        await saveUserPreference(transactionDescription, parseInt(accountId));
-      } catch (error) {
-        console.error('Error saving user preference:', error);
-        // Don't show error to user - this is not critical
-      }
-    }
+    // No longer automatically saving preferences here
+    // This prevents duplicate preference saves
   };
 
   return (

@@ -566,9 +566,11 @@ const Transactions = () => {
     setIsSubmitting(true);
     // Don't clear successMessage or error here
     try {
-      // Learn from manual account selection if there was a suggestion
+      // Learn from account selections when transaction is submitted
+      const validEntries = data.entries.filter(entry => entry.accountId && entry.amount);
+      
       if (currentSuggestion && !suggestionAccepted && !suggestionRejected) {
-        const validEntries = data.entries.filter(entry => entry.accountId && entry.amount);
+        // User had a suggestion but didn't explicitly accept/reject it
         const manuallySelectedAccounts = validEntries
           .filter(entry => entry.accountId && entry.accountId !== String(currentSuggestion.suggestedAccountId))
           .map(entry => ({
@@ -577,7 +579,6 @@ const Transactions = () => {
           }));
 
         if (manuallySelectedAccounts.length > 0) {
-  
           // User selected different accounts than suggested
           for (const selectedAccount of manuallySelectedAccounts) {
             await sendSuggestionFeedback('REJECTED', 
@@ -585,6 +586,18 @@ const Transactions = () => {
               selectedAccount.accountName
             );
           }
+        }
+      } else if (!currentSuggestion && validEntries.length > 0) {
+        // No suggestion was made, but user manually selected accounts
+        // Save these as accepted preferences
+        for (const entry of validEntries) {
+          const accountId = parseInt(entry.accountId);
+          const accountName = accounts.find(acc => acc.id === accountId)?.name || 'Unknown';
+          
+          await sendSuggestionFeedback('ACCEPTED', 
+            accountId, 
+            accountName
+          );
         }
       }
 
