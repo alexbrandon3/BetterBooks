@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Navigation from "./components/Navigation";
-import { Settings } from "./components/PageStubs";
+import Settings from "./pages/Settings";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import TransactionHistory from "./pages/TransactionHistory";
