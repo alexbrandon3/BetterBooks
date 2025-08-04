@@ -13,7 +13,9 @@ export class RecurringTransactionJob {
 
   start(): void {
     logInfo('Starting recurring transaction job', 'RecurringTransactionJob');
+    logInfo('Job will run every 60 seconds', 'RecurringTransactionJob');
     this.interval = setInterval(() => {
+      logInfo('Recurring transaction job interval triggered', 'RecurringTransactionJob');
       this.processRecurringTransactions();
     }, 60000); // 60 seconds
   }
@@ -40,6 +42,22 @@ export class RecurringTransactionJob {
 
       // Find all active recurring transactions that are due
       const now = new Date();
+      logInfo(`Current time: ${now.toISOString()}`, 'RecurringTransactionJob');
+      
+      // First, let's see all recurring transactions
+      const allRecurringTransactions = await this.recurringTransactionRepo
+        .createQueryBuilder('recurringTransaction')
+        .leftJoinAndSelect('recurringTransaction.user', 'user')
+        .leftJoinAndSelect('recurringTransaction.account', 'account')
+        .getMany();
+      
+      logInfo(`Total recurring transactions in database: ${allRecurringTransactions.length}`, 'RecurringTransactionJob');
+      
+      // Log details of each recurring transaction
+      for (const rt of allRecurringTransactions) {
+        logInfo(`Recurring transaction ${rt.id}: isActive=${rt.isActive}, nextRun=${rt.nextRun}, description=${rt.description}`, 'RecurringTransactionJob');
+      }
+      
       const dueRecurringTransactions = await this.recurringTransactionRepo
         .createQueryBuilder('recurringTransaction')
         .leftJoinAndSelect('recurringTransaction.user', 'user')
@@ -96,23 +114,18 @@ export class RecurringTransactionJob {
       logInfo(`🔍 Using selected account: ${recurringTransaction.account.name} (ID: ${recurringTransaction.account.id})`, 'RecurringTransactionJob');
 
       // Create transaction data from recurring transaction
-      // For a "Sold" transaction, this should be INCOME (credit Sales Revenue, debit Cash)
+      // The account from the recurring transaction is the primary account
       const transactionData: CreateTransactionDTO = {
         description: recurringTransaction.description,
         date: now,
-        type: TransactionType.INCOME, // Changed from EXPENSE to INCOME for "Sold" transactions
+        type: TransactionType.INCOME, // Default to INCOME, but this should be configurable
         category: 'Recurring Transaction',
         amount: recurringTransaction.amount,
         entries: [
           {
             amount: recurringTransaction.amount,
             type: EntryType.CREDIT,
-            accountId: recurringTransaction.account.id // Credit the selected account (Sales Revenue)
-          },
-          {
-            amount: recurringTransaction.amount,
-            type: EntryType.DEBIT,
-            accountId: 320 // Debit Cash (account 320)
+            accountId: recurringTransaction.account.id // Use the account from the recurring transaction
           }
         ],
         userId: userId

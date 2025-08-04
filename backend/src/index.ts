@@ -3,6 +3,7 @@ import app from "./app";  // Import the configured app
 import dotenv from "dotenv";
 import path from "path";
 import { AppDataSource } from "./config/data-source";
+import { startRecurringTransactionJob } from "./services/recurringTransactionJob";
 
 // Force-load the .env file
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -61,6 +62,10 @@ AppDataSource.initialize()
         process.exit(0);
       });
     });
+
+    // Start recurring transaction job
+    startRecurringTransactionJob();
+    console.log("✅ Recurring transaction job started");
   })
   .catch((error) => {
     console.error("❌ Database connection failed:", error);

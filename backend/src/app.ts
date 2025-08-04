@@ -75,6 +75,17 @@ app.get('/health', (_, res) => {
   res.json({ status: 'OK', message: 'BetterBooks API is running' });
 });
 
+// Test endpoint to manually trigger recurring transaction job
+app.get('/test-recurring-job', (_, res) => {
+  const { RecurringTransactionJob } = require('./services/recurringTransactionJob');
+  const job = new RecurringTransactionJob();
+  job['processRecurringTransactions']().then(() => {
+    res.json({ message: 'Recurring transaction job executed manually' });
+  }).catch((error: any) => {
+    res.status(500).json({ error: 'Failed to execute recurring transaction job', details: error.message });
+  });
+});
+
 // Handle preflight requests
 app.options('*', cors());
 
@@ -87,9 +98,6 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/books', booksRoutes);
-
-// Start recurring transaction automation job
-startRecurringTransactionJob();
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
