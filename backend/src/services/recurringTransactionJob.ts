@@ -5,6 +5,7 @@ import { TransactionService } from "./transaction.service";
 import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { RecurrencePattern } from "../entities/Transaction";
+import { Account } from "../entities/Account";
 
 export class RecurringTransactionJob {
   private recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
@@ -117,10 +118,10 @@ export class RecurringTransactionJob {
       // Find a suitable account for the other side of the transaction
       // For INCOME transactions: credit income account, debit cash/asset account
       // For EXPENSE transactions: debit expense account, credit cash/asset account
-      const accountRepo = AppDataSource.getRepository("Account");
+      const accountRepo = AppDataSource.getRepository(Account);
       let otherAccount = null;
       
-      if (recurringTransaction.account.type === "INCOME") {
+      if (recurringTransaction.account.type === AccountType.INCOME) {
         // For income, find a cash/asset account to debit
         otherAccount = await accountRepo.findOne({
           where: {
@@ -129,7 +130,7 @@ export class RecurringTransactionJob {
             name: "Cash"
           }
         });
-      } else if (recurringTransaction.account.type === "EXPENSE") {
+      } else if (recurringTransaction.account.type === AccountType.EXPENSE) {
         // For expense, find a cash/asset account to credit
         otherAccount = await accountRepo.findOne({
           where: {

@@ -30,6 +30,7 @@ export const getRecurringTransactions = async (req: AuthenticatedRequest, res: R
 
 export const createRecurringTransaction = async (req: AuthenticatedRequest, res: Response) => {
   logInfo('Starting createRecurringTransaction', 'RecurringController');
+  logInfo(`Request body: ${JSON.stringify(req.body)}`, 'RecurringController');
   
   try {
     const user = await getUser(req);
@@ -42,12 +43,13 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
 
     // Validate required fields
     if (!description || !amount || !recurrencePattern || !nextRun || !accountId) {
-      logError('Missing required fields', 'RecurringController');
+      logError(`Missing required fields: description=${!!description}, amount=${!!amount}, recurrencePattern=${!!recurrencePattern}, nextRun=${!!nextRun}, accountId=${!!accountId}`, 'RecurringController');
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Validate account ownership
     const accountRepo = AppDataSource.getRepository(Account);
+    logInfo(`Looking for account ${accountId} for user ${user.id}`, 'RecurringController');
     const account = await accountRepo.findOne({
       where: { id: accountId, user: { id: user.id } }
     });
@@ -56,6 +58,8 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       logError(`Account not found or not owned by user: ${accountId}`, 'RecurringController');
       return res.status(404).json({ error: "Account not found" });
     }
+    
+    logInfo(`Found account: ${account.name} (ID: ${account.id}, Type: ${account.type})`, 'RecurringController');
 
     // Create recurring transaction
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
@@ -80,8 +84,9 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     // For INCOME transactions: credit income account, debit cash/asset account
     let otherAccount = null;
     
-    if (account.type === "INCOME") {
+    if (account.type === AccountType.INCOME) {
       // For income, find a cash/asset account to debit
+      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
       otherAccount = await accountRepo.findOne({
         where: {
           user: { id: user.id },
@@ -89,8 +94,9 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
           name: "Cash"
         }
       });
-    } else if (account.type === "EXPENSE") {
+    } else if (account.type === AccountType.EXPENSE) {
       // For expense, find a cash/asset account to credit
+      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
       otherAccount = await accountRepo.findOne({
         where: {
           user: { id: user.id },
@@ -101,10 +107,12 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     }
     
     if (!otherAccount) {
-      logError(`No suitable account found for the other side of transaction`, 'RecurringController');
+      logError(`No suitable account found for the other side of transaction. Account type: ${account.type}`, 'RecurringController');
       return res.status(400).json({ error: "No suitable account found for transaction balance" });
     }
     
+    logInfo(`Found other account: ${otherAccount.name} (ID: ${otherAccount.id}, Type: ${otherAccount.type})`, 'RecurringController');
+
     // Create transaction data for the initial transaction
     const transactionData: CreateTransactionDTO = {
       description: description,
