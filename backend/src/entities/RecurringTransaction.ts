@@ -36,6 +36,12 @@ export class RecurringTransaction {
   @Column({ type: "timestamp", nullable: true })
   endDate?: Date;
 
+  @Column({ type: "timestamp", nullable: true })
+  lastExecuted?: Date;
+
+  @Column({ nullable: true })
+  lastExecutionResult?: string; // "SUCCESS" | "FAILED" | "SKIPPED"
+
   @ManyToOne(() => User, { eager: true })
   user!: User;
 

@@ -11,6 +11,7 @@ import goalRoutes from './routes/routes';
 import suggestionRoutes from './routes/suggestion.routes';
 import reportRoutes from './routes/report.routes';
 import booksRoutes from './routes/books.routes';
+import { startRecurringTransactionJob } from './services/recurringTransactionJob';
 
 const app = express();
 
@@ -86,6 +87,9 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/books', booksRoutes);
+
+// Start recurring transaction automation job
+startRecurringTransactionJob();
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {
