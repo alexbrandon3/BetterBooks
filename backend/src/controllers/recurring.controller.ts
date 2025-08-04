@@ -39,7 +39,7 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType } = req.body;
+    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType, type } = req.body;
 
     // Validate required fields
     if (!description || !amount || !recurrencePattern || !nextRun || !primaryAccountId || !secondaryAccountId || !primaryEntryType || !secondaryEntryType) {
@@ -98,17 +98,17 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     const transactionData: CreateTransactionDTO = {
       description: description,
       date: now,
-      type: TransactionType.INCOME, // Default to INCOME, but this should be configurable
+      type: type || TransactionType.EXPENSE, // Use the type from request or default to EXPENSE
       category: 'Recurring Transaction',
-      amount: Number(amount),
+      amount: Math.abs(Number(amount)), // Use absolute value for amount
       entries: [
         {
-          amount: Number(amount),
+          amount: Math.abs(Number(amount)),
           type: primaryEntryType as EntryType,
           accountId: primaryAccountId
         },
         {
-          amount: Number(amount),
+          amount: Math.abs(Number(amount)),
           type: secondaryEntryType as EntryType,
           accountId: secondaryAccountId
         }

@@ -3,6 +3,7 @@ import api from "../utils/axios";
 export interface RecurringTransactionData {
   description: string;
   amount: number;
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY';
   recurrencePattern: string;
   nextRun: string;
   endDate?: string;

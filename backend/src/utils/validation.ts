@@ -140,4 +140,35 @@ export const schemas = {
       .refine(val => !isNaN(val), { message: "User ID must be a valid number" })
       .optional(),
   }),
+
+  createRecurringTransaction: z.object({
+    description: z.string().min(1, 'Description is required'),
+    amount: z.coerce.number()
+      .positive()
+      .refine(val => !isNaN(val), {
+        message: 'Amount must be a valid positive number',
+      }),
+    type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER', 'ADJUSTMENT', 'LOAN_PAYMENT', 'ASSET_PURCHASE', 'LIABILITY_SETTLEMENT', 'EQUITY_CONTRIBUTION', 'EQUITY_WITHDRAWAL', 'CLOSING_ENTRY']),
+    recurrencePattern: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']),
+    nextRun: z.string().refine((val) => !isNaN(Date.parse(val)), {
+      message: 'Invalid next run date format'
+    }),
+    endDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+      message: 'Invalid end date format'
+    }).optional(),
+    primaryAccountId: z.coerce.number()
+      .int()
+      .positive()
+      .refine(val => !isNaN(val), {
+        message: 'Primary account ID must be a valid number',
+      }),
+    secondaryAccountId: z.coerce.number()
+      .int()
+      .positive()
+      .refine(val => !isNaN(val), {
+        message: 'Secondary account ID must be a valid number',
+      }),
+    primaryEntryType: z.enum(['DEBIT', 'CREDIT']),
+    secondaryEntryType: z.enum(['DEBIT', 'CREDIT']),
+  }),
 }; 

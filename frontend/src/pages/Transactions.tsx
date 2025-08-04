@@ -659,6 +659,7 @@ const Transactions = () => {
         const recurringData = {
           description: data.description,
           amount: totalAmount,
+          type: data.type, // Include the transaction type
           recurrencePattern: data.recurrencePattern,
           nextRun: data.nextRun,
           endDate: data.endDate || undefined,
@@ -678,19 +679,39 @@ const Transactions = () => {
       } else {
         // Check if this is a recurring transaction
         if (data.isRecurring) {
+          // Validate account IDs
+          const primaryAccountId = parseInt(data.entries[0]?.accountId);
+          const secondaryAccountId = parseInt(data.entries[1]?.accountId);
+          
+          if (!primaryAccountId || !secondaryAccountId) {
+            setError("Please select both accounts for the recurring transaction.");
+            toast.error("Please select both accounts for the recurring transaction.");
+            return;
+          }
+          
           // Create recurring transaction
           const recurringData = {
             description: data.description,
             amount: totalAmount,
+            type: data.type, // Include the transaction type
             recurrencePattern: data.recurrencePattern,
             nextRun: data.nextRun,
             endDate: data.endDate || undefined,
-            primaryAccountId: parseInt(data.entries[0]?.accountId) || 0,
-            secondaryAccountId: parseInt(data.entries[1]?.accountId) || 0,
+            primaryAccountId: primaryAccountId,
+            secondaryAccountId: secondaryAccountId,
             primaryEntryType: data.entries[0]?.type || 'DEBIT',
             secondaryEntryType: data.entries[1]?.type || 'CREDIT'
           };
           
+          // Debug logging
+          console.log('Creating recurring transaction with data:', recurringData);
+          console.log('Original entries data:', data.entries);
+          console.log('Account IDs:', {
+            primary: data.entries[0]?.accountId,
+            secondary: data.entries[1]?.accountId,
+            parsedPrimary: primaryAccountId,
+            parsedSecondary: secondaryAccountId
+          });
 
           await createRecurringTransaction(recurringData);
           setSuccessMessage("Recurring transaction created successfully!");
@@ -1462,7 +1483,7 @@ const Transactions = () => {
                               </div>
                               <div className="mt-1 flex items-center justify-between">
                                 <p className="text-sm text-gray-500">
-                                  {recurring.account?.name} • {formatRecurrencePattern(recurring.recurrencePattern)}
+                                  {recurring.primaryAccount?.name} → {recurring.secondaryAccount?.name} • {formatRecurrencePattern(recurring.recurrencePattern)}
                                 </p>
                                 <p className="text-sm text-gray-500">
                                   Next: {new Date(recurring.nextRun).toLocaleDateString()}

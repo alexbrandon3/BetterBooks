@@ -8,6 +8,7 @@ import {
   toggleRecurringTransaction
 } from "../controllers/recurring.controller";
 import { wrapAsync } from "../utils/wrap";
+import { validate, schemas } from "../utils/validation";
 
 const router = express.Router();
 
@@ -20,12 +21,14 @@ router.get(
 router.post(
   "/",
   authenticate,
+  validate(schemas.createRecurringTransaction),
   wrapAsync(createRecurringTransaction)
 );
 
 router.put(
   "/:id",
   authenticate,
+  validate(schemas.createRecurringTransaction),
   wrapAsync(updateRecurringTransaction)
 );
 
