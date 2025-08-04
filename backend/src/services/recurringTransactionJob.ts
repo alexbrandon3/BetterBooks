@@ -70,7 +70,12 @@ export class RecurringTransactionJob {
     const userId = recurringTransaction.user.id;
 
     try {
-      logInfo(`Processing recurring transaction ${transactionId} for user ${userId}`, 'RecurringTransactionJob');
+      logInfo(`🔍 Processing recurring transaction ${transactionId} for user ${userId}`, 'RecurringTransactionJob');
+      logInfo(`📋 Recurring transaction details:`, 'RecurringTransactionJob');
+      logInfo(`   - Description: ${recurringTransaction.description}`, 'RecurringTransactionJob');
+      logInfo(`   - Amount: ${recurringTransaction.amount}`, 'RecurringTransactionJob');
+      logInfo(`   - Account ID: ${recurringTransaction.account.id}`, 'RecurringTransactionJob');
+      logInfo(`   - Account Name: ${recurringTransaction.account.name}`, 'RecurringTransactionJob');
 
       // Check if this transaction was already executed recently (idempotency)
       const now = new Date();
@@ -78,22 +83,23 @@ export class RecurringTransactionJob {
         ? now.getTime() - recurringTransaction.lastExecuted.getTime()
         : Infinity;
 
+      logInfo(`⏰ Time since last execution: ${timeSinceLastExecution}ms`, 'RecurringTransactionJob');
+
       // If executed within the last 5 minutes, skip to prevent duplicates
       if (timeSinceLastExecution < 5 * 60 * 1000) {
-        logInfo(`Skipping transaction ${transactionId} - executed recently`, 'RecurringTransactionJob');
+        logInfo(`⏭️ Skipping transaction ${transactionId} - executed recently`, 'RecurringTransactionJob');
         await this.updateRecurringTransaction(recurringTransaction, 'SKIPPED');
         return;
       }
 
-      // For recurring transactions, we need to create a proper double-entry transaction
-      // The recurring transaction account is typically the account being affected
-      // We'll create a simple expense transaction: debit the expense account, credit cash/bank
-      
       // Find a cash/bank account for the credit side (assuming this is an expense)
+      logInfo(`🔍 Looking for cash account for user ${userId}...`, 'RecurringTransactionJob');
       const cashAccount = await this.findCashAccount(userId);
       if (!cashAccount) {
         throw new Error('No cash/bank account found for recurring transaction');
       }
+
+      logInfo(`✅ Found cash account: ${cashAccount.name} (ID: ${cashAccount.id})`, 'RecurringTransactionJob');
 
       // Create transaction data from recurring transaction
       const transactionData: CreateTransactionDTO = {
@@ -117,24 +123,39 @@ export class RecurringTransactionJob {
         userId: userId
       };
 
+      logInfo(`📤 Creating transaction with data:`, 'RecurringTransactionJob');
+      logInfo(`   - User ID: ${transactionData.userId}`, 'RecurringTransactionJob');
+      logInfo(`   - Amount: ${transactionData.amount}`, 'RecurringTransactionJob');
+      logInfo(`   - Entries:`, 'RecurringTransactionJob');
+      transactionData.entries.forEach((entry, index) => {
+        logInfo(`     ${index + 1}. ${entry.type} ${entry.amount} to account ${entry.accountId}`, 'RecurringTransactionJob');
+      });
+
       // Create the actual transaction
+      logInfo(`🚀 Calling transactionService.createTransaction...`, 'RecurringTransactionJob');
       const result = await this.transactionService.createTransaction(transactionData);
       
-      logSuccess(`Created transaction ${result.transaction.id} from recurring transaction ${transactionId}`, 'RecurringTransactionJob');
+      logSuccess(`✅ Created transaction ${result.transaction.id} from recurring transaction ${transactionId}`, 'RecurringTransactionJob');
 
       // Calculate next run date
       const nextRun = this.calculateNextRun(recurringTransaction.recurrencePattern, now);
+      logInfo(`📅 Next run date: ${nextRun}`, 'RecurringTransactionJob');
 
       // Update recurring transaction
       await this.updateRecurringTransaction(recurringTransaction, 'SUCCESS', nextRun);
 
     } catch (error) {
-      logError(`Failed to process recurring transaction ${transactionId}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'RecurringTransactionJob');
+      logError(`❌ Failed to process recurring transaction ${transactionId}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'RecurringTransactionJob');
+      if (error instanceof Error) {
+        logError(`❌ Error stack: ${error.stack}`, 'RecurringTransactionJob');
+      }
       await this.updateRecurringTransaction(recurringTransaction, 'FAILED');
     }
   }
 
   private async findCashAccount(userId: number): Promise<any> {
+    logInfo(`🔍 Finding cash account for user ${userId}...`, 'RecurringTransactionJob');
+    
     // Find any account for the user that can be used for the credit side
     // Try ASSET accounts first (cash/bank), then any other account
     let cashAccounts = await this.accountRepo.find({
@@ -145,22 +166,35 @@ export class RecurringTransactionJob {
       order: { balance: 'DESC' }
     });
 
+    logInfo(`📊 Found ${cashAccounts.length} ASSET accounts for user ${userId}`, 'RecurringTransactionJob');
+    cashAccounts.forEach((account, index) => {
+      logInfo(`   ${index + 1}. ${account.name} (ID: ${account.id}, Balance: ${account.balance})`, 'RecurringTransactionJob');
+    });
+
     // If no ASSET accounts found, try any account
     if (cashAccounts.length === 0) {
+      logInfo(`🔍 No ASSET accounts found, trying any account...`, 'RecurringTransactionJob');
       cashAccounts = await this.accountRepo.find({
         where: {
           user: { id: userId }
         },
         order: { balance: 'DESC' }
       });
+      
+      logInfo(`📊 Found ${cashAccounts.length} total accounts for user ${userId}`, 'RecurringTransactionJob');
+      cashAccounts.forEach((account, index) => {
+        logInfo(`   ${index + 1}. ${account.name} (ID: ${account.id}, Type: ${account.type}, Balance: ${account.balance})`, 'RecurringTransactionJob');
+      });
     }
 
     if (cashAccounts.length === 0) {
+      logError(`❌ No accounts found for user ${userId}`, 'RecurringTransactionJob');
       throw new Error(`No accounts found for user ${userId}`);
     }
 
-    logInfo(`Found ${cashAccounts.length} accounts for user ${userId}, using: ${cashAccounts[0].name}`, 'RecurringTransactionJob');
-    return cashAccounts[0];
+    const selectedAccount = cashAccounts[0];
+    logInfo(`✅ Selected account: ${selectedAccount.name} (ID: ${selectedAccount.id}, Type: ${selectedAccount.type}, Balance: ${selectedAccount.balance})`, 'RecurringTransactionJob');
+    return selectedAccount;
   }
 
   private calculateNextRun(recurrencePattern: RecurrencePattern, currentDate: Date): Date {
