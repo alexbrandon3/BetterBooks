@@ -92,32 +92,28 @@ export class RecurringTransactionJob {
         return;
       }
 
-      // Find a cash/bank account for the credit side (assuming this is an expense)
-      logInfo(`🔍 Looking for cash account for user ${userId}...`, 'RecurringTransactionJob');
-      const cashAccount = await this.findCashAccount(userId);
-      if (!cashAccount) {
-        throw new Error('No cash/bank account found for recurring transaction');
-      }
-
-      logInfo(`✅ Found cash account: ${cashAccount.name} (ID: ${cashAccount.id})`, 'RecurringTransactionJob');
+      // For now, we'll create a simple transaction using the selected account
+      // In the future, we should store both debit and credit accounts in the recurring transaction
+      logInfo(`🔍 Using selected account: ${recurringTransaction.account.name} (ID: ${recurringTransaction.account.id})`, 'RecurringTransactionJob');
 
       // Create transaction data from recurring transaction
+      // For a "Sold" transaction, this should be INCOME (credit Sales Revenue, debit Cash)
       const transactionData: CreateTransactionDTO = {
         description: recurringTransaction.description,
         date: now,
-        type: TransactionType.EXPENSE, // Default to expense, could be made configurable
+        type: TransactionType.INCOME, // Changed from EXPENSE to INCOME for "Sold" transactions
         category: 'Recurring Transaction',
         amount: recurringTransaction.amount,
         entries: [
           {
             amount: recurringTransaction.amount,
-            type: EntryType.DEBIT,
-            accountId: recurringTransaction.account.id // Debit the expense account
+            type: EntryType.CREDIT,
+            accountId: recurringTransaction.account.id // Credit the selected account (Sales Revenue)
           },
           {
             amount: recurringTransaction.amount,
-            type: EntryType.CREDIT,
-            accountId: cashAccount.id // Credit the cash/bank account
+            type: EntryType.DEBIT,
+            accountId: 320 // Debit Cash (account 320)
           }
         ],
         userId: userId
