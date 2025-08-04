@@ -149,49 +149,7 @@ export class RecurringTransactionJob {
     }
   }
 
-  private async findCashAccount(userId: number): Promise<any> {
-    logInfo(`🔍 Finding cash account for user ${userId}...`, 'RecurringTransactionJob');
-    
-    // Find any account for the user that can be used for the credit side
-    // Try ASSET accounts first (cash/bank), then any other account
-    let cashAccounts = await this.accountRepo.find({
-      where: {
-        user: { id: userId },
-        type: "ASSET"
-      },
-      order: { balance: 'DESC' }
-    });
 
-    logInfo(`📊 Found ${cashAccounts.length} ASSET accounts for user ${userId}`, 'RecurringTransactionJob');
-    cashAccounts.forEach((account, index) => {
-      logInfo(`   ${index + 1}. ${account.name} (ID: ${account.id}, Balance: ${account.balance})`, 'RecurringTransactionJob');
-    });
-
-    // If no ASSET accounts found, try any account
-    if (cashAccounts.length === 0) {
-      logInfo(`🔍 No ASSET accounts found, trying any account...`, 'RecurringTransactionJob');
-      cashAccounts = await this.accountRepo.find({
-        where: {
-          user: { id: userId }
-        },
-        order: { balance: 'DESC' }
-      });
-      
-      logInfo(`📊 Found ${cashAccounts.length} total accounts for user ${userId}`, 'RecurringTransactionJob');
-      cashAccounts.forEach((account, index) => {
-        logInfo(`   ${index + 1}. ${account.name} (ID: ${account.id}, Type: ${account.type}, Balance: ${account.balance})`, 'RecurringTransactionJob');
-      });
-    }
-
-    if (cashAccounts.length === 0) {
-      logError(`❌ No accounts found for user ${userId}`, 'RecurringTransactionJob');
-      throw new Error(`No accounts found for user ${userId}`);
-    }
-
-    const selectedAccount = cashAccounts[0];
-    logInfo(`✅ Selected account: ${selectedAccount.name} (ID: ${selectedAccount.id}, Type: ${selectedAccount.type}, Balance: ${selectedAccount.balance})`, 'RecurringTransactionJob');
-    return selectedAccount;
-  }
 
   private calculateNextRun(recurrencePattern: RecurrencePattern, currentDate: Date): Date {
     const nextRun = new Date(currentDate);
