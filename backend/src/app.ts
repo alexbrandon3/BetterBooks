@@ -11,7 +11,6 @@ import goalRoutes from './routes/routes';
 import suggestionRoutes from './routes/suggestion.routes';
 import reportRoutes from './routes/report.routes';
 import booksRoutes from './routes/books.routes';
-import { startRecurringTransactionJob } from './services/recurringTransactionJob';
 
 const app = express();
 
