@@ -25,9 +25,9 @@ console.log("🔗 Connecting to Supabase with individual parameters...");
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  host: process.env.DB_HOST || "db.xblssfiyikarrdtsjrvn.supabase.co",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  username: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "aws-0-us-east-2.pooler.supabase.com",
+  port: parseInt(process.env.DB_PORT || "6543"),
+  username: process.env.DB_USER || "postgres.xblssfiyikarrdtsjrvn",
   password: process.env.DB_PASS || "sEGbhZpOgYBsGNcS",
   database: process.env.DB_NAME || "postgres",
   synchronize: true,
