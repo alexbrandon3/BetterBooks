@@ -8,7 +8,6 @@ import { RecurrencePattern } from "../entities/Transaction";
 export class RecurringTransactionJob {
   private recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
   private transactionService = new TransactionService();
-  private accountRepo = AppDataSource.getRepository("Account");
   private interval: NodeJS.Timeout | null = null;
   private isRunning = false;
 
