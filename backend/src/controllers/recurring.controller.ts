@@ -1,10 +1,12 @@
-import { Response } from 'express';
-import { AppDataSource } from '../config/data-source';
-import { RecurringTransaction } from '../entities/RecurringTransaction';
-import { Account } from '../entities/Account';
-import { AuthenticatedRequest } from '../types/express';
-import { getUser } from '../utils/getUser';
-import { logInfo, logSuccess, logError } from '../utils/logger';
+import { Request, Response } from "express";
+import { AppDataSource } from "../config/data-source";
+import { RecurringTransaction } from "../entities/RecurringTransaction";
+import { Account, AccountType } from "../entities/Account";
+import { TransactionService } from "../services/transaction.service";
+import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
+import { AuthenticatedRequest } from "../types/express";
+import { getUser } from "../utils/getUser";
+import { logInfo, logSuccess, logError } from "../utils/logger";
 
 export const getRecurringTransactions = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -67,10 +69,72 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       account
     });
 
-    const savedTransaction = await recurringTransactionRepo.save(recurringTransaction);
-    logSuccess(`Recurring transaction created successfully (ID: ${savedTransaction.id})`, 'RecurringController');
+    const savedRecurringTransaction = await recurringTransactionRepo.save(recurringTransaction);
+    logSuccess(`Recurring transaction created successfully (ID: ${savedRecurringTransaction.id})`, 'RecurringController');
     
-    return res.status(201).json(savedTransaction);
+    // Create initial transaction immediately
+    const transactionService = new TransactionService();
+    const now = new Date();
+    
+    // Find a suitable account for the other side of the transaction
+    // For INCOME transactions: credit income account, debit cash/asset account
+    let otherAccount = null;
+    
+    if (account.type === "INCOME") {
+      // For income, find a cash/asset account to debit
+      otherAccount = await accountRepo.findOne({
+        where: {
+          user: { id: user.id },
+          type: AccountType.ASSET,
+          name: "Cash"
+        }
+      });
+    } else if (account.type === "EXPENSE") {
+      // For expense, find a cash/asset account to credit
+      otherAccount = await accountRepo.findOne({
+        where: {
+          user: { id: user.id },
+          type: AccountType.ASSET,
+          name: "Cash"
+        }
+      });
+    }
+    
+    if (!otherAccount) {
+      logError(`No suitable account found for the other side of transaction`, 'RecurringController');
+      return res.status(400).json({ error: "No suitable account found for transaction balance" });
+    }
+    
+    // Create transaction data for the initial transaction
+    const transactionData: CreateTransactionDTO = {
+      description: description,
+      date: now,
+      type: TransactionType.INCOME, // Default to INCOME, but this should be configurable
+      category: 'Recurring Transaction',
+      amount: Number(amount),
+      entries: [
+        {
+          amount: Number(amount),
+          type: EntryType.CREDIT,
+          accountId: accountId // Use the account from the recurring transaction
+        },
+        {
+          amount: Number(amount),
+          type: EntryType.DEBIT,
+          accountId: otherAccount.id // Use the found account for the other side
+        }
+      ],
+      userId: user.id
+    };
+
+    logInfo(`Creating initial transaction for recurring transaction ${savedRecurringTransaction.id}`, 'RecurringController');
+    const initialTransaction = await transactionService.createTransaction(transactionData);
+    logSuccess(`Initial transaction created successfully (ID: ${initialTransaction.transaction.id})`, 'RecurringController');
+    
+    return res.status(201).json({
+      ...savedRecurringTransaction,
+      initialTransaction: initialTransaction.transaction
+    });
   } catch (error) {
     logError(`Error creating recurring transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'RecurringController');
     return res.status(500).json({ 

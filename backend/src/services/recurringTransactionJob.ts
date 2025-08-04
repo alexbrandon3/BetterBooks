@@ -1,5 +1,6 @@
 import { AppDataSource } from "../config/data-source";
 import { RecurringTransaction } from "../entities/RecurringTransaction";
+import {  AccountType } from "../entities/Account";
 import { TransactionService } from "./transaction.service";
 import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { logInfo, logSuccess, logError } from '../utils/logger';
@@ -113,6 +114,40 @@ export class RecurringTransactionJob {
       // In the future, we should store both debit and credit accounts in the recurring transaction
       logInfo(`🔍 Using selected account: ${recurringTransaction.account.name} (ID: ${recurringTransaction.account.id})`, 'RecurringTransactionJob');
 
+      // Find a suitable account for the other side of the transaction
+      // For INCOME transactions: credit income account, debit cash/asset account
+      // For EXPENSE transactions: debit expense account, credit cash/asset account
+      const accountRepo = AppDataSource.getRepository("Account");
+      let otherAccount = null;
+      
+      if (recurringTransaction.account.type === "INCOME") {
+        // For income, find a cash/asset account to debit
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: userId },
+            type: AccountType.ASSET,
+            name: "Cash"
+          }
+        });
+      } else if (recurringTransaction.account.type === "EXPENSE") {
+        // For expense, find a cash/asset account to credit
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: userId },
+            type: AccountType.ASSET,
+            name: "Cash"
+          }
+        });
+      }
+      
+      if (!otherAccount) {
+        logError(`❌ No suitable account found for the other side of transaction`, 'RecurringTransactionJob');
+        await this.updateRecurringTransaction(recurringTransaction, 'FAILED');
+        return;
+      }
+
+      logInfo(`🔍 Found other account: ${otherAccount.name} (ID: ${otherAccount.id})`, 'RecurringTransactionJob');
+
       // Create transaction data from recurring transaction
       // The account from the recurring transaction is the primary account
       const transactionData: CreateTransactionDTO = {
@@ -126,6 +161,11 @@ export class RecurringTransactionJob {
             amount: recurringTransaction.amount,
             type: EntryType.CREDIT,
             accountId: recurringTransaction.account.id // Use the account from the recurring transaction
+          },
+          {
+            amount: recurringTransaction.amount,
+            type: EntryType.DEBIT,
+            accountId: otherAccount.id // Use the found account for the other side
           }
         ],
         userId: userId
