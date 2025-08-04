@@ -135,16 +135,32 @@ export class RecurringTransactionJob {
   }
 
   private async findCashAccount(userId: number): Promise<any> {
-    // Find the first cash/bank account for the user
-    const cashAccounts = await this.accountRepo.find({
+    // Find any account for the user that can be used for the credit side
+    // Try ASSET accounts first (cash/bank), then any other account
+    let cashAccounts = await this.accountRepo.find({
       where: {
         user: { id: userId },
-        type: "ASSET" // Assuming ASSET accounts include cash/bank accounts
+        type: "ASSET"
       },
-      order: { balance: 'DESC' } // Prefer accounts with higher balances
+      order: { balance: 'DESC' }
     });
 
-    return cashAccounts.length > 0 ? cashAccounts[0] : null;
+    // If no ASSET accounts found, try any account
+    if (cashAccounts.length === 0) {
+      cashAccounts = await this.accountRepo.find({
+        where: {
+          user: { id: userId }
+        },
+        order: { balance: 'DESC' }
+      });
+    }
+
+    if (cashAccounts.length === 0) {
+      throw new Error(`No accounts found for user ${userId}`);
+    }
+
+    logInfo(`Found ${cashAccounts.length} accounts for user ${userId}, using: ${cashAccounts[0].name}`, 'RecurringTransactionJob');
+    return cashAccounts[0];
   }
 
   private calculateNextRun(recurrencePattern: RecurrencePattern, currentDate: Date): Date {
