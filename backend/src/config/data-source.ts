@@ -52,6 +52,8 @@ export const AppDataSource = new DataSource({
   subscribers: [],
   // Performance optimizations - connection pooling
   extra: {
+    // Force IPv4 connection
+    family: 4,
     // Connection pooling
     max: 20, // Maximum number of connections in the pool
     min: 5,  // Minimum number of connections in the pool
