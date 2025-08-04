@@ -662,8 +662,10 @@ const Transactions = () => {
           recurrencePattern: data.recurrencePattern,
           nextRun: data.nextRun,
           endDate: data.endDate || undefined,
-          // For now, use the first account as the main account
-          accountId: parseInt(data.entries[0]?.accountId) || 0
+          primaryAccountId: parseInt(data.entries[0]?.accountId) || 0,
+          secondaryAccountId: parseInt(data.entries[1]?.accountId) || 0,
+          primaryEntryType: data.entries[0]?.type || 'DEBIT',
+          secondaryEntryType: data.entries[1]?.type || 'CREDIT'
         };
         
 
@@ -683,8 +685,10 @@ const Transactions = () => {
             recurrencePattern: data.recurrencePattern,
             nextRun: data.nextRun,
             endDate: data.endDate || undefined,
-            // For now, use the first account as the main account
-            accountId: parseInt(data.entries[0]?.accountId) || 0
+            primaryAccountId: parseInt(data.entries[0]?.accountId) || 0,
+            secondaryAccountId: parseInt(data.entries[1]?.accountId) || 0,
+            primaryEntryType: data.entries[0]?.type || 'DEBIT',
+            secondaryEntryType: data.entries[1]?.type || 'CREDIT'
           };
           
 
@@ -831,14 +835,14 @@ const Transactions = () => {
       amount: Math.abs(recurring.amount),
       entries: [
         { 
-          accountId: recurring.account.id.toString(), 
+          accountId: recurring.primaryAccount?.id?.toString() || "", 
           amount: Math.abs(recurring.amount).toString(), 
-          type: recurring.amount > 0 ? "CREDIT" : "DEBIT" 
+          type: recurring.primaryEntryType || "DEBIT"
         },
         { 
-          accountId: "", 
+          accountId: recurring.secondaryAccount?.id?.toString() || "", 
           amount: Math.abs(recurring.amount).toString(), 
-          type: recurring.amount > 0 ? "DEBIT" : "CREDIT" 
+          type: recurring.secondaryEntryType || "CREDIT"
         }
       ],
       // Set recurring fields
