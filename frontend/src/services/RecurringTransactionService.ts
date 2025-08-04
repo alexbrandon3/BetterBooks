@@ -1,5 +1,17 @@
 import api from "../utils/axios";
 
+export interface RecurringTransactionData {
+  description: string;
+  amount: number;
+  recurrencePattern: string;
+  nextRun: string;
+  endDate?: string;
+  primaryAccountId: number;
+  secondaryAccountId: number;
+  primaryEntryType: 'DEBIT' | 'CREDIT';
+  secondaryEntryType: 'DEBIT' | 'CREDIT';
+}
+
 export const fetchRecurringTransactions = async () => {
   try {
     const response = await api.get("/recurring-transactions");
@@ -10,7 +22,7 @@ export const fetchRecurringTransactions = async () => {
   }
 };
 
-export const createRecurringTransaction = async (transaction: any) => {
+export const createRecurringTransaction = async (transaction: RecurringTransactionData) => {
   try {
     const response = await api.post("/recurring-transactions", transaction);
     return response.data;
@@ -20,7 +32,7 @@ export const createRecurringTransaction = async (transaction: any) => {
   }
 };
 
-export const updateRecurringTransaction = async (id: number, transaction: any) => {
+export const updateRecurringTransaction = async (id: number, transaction: RecurringTransactionData) => {
   try {
     const response = await api.put(`/recurring-transactions/${id}`, transaction);
     return response.data;

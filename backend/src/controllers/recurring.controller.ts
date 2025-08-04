@@ -1,7 +1,7 @@
 import {  Response } from "express";
 import { AppDataSource } from "../config/data-source";
 import { RecurringTransaction } from "../entities/RecurringTransaction";
-import { Account, AccountType } from "../entities/Account";
+import { Account } from "../entities/Account";
 import { TransactionService } from "../services/transaction.service";
 import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { AuthenticatedRequest } from "../types/express";
@@ -39,27 +39,38 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { description, amount, recurrencePattern, nextRun, endDate, accountId } = req.body;
+    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType } = req.body;
 
     // Validate required fields
-    if (!description || !amount || !recurrencePattern || !nextRun || !accountId) {
-      logError(`Missing required fields: description=${!!description}, amount=${!!amount}, recurrencePattern=${!!recurrencePattern}, nextRun=${!!nextRun}, accountId=${!!accountId}`, 'RecurringController');
+    if (!description || !amount || !recurrencePattern || !nextRun || !primaryAccountId || !secondaryAccountId || !primaryEntryType || !secondaryEntryType) {
+      logError(`Missing required fields: description=${!!description}, amount=${!!amount}, recurrencePattern=${!!recurrencePattern}, nextRun=${!!nextRun}, primaryAccountId=${!!primaryAccountId}, secondaryAccountId=${!!secondaryAccountId}, primaryEntryType=${!!primaryEntryType}, secondaryEntryType=${!!secondaryEntryType}`, 'RecurringController');
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Validate account ownership
     const accountRepo = AppDataSource.getRepository(Account);
-    logInfo(`Looking for account ${accountId} for user ${user.id}`, 'RecurringController');
-    const account = await accountRepo.findOne({
-      where: { id: accountId, user: { id: user.id } }
+    logInfo(`Looking for primary account ${primaryAccountId} for user ${user.id}`, 'RecurringController');
+    const primaryAccount = await accountRepo.findOne({
+      where: { id: primaryAccountId, user: { id: user.id } }
     });
 
-    if (!account) {
-      logError(`Account not found or not owned by user: ${accountId}`, 'RecurringController');
-      return res.status(404).json({ error: "Account not found" });
+    if (!primaryAccount) {
+      logError(`Primary account not found or not owned by user: ${primaryAccountId}`, 'RecurringController');
+      return res.status(404).json({ error: "Primary account not found" });
     }
     
-    logInfo(`Found account: ${account.name} (ID: ${account.id}, Type: ${account.type})`, 'RecurringController');
+    logInfo(`Looking for secondary account ${secondaryAccountId} for user ${user.id}`, 'RecurringController');
+    const secondaryAccount = await accountRepo.findOne({
+      where: { id: secondaryAccountId, user: { id: user.id } }
+    });
+
+    if (!secondaryAccount) {
+      logError(`Secondary account not found or not owned by user: ${secondaryAccountId}`, 'RecurringController');
+      return res.status(404).json({ error: "Secondary account not found" });
+    }
+    
+    logInfo(`Found primary account: ${primaryAccount.name} (ID: ${primaryAccount.id}, Type: ${primaryAccount.type})`, 'RecurringController');
+    logInfo(`Found secondary account: ${secondaryAccount.name} (ID: ${secondaryAccount.id}, Type: ${secondaryAccount.type})`, 'RecurringController');
 
     // Create recurring transaction
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
@@ -70,7 +81,10 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       nextRun: new Date(nextRun),
       endDate: endDate ? new Date(endDate) : undefined,
       user,
-      account
+      primaryAccount,
+      secondaryAccount,
+      primaryEntryType,
+      secondaryEntryType
     });
 
     const savedRecurringTransaction = await recurringTransactionRepo.save(recurringTransaction);
@@ -80,83 +94,7 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     const transactionService = new TransactionService();
     const now = new Date();
     
-    // Find a suitable account for the other side of the transaction
-    // For INCOME transactions: credit income account, debit cash/asset account
-    // For EXPENSE transactions: debit expense account, credit cash/asset account
-    // For ASSET transactions: debit asset account, credit another asset account
-    let otherAccount = null;
-    
-    if (account.type === AccountType.INCOME) {
-      // For income, find a cash/asset account to debit
-      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
-      otherAccount = await accountRepo.findOne({
-        where: {
-          user: { id: user.id },
-          type: AccountType.ASSET,
-          name: "Cash"
-        }
-      });
-    } else if (account.type === AccountType.EXPENSE) {
-      // For expense, find a cash/asset account to credit
-      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
-      otherAccount = await accountRepo.findOne({
-        where: {
-          user: { id: user.id },
-          type: AccountType.ASSET,
-          name: "Cash"
-        }
-      });
-    } else if (account.type === AccountType.ASSET) {
-      // For asset transactions, find another asset account or create a contra account
-      logInfo(`Looking for another asset account for user ${user.id}`, 'RecurringController');
-      otherAccount = await accountRepo.findOne({
-        where: {
-          user: { id: user.id },
-          type: AccountType.ASSET,
-          name: "Checking Account"
-        }
-      });
-      
-      // If no checking account, try savings
-      if (!otherAccount) {
-        otherAccount = await accountRepo.findOne({
-          where: {
-            user: { id: user.id },
-            type: AccountType.ASSET,
-            name: "Savings Account"
-          }
-        });
-      }
-    } else if (account.type === AccountType.LIABILITY) {
-      // For liability transactions, find a cash/asset account to debit
-      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
-      otherAccount = await accountRepo.findOne({
-        where: {
-          user: { id: user.id },
-          type: AccountType.ASSET,
-          name: "Cash"
-        }
-      });
-    } else if (account.type === AccountType.EQUITY) {
-      // For equity transactions, find a cash/asset account to debit
-      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
-      otherAccount = await accountRepo.findOne({
-        where: {
-          user: { id: user.id },
-          type: AccountType.ASSET,
-          name: "Cash"
-        }
-      });
-    }
-    
-    if (!otherAccount) {
-      logError(`No suitable account found for the other side of transaction. Account type: ${account.type}`, 'RecurringController');
-      return res.status(400).json({ error: "No suitable account found for transaction balance" });
-    }
-    
-    logInfo(`Found other account: ${otherAccount.name} (ID: ${otherAccount.id}, Type: ${otherAccount.type})`, 'RecurringController');
-
-    // Create transaction data for the initial transaction
+    // Create transaction data for the initial transaction using the stored accounts
     const transactionData: CreateTransactionDTO = {
       description: description,
       date: now,
@@ -166,13 +104,13 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       entries: [
         {
           amount: Number(amount),
-          type: EntryType.CREDIT,
-          accountId: accountId // Use the account from the recurring transaction
+          type: primaryEntryType as EntryType,
+          accountId: primaryAccountId
         },
         {
           amount: Number(amount),
-          type: EntryType.DEBIT,
-          accountId: otherAccount.id // Use the found account for the other side
+          type: secondaryEntryType as EntryType,
+          accountId: secondaryAccountId
         }
       ],
       userId: user.id
@@ -206,23 +144,18 @@ export const deleteRecurringTransaction = async (req: AuthenticatedRequest, res:
     }
 
     const { id } = req.params;
-    if (!id) {
-      logError('Missing transaction ID', 'RecurringController');
-      return res.status(400).json({ error: "Transaction ID is required" });
-    }
-
-    // Find and delete the recurring transaction
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
-    const transaction = await recurringTransactionRepo.findOne({
-      where: { id: Number(id), user: { id: user.id } }
+    
+    const recurringTransaction = await recurringTransactionRepo.findOne({
+      where: { id: parseInt(id), user: { id: user.id } }
     });
 
-    if (!transaction) {
+    if (!recurringTransaction) {
       logError(`Recurring transaction not found: ${id}`, 'RecurringController');
       return res.status(404).json({ error: "Recurring transaction not found" });
     }
 
-    await recurringTransactionRepo.remove(transaction);
+    await recurringTransactionRepo.remove(recurringTransaction);
     logSuccess(`Recurring transaction deleted successfully (ID: ${id})`, 'RecurringController');
     
     return res.status(200).json({ message: "Recurring transaction deleted successfully" });
@@ -246,15 +179,10 @@ export const updateRecurringTransaction = async (req: AuthenticatedRequest, res:
     }
 
     const { id } = req.params;
-    if (!id) {
-      logError('Missing transaction ID', 'RecurringController');
-      return res.status(400).json({ error: "Transaction ID is required" });
-    }
-
-    const { description, amount, recurrencePattern, nextRun, endDate, accountId } = req.body;
+    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType } = req.body;
 
     // Validate required fields
-    if (!description || !amount || !recurrencePattern || !nextRun || !accountId) {
+    if (!description || !amount || !recurrencePattern || !nextRun || !primaryAccountId || !secondaryAccountId || !primaryEntryType || !secondaryEntryType) {
       logError('Missing required fields', 'RecurringController');
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -263,7 +191,7 @@ export const updateRecurringTransaction = async (req: AuthenticatedRequest, res:
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
     const transaction = await recurringTransactionRepo.findOne({
       where: { id: Number(id), user: { id: user.id } },
-      relations: ['account']
+      relations: ['primaryAccount', 'secondaryAccount']
     });
 
     if (!transaction) {
@@ -271,18 +199,29 @@ export const updateRecurringTransaction = async (req: AuthenticatedRequest, res:
       return res.status(404).json({ error: "Recurring transaction not found" });
     }
 
-    // Validate account ownership if account is being changed
-    if (accountId !== transaction.account.id) {
+    // Validate account ownership if accounts are being changed
+    if (primaryAccountId !== transaction.primaryAccount.id || secondaryAccountId !== transaction.secondaryAccount.id) {
       const accountRepo = AppDataSource.getRepository(Account);
-      const account = await accountRepo.findOne({
-        where: { id: accountId, user: { id: user.id } }
+      const primaryAccount = await accountRepo.findOne({
+        where: { id: primaryAccountId, user: { id: user.id } }
       });
 
-      if (!account) {
-        logError(`Account not found or not owned by user: ${accountId}`, 'RecurringController');
-        return res.status(404).json({ error: "Account not found" });
+      if (!primaryAccount) {
+        logError(`Primary account not found or not owned by user: ${primaryAccountId}`, 'RecurringController');
+        return res.status(404).json({ error: "Primary account not found" });
       }
-      transaction.account = account;
+
+      const secondaryAccount = await accountRepo.findOne({
+        where: { id: secondaryAccountId, user: { id: user.id } }
+      });
+
+      if (!secondaryAccount) {
+        logError(`Secondary account not found or not owned by user: ${secondaryAccountId}`, 'RecurringController');
+        return res.status(404).json({ error: "Secondary account not found" });
+      }
+
+      transaction.primaryAccount = primaryAccount;
+      transaction.secondaryAccount = secondaryAccount;
     }
 
     // Update the transaction
@@ -291,6 +230,8 @@ export const updateRecurringTransaction = async (req: AuthenticatedRequest, res:
     transaction.recurrencePattern = recurrencePattern;
     transaction.nextRun = new Date(nextRun);
     transaction.endDate = endDate ? new Date(endDate) : undefined;
+    transaction.primaryEntryType = primaryEntryType;
+    transaction.secondaryEntryType = secondaryEntryType;
 
     const updatedTransaction = await recurringTransactionRepo.save(transaction);
     logSuccess(`Recurring transaction updated successfully (ID: ${updatedTransaction.id})`, 'RecurringController');

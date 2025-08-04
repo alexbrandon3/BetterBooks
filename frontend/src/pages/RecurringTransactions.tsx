@@ -8,6 +8,7 @@ import {
   createRecurringTransaction,
   deleteRecurringTransaction,
   toggleRecurringTransaction,
+  RecurringTransactionData,
 } from "../services/RecurringTransactionService";
 
 interface RecurringTransaction {
@@ -17,10 +18,22 @@ interface RecurringTransaction {
   recurrencePattern: string;
   nextRun: string;
   isActive: boolean;
-  account: {
+  primaryAccount: {
     id: number;
     name: string;
   };
+  secondaryAccount: {
+    id: number;
+    name: string;
+  };
+  primaryEntryType: string;
+  secondaryEntryType: string;
+}
+
+interface Account {
+  id: number;
+  name: string;
+  type: string;
 }
 
 const RecurringTransactions = () => {
@@ -31,8 +44,11 @@ const RecurringTransactions = () => {
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
   const [recurrencePattern, setRecurrencePattern] = useState("monthly");
-  const [accountId, setAccountId] = useState("");
-  const [accounts, setAccounts] = useState([]);
+  const [primaryAccountId, setPrimaryAccountId] = useState("");
+  const [secondaryAccountId, setSecondaryAccountId] = useState("");
+  const [primaryEntryType, setPrimaryEntryType] = useState<'DEBIT' | 'CREDIT'>('CREDIT');
+  const [secondaryEntryType, setSecondaryEntryType] = useState<'DEBIT' | 'CREDIT'>('DEBIT');
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -66,14 +82,40 @@ const RecurringTransactions = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!primaryAccountId || !secondaryAccountId) {
+      toast.error('Please select both accounts');
+      return;
+    }
+
+    if (primaryAccountId === secondaryAccountId) {
+      toast.error('Please select different accounts for the transaction');
+      return;
+    }
+
     try {
-      await createRecurringTransaction({
+      const transactionData: RecurringTransactionData = {
         amount,
         description,
         recurrencePattern,
-        accountId,
-      });
+        nextRun: new Date().toISOString(), // Start immediately
+        primaryAccountId: parseInt(primaryAccountId),
+        secondaryAccountId: parseInt(secondaryAccountId),
+        primaryEntryType,
+        secondaryEntryType,
+      };
+
+      await createRecurringTransaction(transactionData);
       toast.success('Recurring transaction created successfully!');
+      
+      // Reset form
+      setAmount(0);
+      setDescription("");
+      setPrimaryAccountId("");
+      setSecondaryAccountId("");
+      setPrimaryEntryType('CREDIT');
+      setSecondaryEntryType('DEBIT');
+      
       loadRecurringTransactions();
     } catch (error) {
       console.error("Failed to create recurring transaction:", error);
@@ -117,105 +159,178 @@ const RecurringTransactions = () => {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Recurring Transactions</h1>
 
-      <form onSubmit={handleSubmit} className="mb-4">
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-          placeholder="Amount"
-          className="w-full mb-2 p-2 border rounded"
-        />
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          className="w-full mb-2 p-2 border rounded"
-        />
-        <select
-          value={recurrencePattern}
-          onChange={(e) => setRecurrencePattern(e.target.value)}
-          className="w-full mb-2 p-2 border rounded"
-        >
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-        <select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          className="w-full mb-2 p-2 border rounded"
-        >
-          <option value="">Select Account</option>
-          {accounts.map((account: any) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-            </option>
-          ))}
-        </select>
+      <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg bg-gray-50">
+        <h2 className="text-lg font-semibold mb-4">Create New Recurring Transaction</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Transaction description"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              placeholder="0.00"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Recurrence Pattern</label>
+            <select
+              value={recurrencePattern}
+              onChange={(e) => setRecurrencePattern(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Account</label>
+            <select
+              value={primaryAccountId}
+              onChange={(e) => setPrimaryAccountId(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select Primary Account</option>
+              {accounts.map((account: Account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} ({account.type})
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Account</label>
+            <select
+              value={secondaryAccountId}
+              onChange={(e) => setSecondaryAccountId(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select Secondary Account</option>
+              {accounts.map((account: Account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} ({account.type})
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Entry Type</label>
+            <select
+              value={primaryEntryType}
+              onChange={(e) => setPrimaryEntryType(e.target.value as 'DEBIT' | 'CREDIT')}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="CREDIT">Credit</option>
+              <option value="DEBIT">Debit</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Entry Type</label>
+            <select
+              value={secondaryEntryType}
+              onChange={(e) => setSecondaryEntryType(e.target.value as 'DEBIT' | 'CREDIT')}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="DEBIT">Debit</option>
+              <option value="CREDIT">Credit</option>
+            </select>
+          </div>
+        </div>
+        
         <button
           type="submit"
-          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 w-full"
+          className="mt-4 bg-blue-500 text-white p-2 rounded hover:bg-blue-600 w-full"
         >
           Create Recurring Transaction
         </button>
       </form>
 
-      <table className="w-full border">
-        <thead>
-          <tr>
-            <th role="columnheader" className="border px-4 py-2">Next Run</th>
-            <th role="columnheader" className="border px-4 py-2">Description</th>
-            <th role="columnheader" className="border px-4 py-2">Amount</th>
-            <th role="columnheader" className="border px-4 py-2">Account</th>
-            <th role="columnheader" className="border px-4 py-2">Status</th>
-            <th role="columnheader" className="border px-4 py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recurringTransactions.map((txn: any) => (
-            <tr key={txn.id}>
-              <td className="border px-4 py-2">
-                {txn.nextRun ? format(new Date(txn.nextRun), 'MMM dd, yyyy') : 'Not scheduled'}
-              </td>
-              <td className="border px-4 py-2">{txn.description}</td>
-              <td className="border px-4 py-2">${Math.abs(txn.amount).toFixed(2)}</td>
-              <td className="border px-4 py-2">{txn.account.name}</td>
-              <td className="border px-4 py-2">
-                <span className={`px-2 py-1 rounded text-xs ${
-                  txn.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {txn.isActive ? 'Active' : 'Paused'}
-                </span>
-              </td>
-              <td className="border px-4 py-2">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleToggleActive(txn.id, txn.isActive)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      txn.isActive 
-                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                        : 'bg-green-100 text-green-800 hover:bg-green-200'
-                    }`}
-                    title={txn.isActive ? 'Pause recurring transaction' : 'Resume recurring transaction'}
-                  >
-                    {txn.isActive ? '⏸️ Pause' : '▶️ Resume'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(txn.id)}
-                    className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
-                    title="Delete recurring transaction"
-                    aria-label="Delete recurring transaction"
-                  >
-                    <span className="text-gray-600 hover:text-red-600">🗑️</span>
-                  </button>
-                </div>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full border border-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="border px-4 py-2 text-left">Next Run</th>
+              <th className="border px-4 py-2 text-left">Description</th>
+              <th className="border px-4 py-2 text-left">Amount</th>
+              <th className="border px-4 py-2 text-left">Primary Account</th>
+              <th className="border px-4 py-2 text-left">Secondary Account</th>
+              <th className="border px-4 py-2 text-left">Status</th>
+              <th className="border px-4 py-2 text-left">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {recurringTransactions.map((txn: RecurringTransaction) => (
+              <tr key={txn.id} className="hover:bg-gray-50">
+                <td className="border px-4 py-2">
+                  {txn.nextRun ? format(new Date(txn.nextRun), 'MMM dd, yyyy') : 'Not scheduled'}
+                </td>
+                <td className="border px-4 py-2">{txn.description}</td>
+                <td className="border px-4 py-2">${Math.abs(txn.amount).toFixed(2)}</td>
+                <td className="border px-4 py-2">
+                  {txn.primaryAccount.name} ({txn.primaryEntryType})
+                </td>
+                <td className="border px-4 py-2">
+                  {txn.secondaryAccount.name} ({txn.secondaryEntryType})
+                </td>
+                <td className="border px-4 py-2">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    txn.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {txn.isActive ? 'Active' : 'Paused'}
+                  </span>
+                </td>
+                <td className="border px-4 py-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleToggleActive(txn.id, txn.isActive)}
+                      className={`px-2 py-1 rounded text-xs ${
+                        txn.isActive 
+                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                          : 'bg-green-100 text-green-800 hover:bg-green-200'
+                      }`}
+                      title={txn.isActive ? 'Pause recurring transaction' : 'Resume recurring transaction'}
+                    >
+                      {txn.isActive ? '⏸️ Pause' : '▶️ Resume'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(txn.id)}
+                      className="text-gray-600 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                      title="Delete recurring transaction"
+                      aria-label="Delete recurring transaction"
+                    >
+                      <span className="text-gray-600 hover:text-red-600">🗑️</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

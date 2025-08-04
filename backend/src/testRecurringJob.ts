@@ -24,10 +24,10 @@ async function testRecurringJob() {
       return;
     }
 
-    // Find a test account for the user
+    // Find test accounts for the user
     const accounts = await accountRepo.find({ where: { user: { id: user.id } } });
-    if (accounts.length === 0) {
-      console.log('❌ No accounts found for user. Please create accounts first.');
+    if (accounts.length < 2) {
+      console.log('❌ Need at least 2 accounts for user. Please create more accounts first.');
       return;
     }
 
@@ -35,7 +35,7 @@ async function testRecurringJob() {
     const nextRun = new Date();
     nextRun.setMinutes(nextRun.getMinutes() + 2);
 
-    // Create test recurring transaction
+    // Create test recurring transaction with both accounts
     const testRecurringTransaction = recurringTransactionRepo.create({
       description: 'Test Recurring Transaction - Auto Generated',
       amount: 50.00,
@@ -43,12 +43,17 @@ async function testRecurringJob() {
       nextRun: nextRun,
       isActive: true,
       user: user,
-      account: accounts[0] // Use the first account
+      primaryAccount: accounts[0], // Use the first account as primary
+      secondaryAccount: accounts[1], // Use the second account as secondary
+      primaryEntryType: 'CREDIT',
+      secondaryEntryType: 'DEBIT'
     });
 
     const savedTransaction = await recurringTransactionRepo.save(testRecurringTransaction);
     console.log(`✅ Created test recurring transaction with ID: ${savedTransaction.id}`);
     console.log(`⏰ Next run scheduled for: ${nextRun.toLocaleString()}`);
+    console.log(`📊 Primary Account: ${accounts[0].name} (${savedTransaction.primaryEntryType})`);
+    console.log(`📊 Secondary Account: ${accounts[1].name} (${savedTransaction.secondaryEntryType})`);
 
     console.log('🧪 Testing recurring transaction job...');
     const job = new RecurringTransactionJob();

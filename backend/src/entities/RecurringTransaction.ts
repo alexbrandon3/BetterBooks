@@ -45,8 +45,20 @@ export class RecurringTransaction {
   @ManyToOne(() => User, { eager: true })
   user!: User;
 
+  // Primary account (the one the user selected as main)
   @ManyToOne(() => Account, { eager: true })
-  account!: Account;
+  primaryAccount!: Account;
+
+  // Secondary account (the other side of the transaction)
+  @ManyToOne(() => Account, { eager: true })
+  secondaryAccount!: Account;
+
+  // Entry types for each account
+  @Column()
+  primaryEntryType!: string; // "DEBIT" or "CREDIT"
+
+  @Column()
+  secondaryEntryType!: string; // "DEBIT" or "CREDIT"
 
   @CreateDateColumn()
   createdAt!: Date;
