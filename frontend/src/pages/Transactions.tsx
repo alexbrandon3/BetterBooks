@@ -28,6 +28,7 @@ import {
 } from "../services/RecurringTransactionService";
 import { TransactionTemplateSelector } from '../components/transactions/TransactionTemplateSelector';
 import { TransactionTemplate } from '../types/transaction';
+import { formatRecurrencePattern } from '../utils/formatUtils';
 
 interface TransactionForm {
   date: string;
@@ -1446,7 +1447,7 @@ const Transactions = () => {
                               </div>
                               <div className="mt-1 flex items-center justify-between">
                                 <p className="text-sm text-gray-500">
-                                  {recurring.account?.name} • {recurring.recurrencePattern}
+                                  {recurring.account?.name} • {formatRecurrencePattern(recurring.recurrencePattern)}
                                 </p>
                                 <p className="text-sm text-gray-500">
                                   Next: {new Date(recurring.nextRun).toLocaleDateString()}

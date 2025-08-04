@@ -18,4 +18,16 @@ export const formatCurrency = (amount: number): string => {
   
   // Use parentheses for negative numbers (accounting style)
   return amount < 0 ? `(${formatted})` : formatted;
+};
+
+/**
+ * Formats a recurrence pattern from uppercase to title case
+ * @param pattern - The recurrence pattern (e.g., "MONTHLY", "WEEKLY", "DAILY")
+ * @returns Formatted pattern (e.g., "Monthly", "Weekly", "Daily")
+ */
+export const formatRecurrencePattern = (pattern: string): string => {
+  if (!pattern) return '';
+  
+  // Convert to lowercase first, then capitalize first letter
+  return pattern.toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 }; 
