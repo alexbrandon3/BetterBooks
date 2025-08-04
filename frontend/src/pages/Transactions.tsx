@@ -115,6 +115,9 @@ const Transactions = () => {
           if (e.type === 'DEBIT') debit += amount;
           if (e.type === 'CREDIT') credit += amount;
         });
+        // Round to 2 decimal places to avoid floating-point precision issues
+        debit = Math.round(debit * 100) / 100;
+        credit = Math.round(credit * 100) / 100;
         if (debit !== credit) {
           errors.entries = { type: 'validate', message: 'Total debits must equal total credits' };
           // Return early if there's a validation error, don't check other validations
@@ -607,11 +610,19 @@ const Transactions = () => {
       // For EXPENSE: positive amount (debits > credits)
       const debitTotal = data.entries
         .filter(entry => entry.type === "DEBIT")
-        .reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+        .reduce((sum, entry) => {
+          const amount = parseFloat(entry.amount) || 0;
+          // Round to 2 decimal places to avoid floating-point precision issues
+          return Math.round((sum + amount) * 100) / 100;
+        }, 0);
       
       const creditTotal = data.entries
         .filter(entry => entry.type === "CREDIT")
-        .reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
+        .reduce((sum, entry) => {
+          const amount = parseFloat(entry.amount) || 0;
+          // Round to 2 decimal places to avoid floating-point precision issues
+          return Math.round((sum + amount) * 100) / 100;
+        }, 0);
 
       // For INCOME transactions, the amount should be the credit side
       // For EXPENSE transactions, the amount should be the debit side
@@ -628,7 +639,7 @@ const Transactions = () => {
         amount: totalAmount,
         entries: data.entries.map(entry => ({
           accountId: parseInt(entry.accountId) || 0, // Convert string to number
-          amount: parseFloat(entry.amount) || 0, // Convert string to number
+          amount: Math.round((parseFloat(entry.amount) || 0) * 100) / 100, // Convert string to number and round to 2 decimal places
           type: entry.type,
           description: data.description // Use main transaction description for all entries
         }))
