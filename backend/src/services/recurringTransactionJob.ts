@@ -118,6 +118,7 @@ export class RecurringTransactionJob {
       // Find a suitable account for the other side of the transaction
       // For INCOME transactions: credit income account, debit cash/asset account
       // For EXPENSE transactions: debit expense account, credit cash/asset account
+      // For ASSET transactions: debit asset account, credit another asset account
       const accountRepo = AppDataSource.getRepository(Account);
       let otherAccount = null;
       
@@ -132,6 +133,44 @@ export class RecurringTransactionJob {
         });
       } else if (recurringTransaction.account.type === AccountType.EXPENSE) {
         // For expense, find a cash/asset account to credit
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: userId },
+            type: AccountType.ASSET,
+            name: "Cash"
+          }
+        });
+      } else if (recurringTransaction.account.type === AccountType.ASSET) {
+        // For asset transactions, find another asset account
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: userId },
+            type: AccountType.ASSET,
+            name: "Checking Account"
+          }
+        });
+        
+        // If no checking account, try savings
+        if (!otherAccount) {
+          otherAccount = await accountRepo.findOne({
+            where: {
+              user: { id: userId },
+              type: AccountType.ASSET,
+              name: "Savings Account"
+            }
+          });
+        }
+      } else if (recurringTransaction.account.type === AccountType.LIABILITY) {
+        // For liability transactions, find a cash/asset account to debit
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: userId },
+            type: AccountType.ASSET,
+            name: "Cash"
+          }
+        });
+      } else if (recurringTransaction.account.type === AccountType.EQUITY) {
+        // For equity transactions, find a cash/asset account to debit
         otherAccount = await accountRepo.findOne({
           where: {
             user: { id: userId },

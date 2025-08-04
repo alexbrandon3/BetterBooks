@@ -82,6 +82,8 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     
     // Find a suitable account for the other side of the transaction
     // For INCOME transactions: credit income account, debit cash/asset account
+    // For EXPENSE transactions: debit expense account, credit cash/asset account
+    // For ASSET transactions: debit asset account, credit another asset account
     let otherAccount = null;
     
     if (account.type === AccountType.INCOME) {
@@ -96,6 +98,47 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       });
     } else if (account.type === AccountType.EXPENSE) {
       // For expense, find a cash/asset account to credit
+      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
+      otherAccount = await accountRepo.findOne({
+        where: {
+          user: { id: user.id },
+          type: AccountType.ASSET,
+          name: "Cash"
+        }
+      });
+    } else if (account.type === AccountType.ASSET) {
+      // For asset transactions, find another asset account or create a contra account
+      logInfo(`Looking for another asset account for user ${user.id}`, 'RecurringController');
+      otherAccount = await accountRepo.findOne({
+        where: {
+          user: { id: user.id },
+          type: AccountType.ASSET,
+          name: "Checking Account"
+        }
+      });
+      
+      // If no checking account, try savings
+      if (!otherAccount) {
+        otherAccount = await accountRepo.findOne({
+          where: {
+            user: { id: user.id },
+            type: AccountType.ASSET,
+            name: "Savings Account"
+          }
+        });
+      }
+    } else if (account.type === AccountType.LIABILITY) {
+      // For liability transactions, find a cash/asset account to debit
+      logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
+      otherAccount = await accountRepo.findOne({
+        where: {
+          user: { id: user.id },
+          type: AccountType.ASSET,
+          name: "Cash"
+        }
+      });
+    } else if (account.type === AccountType.EQUITY) {
+      // For equity transactions, find a cash/asset account to debit
       logInfo(`Looking for Cash account for user ${user.id}`, 'RecurringController');
       otherAccount = await accountRepo.findOne({
         where: {
