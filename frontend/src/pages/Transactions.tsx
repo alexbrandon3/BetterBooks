@@ -679,6 +679,13 @@ const Transactions = () => {
       } else {
         // Check if this is a recurring transaction
         if (data.isRecurring) {
+          // Validate that only 2 entries are used for recurring transactions
+          if (data.entries.length !== 2) {
+            setError("Recurring transactions must have exactly 2 entries (one debit, one credit).");
+            toast.error("Recurring transactions must have exactly 2 entries.");
+            return;
+          }
+          
           // Validate account IDs
           const primaryAccountId = parseInt(data.entries[0]?.accountId);
           const secondaryAccountId = parseInt(data.entries[1]?.accountId);

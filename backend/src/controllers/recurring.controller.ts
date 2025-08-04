@@ -14,7 +14,7 @@ export const getRecurringTransactions = async (req: AuthenticatedRequest, res: R
     const recurringTransactionRepo = AppDataSource.getRepository(RecurringTransaction);
     const transactions = await recurringTransactionRepo.find({
       where: { user: { id: req.user.userId } },
-      relations: ['account'],
+      relations: ['primaryAccount', 'secondaryAccount'],
       order: { nextRun: 'ASC' }
     });
     return res.json(transactions);
