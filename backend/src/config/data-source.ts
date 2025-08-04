@@ -21,23 +21,20 @@ import { SplitTransaction } from "../entities/SplitTransaction";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { SuggestionFeedback } from "../entities/SuggestionFeedback";
 
-const databaseUrl = process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || "postgres"}:${process.env.DB_PASS || "trojans3"}@${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "betterbooks"}`;
-
-// Only add SSL params if DB_SSL is set
-let connectionUrl = databaseUrl;
-if (process.env.DB_SSL === 'true') {
-  connectionUrl = databaseUrl.includes('?') 
-    ? `${databaseUrl}&sslmode=no-verify&connect_timeout=10`
-    : `${databaseUrl}?sslmode=no-verify&connect_timeout=10`;
-}
-
-console.log("🔗 Database URL being used:", connectionUrl.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
+console.log("🔗 Connecting to Supabase with individual parameters...");
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: connectionUrl,
+  host: process.env.DB_HOST || "db.xblssfiyikarrdtsjrvn.supabase.co",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASS || "sEGbhZpOgYBsGNcS",
+  database: process.env.DB_NAME || "postgres",
   synchronize: true,
   logging: process.env.NODE_ENV === 'development' ? ["error", "warn", "query"] : ["error"],
+  ssl: process.env.DB_SSL === 'true' ? {
+    rejectUnauthorized: false
+  } : false,
   entities: [
     User,
     Account,
