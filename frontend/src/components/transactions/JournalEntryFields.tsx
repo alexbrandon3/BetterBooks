@@ -28,8 +28,8 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   transactionDescription
 }) => {
   // Get the form context to access isRecurring
-  const { watch } = useFormContext();
-  const isRecurring = watch('isRecurring');
+  const formContext = useFormContext();
+  const isRecurring = formContext?.watch('isRecurring') || false;
 
   // Handler for account selection - removed automatic preference saving
   // Preferences will be saved when transaction is submitted instead
