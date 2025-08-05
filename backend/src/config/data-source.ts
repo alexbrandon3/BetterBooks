@@ -20,6 +20,7 @@ import { ClosedPeriod } from "../entities/ClosedPeriod";
 import { SplitTransaction } from "../entities/SplitTransaction";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { SuggestionFeedback } from "../entities/SuggestionFeedback";
+import { AccountWeight } from "../entities/AccountWeight";
 
 console.log("🔗 Connecting to Supabase with individual parameters...");
 
@@ -46,7 +47,8 @@ export const AppDataSource = new DataSource({
     ClosedPeriod,
     SplitTransaction,
     UserSuggestionPreference,
-    SuggestionFeedback
+    SuggestionFeedback,
+    AccountWeight
   ],
   migrations: [__dirname + "/../migrations/*.ts"],
   subscribers: [],

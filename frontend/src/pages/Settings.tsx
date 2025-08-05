@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import api from '../utils/axios';
+import SmartSuggestionsSection from '../components/SmartSuggestionsSection';
 
 const Settings: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
@@ -114,9 +115,9 @@ const Settings: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
       <div className="max-w-4xl space-y-8">
-        {/* ✅ Smart Suggestions Section - FULLY FUNCTIONAL */}
+        {/* ✅ Smart Suggestions Settings - FULLY FUNCTIONAL */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Smart Suggestions</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Smart Suggestions Settings</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -180,6 +181,9 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* ✅ Smart Suggestions Management - NEW FEATURE */}
+        <SmartSuggestionsSection />
 
         {/* ✅ Data Management Section - FULLY FUNCTIONAL */}
         <div className="bg-white rounded-2xl shadow-lg p-6">

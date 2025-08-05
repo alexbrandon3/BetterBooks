@@ -26,9 +26,9 @@ export class AccountWeightService {
     { keyword: "refund", accountId: 0, weight: 10, transactionType: "INCOME" },
     
     // Purchase keywords
-    { keyword: "bought", accountId: 0, weight: 85, transactionType: "EXPENSE" },
-    { keyword: "buy", accountId: 0, weight: 85, transactionType: "EXPENSE" },
-    { keyword: "purchase", accountId: 0, weight: 85, transactionType: "EXPENSE" },
+    { keyword: "bought", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "buy", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "purchase", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "inventory", accountId: 0, weight: 15, transactionType: "EXPENSE" },
     
     // Operating expense keywords
@@ -54,10 +54,26 @@ export class AccountWeightService {
 
   async getUserWeights(userId: number): Promise<AccountWeight[]> {
     try {
-      return await this.accountWeightRepo.find({
+      const weights = await this.accountWeightRepo.find({
         where: { userId },
         order: { keyword: 'ASC', weight: 'DESC' }
       });
+
+      // Get account names for each weight
+      const weightsWithAccounts = await Promise.all(
+        weights.map(async (weight) => {
+          const account = await this.accountRepo.findOne({
+            where: { id: weight.accountId }
+          });
+          
+          return {
+            ...weight,
+            accountName: account?.name || 'Unknown Account'
+          };
+        })
+      );
+
+      return weightsWithAccounts;
     } catch (error) {
       logError(`Failed to get user weights: ${error instanceof Error ? error.message : 'Unknown error'}`, 'AccountWeightService');
       throw error;
@@ -210,7 +226,16 @@ export class AccountWeightService {
       
       // For purchase keywords, look for purchase/expense accounts
       if (keyword === "bought" || keyword === "buy" || keyword === "purchase") {
-        if (accountName.includes("purchase") || accountName.includes("expense") || accountName.includes("cost")) {
+        // Prioritize accounts with "purchase" in the name
+        if (accountName.includes("purchase")) {
+          return account;
+        }
+        // Then look for general expense accounts, but avoid specific ones like "rent expense"
+        if (accountName.includes("expense") && !accountName.includes("rent") && !accountName.includes("utilities") && !accountName.includes("marketing") && !accountName.includes("payroll")) {
+          return account;
+        }
+        // Finally, look for cost-related accounts
+        if (accountName.includes("cost")) {
           return account;
         }
       }
