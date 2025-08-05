@@ -29,6 +29,10 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   transactionDescription,
   isRecurring = false // Default to false
 }) => {
+  // Debug logging
+  console.log('JournalEntryFields - isRecurring:', isRecurring);
+  console.log('JournalEntryFields - entries.length:', entries.length);
+
   // Handler for account selection - removed automatic preference saving
   // Preferences will be saved when transaction is submitted instead
   const handleAccountSelection = async (accountId: string, description: string) => {

@@ -90,40 +90,7 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
     const savedRecurringTransaction = await recurringTransactionRepo.save(recurringTransaction);
     logSuccess(`Recurring transaction created successfully (ID: ${savedRecurringTransaction.id})`, 'RecurringController');
     
-    // Create initial transaction immediately
-    const transactionService = new TransactionService();
-    const now = new Date();
-    
-    // Create transaction data for the initial transaction using the stored accounts
-    const transactionData: CreateTransactionDTO = {
-      description: description,
-      date: now,
-      type: type || TransactionType.EXPENSE, // Use the type from request or default to EXPENSE
-      category: 'Recurring Transaction',
-      amount: Math.abs(Number(amount)), // Use absolute value for amount
-      entries: [
-        {
-          amount: Math.abs(Number(amount)),
-          type: primaryEntryType as EntryType,
-          accountId: primaryAccountId
-        },
-        {
-          amount: Math.abs(Number(amount)),
-          type: secondaryEntryType as EntryType,
-          accountId: secondaryAccountId
-        }
-      ],
-      userId: user.id
-    };
-
-    logInfo(`Creating initial transaction for recurring transaction ${savedRecurringTransaction.id}`, 'RecurringController');
-    const initialTransaction = await transactionService.createTransaction(transactionData);
-    logSuccess(`Initial transaction created successfully (ID: ${initialTransaction.transaction.id})`, 'RecurringController');
-    
-    return res.status(201).json({
-      ...savedRecurringTransaction,
-      initialTransaction: initialTransaction.transaction
-    });
+    return res.status(201).json(savedRecurringTransaction);
   } catch (error) {
     logError(`Error creating recurring transaction: ${error instanceof Error ? error.message : 'Unknown error'}`, 'RecurringController');
     return res.status(500).json({ 
