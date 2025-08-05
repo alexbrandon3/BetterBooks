@@ -433,7 +433,7 @@ export class AccountWeightService {
       }
 
       // For asset keywords, look for asset accounts (but exclude equity-related keywords)
-      if ((keyword === "equipment" || keyword === "deposit" || keyword.includes("equipment")) && 
+      if ((keyword === "equipment" || keyword === "deposit" || keyword === "equipment_purchase") && 
           !keyword.includes("contribution") && !keyword.includes("investment") && !keyword.includes("equity") && 
           !keyword.includes("capital") && !keyword.includes("owner") && !keyword.includes("partner")) {
         if (accountName.includes("equipment") || accountName.includes("asset") || accountName.includes("deposit")) {
