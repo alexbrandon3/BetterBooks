@@ -5,6 +5,7 @@ import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
 import { SmartSuggestionAgent } from './suggestionEngine/SmartSuggestionAgent';
 import { MemoryBasedLearning } from './suggestionEngine/MemoryBasedLearning';
+import { AccountWeightService } from './AccountWeightService';
 
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
@@ -12,6 +13,7 @@ export class SuggestionService {
   private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
   private smartSuggestionAgent = new SmartSuggestionAgent();
   private memoryLearning = new MemoryBasedLearning();
+  private accountWeightService = new AccountWeightService();
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -102,7 +104,13 @@ export class SuggestionService {
         return await this.createSuggestionFromPreference(userPreference);
       }
 
-      // Step 2: Try memory-based learning (new highest priority after preferences)
+      // Step 2: Try account weighting (new priority between preferences and memory)
+      const weightedSuggestion = await this.findWeightedSuggestion(normalizedDescription, userId);
+      if (weightedSuggestion) {
+        return weightedSuggestion;
+      }
+
+      // Step 3: Try memory-based learning
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: userId } },
         order: { updatedAt: 'DESC' }
@@ -1199,5 +1207,106 @@ export class SuggestionService {
       logError(`Failed to update suggestion settings: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       throw error;
     }
+  }
+
+  private async findWeightedSuggestion(normalizedDescription: string, userId: number): Promise<{
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    reason: string;
+    accountType: string;
+    confidence: number;
+    suggestedEntryType: 'DEBIT' | 'CREDIT';
+    detailedReason: string;
+    learningSource?: string;
+  } | null> {
+    try {
+      // Extract keywords from description
+      const keywords = this.extractKeywords(normalizedDescription);
+      
+      if (keywords.length === 0) {
+        return null;
+      }
+
+      // Get user's accounts
+      const userAccounts = await this.accountRepo.find({
+        where: { user: { id: userId } }
+      });
+
+      let bestWeightedSuggestion: {
+        accountId: number;
+        accountName: string;
+        weight: number;
+        keyword: string;
+      } | null = null;
+
+      // Check each keyword for weights
+      for (const keyword of keywords) {
+        const weights = await this.accountWeightService.getWeightsForKeyword(userId, keyword);
+        
+        for (const weight of weights) {
+          // Find the account
+          const account = userAccounts.find(acc => acc.id === weight.accountId);
+          if (!account) continue;
+
+          // Calculate weighted score (base score * weight multiplier)
+          const baseScore = 70; // Base confidence for weighted suggestions
+          const weightMultiplier = weight.weight / 50; // Normalize to 0-2 range
+          const finalScore = baseScore * weightMultiplier;
+
+          if (!bestWeightedSuggestion || finalScore > bestWeightedSuggestion.weight) {
+            bestWeightedSuggestion = {
+              accountId: weight.accountId,
+              accountName: account.name,
+              weight: finalScore,
+              keyword: keyword
+            };
+          }
+        }
+      }
+
+      if (bestWeightedSuggestion && bestWeightedSuggestion.weight >= 70) {
+        const account = userAccounts.find(acc => acc.id === bestWeightedSuggestion!.accountId);
+        if (!account) return null;
+
+        // Increment usage count for the weight
+        const weights = await this.accountWeightService.getWeightsForKeyword(userId, bestWeightedSuggestion.keyword);
+        const matchingWeight = weights.find(w => w.accountId === bestWeightedSuggestion!.accountId);
+        if (matchingWeight) {
+          await this.accountWeightService.incrementUsageCount(matchingWeight.id);
+        }
+
+        return {
+          suggestedAccountId: bestWeightedSuggestion.accountId,
+          suggestedAccountName: bestWeightedSuggestion.accountName,
+          reason: `Based on keyword "${bestWeightedSuggestion.keyword}" with account weighting`,
+          accountType: account.type,
+          confidence: Math.min(bestWeightedSuggestion.weight, 95), // Cap at 95%
+          suggestedEntryType: this.determineEntryType(account),
+          detailedReason: `Account weighting system found "${bestWeightedSuggestion.accountName}" as the preferred account for keyword "${bestWeightedSuggestion.keyword}"`,
+          learningSource: 'ACCOUNT_WEIGHTING'
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logError(`Failed to find weighted suggestion: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
+  private extractKeywords(description: string): string[] {
+    // Extract meaningful keywords from description
+    const words = description.split(' ').filter(word => word.length > 2);
+    
+    // Common business keywords to look for
+    const businessKeywords = [
+      'sold', 'sale', 'sales', 'revenue', 'income', 'refund',
+      'bought', 'buy', 'purchase', 'inventory',
+      'rent', 'utilities', 'marketing', 'advertising', 'insurance', 'legal', 'accounting',
+      'payroll', 'salary', 'wages', 'employee',
+      'tax', 'taxes', 'irs'
+    ];
+
+    return words.filter(word => businessKeywords.includes(word.toLowerCase()));
   }
 } 

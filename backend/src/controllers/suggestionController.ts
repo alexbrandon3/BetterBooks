@@ -7,6 +7,7 @@ import { User } from '../entities/User';
 import { AuthenticatedRequest } from '../types/express';
 import { BaseController } from './base.controller';
 import { SuggestionService } from '../services/suggestion.service';
+import { AccountWeightService } from '../services/AccountWeightService';
 import { AppDataSource } from '../config/data-source';
 
 export const getSmartGoalSuggestions = async (req: Request, res: Response): Promise<void> => {
@@ -68,10 +69,12 @@ export const getSmartGoalSuggestions = async (req: Request, res: Response): Prom
 
 export class SuggestionController extends BaseController {
   private suggestionService: SuggestionService;
+  private accountWeightService: AccountWeightService;
 
   constructor() {
     super();
     this.suggestionService = new SuggestionService();
+    this.accountWeightService = new AccountWeightService();
   }
 
   async getSuggestions(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -351,6 +354,93 @@ export class SuggestionController extends BaseController {
       this.sendResponse(res, 200, { message: 'Settings updated successfully' });
     } catch (error) {
       console.error('❌ Error updating suggestion settings:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async getUserWeights(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('⚖️ Getting user weights for userId:', req.user.userId);
+      
+      const weights = await this.accountWeightService.getUserWeights(req.user.userId);
+      
+      console.log('✅ User weights retrieved:', weights.length, 'weights');
+      
+      this.sendResponse(res, 200, weights);
+    } catch (error) {
+      console.error('❌ Error getting user weights:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async createOrUpdateWeight(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('⚖️ Creating/updating weight:', req.body);
+      
+      const userId = req.user.userId;
+      const { keyword, accountId, weight, transactionType, isDefault } = req.body;
+      
+      if (!keyword || !accountId || weight === undefined) {
+        this.sendError(res, 400, 'Keyword, accountId, and weight are required');
+        return;
+      }
+
+      if (weight < 0 || weight > 100) {
+        this.sendError(res, 400, 'Weight must be between 0 and 100');
+        return;
+      }
+
+      const weightData = await this.accountWeightService.createOrUpdateWeight(userId, {
+        keyword: keyword.toLowerCase(),
+        accountId,
+        weight,
+        transactionType,
+        isDefault
+      });
+      
+      console.log('✅ Weight created/updated successfully');
+      
+      this.sendResponse(res, 200, weightData);
+    } catch (error) {
+      console.error('❌ Error creating/updating weight:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async deleteWeight(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('🗑️ Deleting weight:', req.params.id);
+      
+      const userId = req.user.userId;
+      const { id } = req.params;
+      
+      if (!id || isNaN(Number(id))) {
+        this.sendError(res, 400, 'Valid weight ID is required');
+        return;
+      }
+
+      await this.accountWeightService.deleteWeight(Number(id), userId);
+      
+      console.log('✅ Weight deleted successfully');
+      
+      this.sendResponse(res, 200, { message: 'Weight deleted successfully' });
+    } catch (error) {
+      console.error('❌ Error deleting weight:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async initializeDefaultWeights(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('⚖️ Initializing default weights for userId:', req.user.userId);
+      
+      await this.accountWeightService.initializeDefaultWeights(req.user.userId);
+      
+      console.log('✅ Default weights initialized successfully');
+      
+      this.sendResponse(res, 200, { message: 'Default weights initialized successfully' });
+    } catch (error) {
+      console.error('❌ Error initializing default weights:', error);
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }

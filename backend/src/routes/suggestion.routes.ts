@@ -32,4 +32,10 @@ router.delete('/preferences', authenticate, suggestionController.clearUserPrefer
 router.get('/settings', authenticate, suggestionController.getSuggestionSettings.bind(suggestionController));
 router.put('/settings', authenticate, suggestionController.updateSuggestionSettings.bind(suggestionController));
 
+// Add routes for account weights
+router.get('/weights', authenticate, suggestionController.getUserWeights.bind(suggestionController));
+router.post('/weights', authenticate, suggestionController.createOrUpdateWeight.bind(suggestionController));
+router.delete('/weights/:id', authenticate, suggestionController.deleteWeight.bind(suggestionController));
+router.post('/weights/initialize-defaults', authenticate, suggestionController.initializeDefaultWeights.bind(suggestionController));
+
 export default router; 
