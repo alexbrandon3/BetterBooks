@@ -1283,14 +1283,43 @@ export class SuggestionService {
           await this.accountWeightService.incrementUsageCount(matchingWeight.id);
         }
 
+        // Determine entry type based on weight's transaction type, not account type
+        let suggestedEntryType: 'DEBIT' | 'CREDIT';
+        if (matchingWeight && matchingWeight.transactionType) {
+          switch (matchingWeight.transactionType) {
+            case 'INCOME':
+              suggestedEntryType = 'CREDIT';
+              break;
+            case 'EXPENSE':
+              suggestedEntryType = 'DEBIT';
+              break;
+            case 'ASSET':
+              suggestedEntryType = 'DEBIT';
+              break;
+            case 'LIABILITY':
+              suggestedEntryType = 'CREDIT';
+              break;
+            case 'EQUITY':
+              suggestedEntryType = 'CREDIT';
+              break;
+            case 'TRANSFER':
+              suggestedEntryType = 'DEBIT'; // Default for transfers
+              break;
+            default:
+              suggestedEntryType = this.determineEntryType(account);
+          }
+        } else {
+          suggestedEntryType = this.determineEntryType(account);
+        }
+
         return {
           suggestedAccountId: bestWeightedSuggestion.accountId,
           suggestedAccountName: bestWeightedSuggestion.accountName,
           reason: `Based on keyword "${bestWeightedSuggestion.keyword}" with account weighting`,
           accountType: account.type,
           confidence: Math.min(bestWeightedSuggestion.weight, 95), // Cap at 95%
-          suggestedEntryType: this.determineEntryType(account),
-          detailedReason: `Account weighting system found "${bestWeightedSuggestion.accountName}" as the preferred account for keyword "${bestWeightedSuggestion.keyword}"`,
+          suggestedEntryType: suggestedEntryType,
+          detailedReason: `Account weighting system found "${bestWeightedSuggestion.accountName}" as the preferred account for keyword "${bestWeightedSuggestion.keyword}" (${matchingWeight?.transactionType || 'unknown'} transaction type)`,
           learningSource: 'ACCOUNT_WEIGHTING'
         };
       }
