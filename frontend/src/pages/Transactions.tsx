@@ -1413,6 +1413,7 @@ const Transactions = () => {
             onAdd={() => append({ accountId: '', amount: '', type: 'DEBIT' })}
             onRemove={remove}
             transactionDescription={watch('description')}
+            isRecurring={watch('isRecurring')}
           />
         </div>
 

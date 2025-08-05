@@ -14,6 +14,7 @@ interface JournalEntryFieldsProps {
   onDescriptionChange?: (index: number, value: string) => void;
   showDescriptionFields?: boolean;
   transactionDescription?: string; // Add transaction description for preference saving
+  isRecurring?: boolean; // Add isRecurring prop
 }
 
 export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
@@ -25,12 +26,9 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   onRemove,
   onDescriptionChange,
   showDescriptionFields = false,
-  transactionDescription
+  transactionDescription,
+  isRecurring = false // Default to false
 }) => {
-  // Get the form context to access isRecurring
-  const formContext = useFormContext();
-  const isRecurring = formContext?.watch('isRecurring') || false;
-
   // Handler for account selection - removed automatic preference saving
   // Preferences will be saved when transaction is submitted instead
   const handleAccountSelection = async (accountId: string, description: string) => {
