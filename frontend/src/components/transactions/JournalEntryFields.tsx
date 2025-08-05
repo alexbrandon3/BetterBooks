@@ -27,6 +27,10 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
   showDescriptionFields = false,
   transactionDescription
 }) => {
+  // Get the form context to access isRecurring
+  const { watch } = useFormContext();
+  const isRecurring = watch('isRecurring');
+
   // Handler for account selection - removed automatic preference saving
   // Preferences will be saved when transaction is submitted instead
   const handleAccountSelection = async (accountId: string, description: string) => {
@@ -36,6 +40,18 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
 
   return (
     <div className="space-y-6" data-testid="journal-entries">
+      {/* Show info message for recurring transactions */}
+      {isRecurring && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center">
+            <span className="text-blue-600 mr-2">ℹ️</span>
+            <span className="text-sm text-blue-700">
+              Recurring transactions use exactly 2 accounts (one debit, one credit)
+            </span>
+          </div>
+        </div>
+      )}
+
       {entries.map((entry, idx) => (
         <div key={entry.id} className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50" data-testid={`journal-entry-${idx}`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -145,14 +161,18 @@ export const JournalEntryFields: React.FC<JournalEntryFieldsProps> = ({
           </div>
         </div>
       ))}
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-6 px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        data-testid="add-split-btn"
-      >
-        Add New Row
-      </button>
+      
+      {/* Only show "Add New Row" button when not recurring */}
+      {!isRecurring && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="mt-6 px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          data-testid="add-split-btn"
+        >
+          Add New Row
+        </button>
+      )}
     </div>
   );
 }; 
