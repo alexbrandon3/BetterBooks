@@ -70,16 +70,69 @@ export class AccountWeightService {
     { keyword: "legal", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "accounting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     
-    // Payroll keywords
+    // Employee Payment Keywords
     { keyword: "payroll", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "salary", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "wages", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "employee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "employee_pay", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "staff_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "bonus", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "commission", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "overtime", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "holiday_pay", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "payroll_tax", accountId: 0, weight: 90, transactionType: "LIABILITY" },
+    { keyword: "withholding", accountId: 0, weight: 90, transactionType: "LIABILITY" },
+    { keyword: "deductions", accountId: 0, weight: 90, transactionType: "LIABILITY" },
     
-    // Tax keywords
+    // Contractor Payment Keywords
+    { keyword: "contractor", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "contractor_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "freelancer", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "consultant", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "vendor_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "independent_contractor", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "service_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "contract_work", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "project_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "professional_services", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "1099_payment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // Tax Keywords
     { keyword: "tax", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "taxes", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "irs", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "income_tax", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "sales_tax", accountId: 0, weight: 90, transactionType: "LIABILITY" },
+    { keyword: "property_tax", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "business_tax", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // Additional Common Business Expenses
+    { keyword: "office_supplies", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "supplies", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "software", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "subscription", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "membership", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "licenses", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "permits", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "travel", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "meals", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "entertainment", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "mileage", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "gas", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "fuel", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "maintenance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "repairs", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "cleaning", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "janitorial", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "security", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "bank_fees", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "credit_card_fees", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "processing_fees", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "interest_expense", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "late_fees", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "penalties", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "fines", accountId: 0, weight: 90, transactionType: "EXPENSE" },
   ];
 
   async getUserWeights(userId: number): Promise<AccountWeight[]> {
@@ -277,7 +330,37 @@ export class AccountWeightService {
         }
       }
       
-      // For specific expense keywords, look for matching accounts
+      // Employee Payment Keywords
+      if (keyword === "payroll" || keyword === "salary" || keyword === "wages" || keyword === "employee" || 
+          keyword === "employee_pay" || keyword === "staff_payment" || keyword === "bonus" || 
+          keyword === "commission" || keyword === "overtime" || keyword === "holiday_pay") {
+        if (accountName.includes("payroll") || accountName.includes("salary") || accountName.includes("wages") || 
+            accountName.includes("employee") || accountName.includes("staff")) {
+          return account;
+        }
+      }
+      
+      // Contractor Payment Keywords
+      if (keyword === "contractor" || keyword === "contractor_payment" || keyword === "freelancer" || 
+          keyword === "consultant" || keyword === "vendor_payment" || keyword === "independent_contractor" ||
+          keyword === "service_payment" || keyword === "contract_work" || keyword === "project_payment" ||
+          keyword === "professional_services" || keyword === "1099_payment") {
+        if (accountName.includes("contractor") || accountName.includes("freelancer") || accountName.includes("consultant") ||
+            accountName.includes("vendor") || accountName.includes("service") || accountName.includes("professional")) {
+          return account;
+        }
+      }
+      
+      // Tax Keywords
+      if (keyword === "tax" || keyword === "taxes" || keyword === "irs" || keyword === "income_tax" ||
+          keyword === "sales_tax" || keyword === "property_tax" || keyword === "business_tax" ||
+          keyword === "payroll_tax" || keyword === "withholding" || keyword === "deductions") {
+        if (accountName.includes("tax") || accountName.includes("irs") || accountName.includes("withholding")) {
+          return account;
+        }
+      }
+      
+      // Specific expense keywords
       if (keyword === "rent" && accountName.includes("rent")) return account;
       if (keyword === "utilities" && accountName.includes("utilities")) return account;
       if (keyword === "marketing" && accountName.includes("marketing")) return account;
@@ -285,13 +368,59 @@ export class AccountWeightService {
       if (keyword === "insurance" && accountName.includes("insurance")) return account;
       if (keyword === "legal" && accountName.includes("legal")) return account;
       if (keyword === "accounting" && accountName.includes("accounting")) return account;
-      if (keyword === "payroll" && accountName.includes("payroll")) return account;
-      if (keyword === "salary" && accountName.includes("salary")) return account;
-      if (keyword === "wages" && accountName.includes("wages")) return account;
-      if (keyword === "employee" && accountName.includes("employee")) return account;
-      if (keyword === "tax" && accountName.includes("tax")) return account;
-      if (keyword === "taxes" && accountName.includes("taxes")) return account;
-      if (keyword === "irs" && accountName.includes("irs")) return account;
+      
+      // Office and Business Supplies
+      if (keyword === "office_supplies" || keyword === "supplies") {
+        if (accountName.includes("supplies") || accountName.includes("office")) {
+          return account;
+        }
+      }
+      
+      // Software and Subscriptions
+      if (keyword === "software" || keyword === "subscription" || keyword === "membership") {
+        if (accountName.includes("software") || accountName.includes("subscription") || accountName.includes("membership")) {
+          return account;
+        }
+      }
+      
+      // Licenses and Permits
+      if (keyword === "licenses" || keyword === "permits") {
+        if (accountName.includes("license") || accountName.includes("permit")) {
+          return account;
+        }
+      }
+      
+      // Travel and Transportation
+      if (keyword === "travel" || keyword === "meals" || keyword === "entertainment" || 
+          keyword === "mileage" || keyword === "gas" || keyword === "fuel") {
+        if (accountName.includes("travel") || accountName.includes("meals") || accountName.includes("entertainment") ||
+            accountName.includes("mileage") || accountName.includes("gas") || accountName.includes("fuel")) {
+          return account;
+        }
+      }
+      
+      // Maintenance and Repairs
+      if (keyword === "maintenance" || keyword === "repairs") {
+        if (accountName.includes("maintenance") || accountName.includes("repair")) {
+          return account;
+        }
+      }
+      
+      // Cleaning and Security
+      if (keyword === "cleaning" || keyword === "janitorial" || keyword === "security") {
+        if (accountName.includes("cleaning") || accountName.includes("janitorial") || accountName.includes("security")) {
+          return account;
+        }
+      }
+      
+      // Fees and Charges
+      if (keyword === "bank_fees" || keyword === "credit_card_fees" || keyword === "processing_fees" ||
+          keyword === "interest_expense" || keyword === "late_fees" || keyword === "penalties" || keyword === "fines") {
+        if (accountName.includes("fee") || accountName.includes("charge") || accountName.includes("interest") ||
+            accountName.includes("penalty") || accountName.includes("fine")) {
+          return account;
+        }
+      }
       
       // For equity keywords, look for equity accounts
       if (keyword === "contribution" || keyword === "investment" || keyword === "equity" || keyword === "capital" || 

@@ -1311,9 +1311,23 @@ export class SuggestionService {
 
     // Multi-word phrase detection (check before single word extraction)
     const multiWordPhrases = [
+      // Equity and Contributions
       'initial contribution', 'owner contribution', 'capital contribution', 'business formation',
       'personal funds', 'partner investment', 'equity investment', 'owner draw', 'partner draw',
-      'loan repayment', 'credit card payment', 'equipment purchase', 'personal use'
+      
+      // Employee Payments
+      'employee pay', 'staff payment', 'holiday pay', 'payroll tax', 'withholding', 'deductions',
+      
+      // Contractor Payments
+      'contractor payment', 'vendor payment', 'independent contractor', 'service payment',
+      'contract work', 'project payment', 'professional services', '1099 payment',
+      
+      // Assets & Liabilities
+      'loan repayment', 'credit card payment', 'equipment purchase', 'personal use',
+      
+      // Additional Business Operations
+      'office supplies', 'bank fees', 'credit card fees', 'processing fees', 'interest expense',
+      'late fees', 'income tax', 'sales tax', 'property tax', 'business tax'
     ];
 
     // Check for multi-word phrases first
@@ -1334,8 +1348,15 @@ export class SuggestionService {
       // Purchases & Expenses
       'bought', 'buy', 'purchase', 'inventory',
       'rent', 'utilities', 'marketing', 'advertising', 'insurance', 'legal', 'accounting',
-      'payroll', 'salary', 'wages', 'employee',
-      'tax', 'taxes', 'irs',
+      
+      // Employee Payments
+      'payroll', 'salary', 'wages', 'employee', 'staff', 'bonus', 'commission', 'overtime',
+      
+      // Contractor Payments
+      'contractor', 'freelancer', 'consultant', 'vendor', 'service',
+      
+      // Tax Keywords
+      'tax', 'taxes', 'irs', 'withholding', 'deductions',
       
       // Equity and Contributions
       'contribution', 'investment', 'equity', 'capital',
@@ -1346,8 +1367,14 @@ export class SuggestionService {
       'overdraft', 'credit', 'interest', 'dividend',
       
       // Business Operations
-      'equipment', 'machinery', 'furniture', 'supplies',
-      'maintenance', 'repair', 'service', 'consulting',
+      'equipment', 'machinery', 'furniture', 'supplies', 'maintenance', 'repair',
+      'software', 'subscription', 'membership', 'licenses', 'permits',
+      
+      // Travel & Transportation
+      'travel', 'meals', 'entertainment', 'mileage', 'gas', 'fuel',
+      
+      // Fees & Charges
+      'fees', 'charges', 'penalties', 'fines', 'late',
       
       // Context Keywords
       'initial', 'business', 'personal', 'formation', 'funds'
