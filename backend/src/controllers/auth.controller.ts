@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { BaseController } from './base.controller';
 import { JwtPayload } from '../types/express';
 import { getDefaultAccounts } from '../seeders/seedDefaultAccounts';
+import { AccountWeightService } from '../services/AccountWeightService';
 
 export class AuthController extends BaseController {
   async login(req: Request, res: Response): Promise<void> {
@@ -84,6 +85,18 @@ export class AuthController extends BaseController {
           const account = accountRepository.create(accountData);
           const savedAccount = await accountRepository.save(account);
           createdAccounts.push(savedAccount);
+        }
+        
+        // Initialize default account weights for the new user
+        try {
+          console.log(`Starting to initialize default account weights for user ${user.id}...`);
+          const accountWeightService = new AccountWeightService();
+          await accountWeightService.initializeDefaultWeights(user.id);
+          console.log(`Successfully initialized default account weights for user ${user.id}`);
+        } catch (weightError) {
+          console.error("Error initializing default account weights:", weightError);
+          // Don't fail the registration if weight initialization fails
+          // The user can still use the system and weights can be added later
         }
       } catch (accountError) {
         console.error("Error creating default accounts:", accountError);

@@ -9,9 +9,11 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
 import { AuthenticatedRequest } from "../types/express";
 import { getDefaultAccounts } from "../seeders/seedDefaultAccounts";
+import { AccountWeightService } from "../services/AccountWeightService";
 
 const userRepo = AppDataSource.getRepository(User);
 const accountRepo = AppDataSource.getRepository(Account);
+const accountWeightService = new AccountWeightService();
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -48,6 +50,17 @@ export const registerUser = async (req: Request, res: Response) => {
       }
       
       console.log(`Created ${createdAccounts.length} default accounts for user ${user.id}`);
+      
+      // Initialize default account weights for the new user
+      try {
+        console.log(`Starting to initialize default account weights for user ${user.id}...`);
+        await accountWeightService.initializeDefaultWeights(user.id);
+        console.log(`Successfully initialized default account weights for user ${user.id}`);
+      } catch (weightError) {
+        console.error("Error initializing default account weights:", weightError);
+        // Don't fail the registration if weight initialization fails
+        // The user can still use the system and weights can be added later
+      }
     } catch (accountError) {
       console.error("Error creating default accounts:", accountError);
       // Don't fail the registration if account creation fails
