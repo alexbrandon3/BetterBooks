@@ -2,8 +2,6 @@ import {  Response } from "express";
 import { AppDataSource } from "../config/data-source";
 import { RecurringTransaction } from "../entities/RecurringTransaction";
 import { Account } from "../entities/Account";
-import { TransactionService } from "../services/transaction.service";
-import { CreateTransactionDTO, EntryType, TransactionType } from "../types/transaction.types";
 import { AuthenticatedRequest } from "../types/express";
 import { getUser } from "../utils/getUser";
 import { logInfo, logSuccess, logError } from "../utils/logger";
@@ -39,7 +37,7 @@ export const createRecurringTransaction = async (req: AuthenticatedRequest, res:
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType, type } = req.body;
+    const { description, amount, recurrencePattern, nextRun, endDate, primaryAccountId, secondaryAccountId, primaryEntryType, secondaryEntryType } = req.body;
 
     // Validate required fields
     if (!description || !amount || !recurrencePattern || !nextRun || !primaryAccountId || !secondaryAccountId || !primaryEntryType || !secondaryEntryType) {
