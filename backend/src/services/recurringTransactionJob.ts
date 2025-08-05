@@ -62,7 +62,8 @@ export class RecurringTransactionJob {
       const dueRecurringTransactions = await this.recurringTransactionRepo
         .createQueryBuilder('recurringTransaction')
         .leftJoinAndSelect('recurringTransaction.user', 'user')
-        .leftJoinAndSelect('recurringTransaction.account', 'account')
+        .leftJoinAndSelect('recurringTransaction.primaryAccount', 'primaryAccount')
+        .leftJoinAndSelect('recurringTransaction.secondaryAccount', 'secondaryAccount')
         .where('recurringTransaction.isActive = :isActive', { isActive: true })
         .andWhere('recurringTransaction.nextRun <= :now', { now })
         .getMany();
