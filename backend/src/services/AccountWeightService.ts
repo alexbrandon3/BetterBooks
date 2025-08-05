@@ -31,6 +31,36 @@ export class AccountWeightService {
     { keyword: "purchase", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "inventory", accountId: 0, weight: 15, transactionType: "EXPENSE" },
     
+    // Equity and Contributions
+    { keyword: "initial_contribution", accountId: 0, weight: 95, transactionType: "EQUITY" },
+    { keyword: "owner_contribution", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "capital_contribution", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "business_formation", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "personal_funds", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "equity_investment", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "partner_investment", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "owner_draw", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "partner_draw", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "contribution", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    { keyword: "investment", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    { keyword: "equity", accountId: 0, weight: 95, transactionType: "EQUITY" },
+    { keyword: "capital", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "owner", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    { keyword: "partner", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    { keyword: "draw", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    { keyword: "withdrawal", accountId: 0, weight: 85, transactionType: "EQUITY" },
+    
+    // Assets & Liabilities
+    { keyword: "loan_repayment", accountId: 0, weight: 90, transactionType: "LIABILITY" },
+    { keyword: "credit_card_payment", accountId: 0, weight: 85, transactionType: "LIABILITY" },
+    { keyword: "equipment_purchase", accountId: 0, weight: 85, transactionType: "ASSET" },
+    { keyword: "personal_use", accountId: 0, weight: 90, transactionType: "EQUITY" },
+    { keyword: "deposit", accountId: 0, weight: 85, transactionType: "ASSET" },
+    { keyword: "loan", accountId: 0, weight: 85, transactionType: "LIABILITY" },
+    { keyword: "transfer", accountId: 0, weight: 85, transactionType: "TRANSFER" },
+    { keyword: "repayment", accountId: 0, weight: 85, transactionType: "LIABILITY" },
+    { keyword: "equipment", accountId: 0, weight: 85, transactionType: "ASSET" },
+    
     // Operating expense keywords
     { keyword: "rent", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "utilities", accountId: 0, weight: 90, transactionType: "EXPENSE" },
@@ -262,6 +292,31 @@ export class AccountWeightService {
       if (keyword === "tax" && accountName.includes("tax")) return account;
       if (keyword === "taxes" && accountName.includes("taxes")) return account;
       if (keyword === "irs" && accountName.includes("irs")) return account;
+      
+      // For equity keywords, look for equity accounts
+      if (keyword === "contribution" || keyword === "investment" || keyword === "equity" || keyword === "capital" || 
+          keyword === "owner" || keyword === "partner" || keyword === "draw" || keyword === "withdrawal" ||
+          keyword.includes("contribution") || keyword.includes("investment") || keyword.includes("draw")) {
+        if (accountName.includes("equity") || accountName.includes("capital") || accountName.includes("owner") || 
+            accountName.includes("partner") || accountName.includes("draw") || accountName.includes("contribution")) {
+          return account;
+        }
+      }
+
+      // For asset keywords, look for asset accounts
+      if (keyword === "equipment" || keyword === "deposit" || keyword.includes("equipment")) {
+        if (accountName.includes("equipment") || accountName.includes("asset") || accountName.includes("deposit")) {
+          return account;
+        }
+      }
+
+      // For liability keywords, look for liability accounts
+      if (keyword === "loan" || keyword === "repayment" || keyword.includes("loan") || keyword.includes("credit")) {
+        if (accountName.includes("loan") || accountName.includes("liability") || accountName.includes("credit") || 
+            accountName.includes("payable")) {
+          return account;
+        }
+      }
     }
 
     return null;

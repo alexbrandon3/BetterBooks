@@ -796,11 +796,19 @@ export class SuggestionService {
           priority: 2
         },
         {
-          keywords: ['draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend', 'capital contribution', 'investment', 'owner draw', 'partner draw', 'member distribution'],
-          accountTypes: ['EXPENSE', 'EQUITY'],
-          categories: ['Drawings', 'Owner Equity', 'Capital', 'Partner Draw'],
-          reason: 'Owner equity transaction',
-          priority: 2
+          keywords: [
+            // Multi-word equity phrases
+            'initial contribution', 'owner contribution', 'capital contribution', 'business formation',
+            'personal funds', 'equity investment', 'partner investment', 'owner draw', 'partner draw',
+            'loan repayment', 'credit card payment', 'equipment purchase', 'personal use',
+            // Single word equity keywords
+            'draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend', 
+            'capital contribution', 'investment', 'member distribution', 'contribution', 'equity', 'capital'
+          ],
+          accountTypes: ['EQUITY', 'ASSET', 'LIABILITY'],
+          categories: ['Owner Equity', 'Contributed Capital', 'Drawings', 'Partner Capital', 'Equipment', 'Loans Payable'],
+          reason: 'Non-revenue/expense business activity',
+          priority: 1
         },
         {
           keywords: ['insurance', 'business insurance', 'liability insurance', 'property insurance', 'workers comp', 'workers compensation', 'professional liability', 'errors omissions', 'e&o', 'general liability', 'commercial auto', 'business interruption'],
@@ -1249,7 +1257,7 @@ export class SuggestionService {
           if (!account) continue;
 
           // Calculate weighted score (base score * weight multiplier)
-          const baseScore = 70; // Base confidence for weighted suggestions
+          const baseScore = 85; // Increased base confidence for weighted suggestions
           const weightMultiplier = weight.weight / 50; // Normalize to 0-2 range
           const finalScore = baseScore * weightMultiplier;
 
@@ -1264,7 +1272,7 @@ export class SuggestionService {
         }
       }
 
-      if (bestWeightedSuggestion && bestWeightedSuggestion.weight >= 70) {
+      if (bestWeightedSuggestion && bestWeightedSuggestion.weight >= 75) {
         const account = userAccounts.find(acc => acc.id === bestWeightedSuggestion!.accountId);
         if (!account) return null;
 
@@ -1296,15 +1304,53 @@ export class SuggestionService {
 
   private extractKeywords(description: string): string[] {
     // Extract meaningful keywords from description
-    const words = description.split(' ').filter(word => word.length > 2);
+    const normalizedDescription = description.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Multi-word phrase detection (check before single word extraction)
+    const multiWordPhrases = [
+      'initial contribution', 'owner contribution', 'capital contribution', 'business formation',
+      'personal funds', 'partner investment', 'equity investment', 'owner draw', 'partner draw',
+      'loan repayment', 'credit card payment', 'equipment purchase', 'personal use'
+    ];
+
+    // Check for multi-word phrases first
+    for (const phrase of multiWordPhrases) {
+      if (normalizedDescription.includes(phrase)) {
+        return [phrase.replace(/\s+/g, '_')]; // Return as single keyword
+      }
+    }
+
+    // Single word extraction
+    const words = normalizedDescription.split(' ').filter(word => word.length > 2);
     
-    // Common business keywords to look for
+    // Expanded business keywords to look for
     const businessKeywords = [
+      // Revenue & Sales
       'sold', 'sale', 'sales', 'revenue', 'income', 'refund',
+      
+      // Purchases & Expenses
       'bought', 'buy', 'purchase', 'inventory',
       'rent', 'utilities', 'marketing', 'advertising', 'insurance', 'legal', 'accounting',
       'payroll', 'salary', 'wages', 'employee',
-      'tax', 'taxes', 'irs'
+      'tax', 'taxes', 'irs',
+      
+      // Equity and Contributions
+      'contribution', 'investment', 'equity', 'capital',
+      'owner', 'partner', 'draw', 'withdrawal',
+      
+      // Assets & Liabilities
+      'deposit', 'loan', 'transfer', 'repayment', 'reimbursement',
+      'overdraft', 'credit', 'interest', 'dividend',
+      
+      // Business Operations
+      'equipment', 'machinery', 'furniture', 'supplies',
+      'maintenance', 'repair', 'service', 'consulting',
+      
+      // Context Keywords
+      'initial', 'business', 'personal', 'formation', 'funds'
     ];
 
     return words.filter(word => businessKeywords.includes(word.toLowerCase()));
