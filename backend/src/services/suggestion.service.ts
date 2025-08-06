@@ -725,6 +725,7 @@ export class SuggestionService {
   private normalizeMultiWordPhrases(description: string): string {
     // Convert multi-word phrases to underscore format for better matching
     const multiWordPhrases = [
+      // Equity and Contributions
       'initial contribution',
       'owner contribution', 
       'capital contribution',
@@ -737,7 +738,42 @@ export class SuggestionService {
       'loan repayment',
       'credit card payment',
       'equipment purchase',
-      'personal use'
+      'personal use',
+      
+      // 🏦 Banking & Financial Services
+      'bank fee',
+      'overdraft fee',
+      'wire transfer',
+      'ach transfer',
+      'atm fee',
+      'monthly service charge',
+      'account maintenance',
+      'direct deposit',
+      'cash withdrawal',
+      'bank charges',
+      
+      // 💳 Credit Card & Payment Processing
+      'credit card fee',
+      'merchant fee',
+      'processing fee',
+      'transaction fee',
+      'chargeback',
+      'gateway fee',
+      'payment processing',
+      'credit card processing',
+      'merchant processing',
+      
+      // ☁️ Technology & Digital Services
+      'cloud hosting',
+      'domain registration',
+      'ssl certificate',
+      'backup service',
+      'cybersecurity',
+      'data recovery',
+      'it support',
+      'managed services',
+      'web hosting',
+      'email hosting'
     ];
     
     let normalized = description.toLowerCase().trim();
@@ -1012,6 +1048,33 @@ export class SuggestionService {
           categories: ['Insurance', 'Business Insurance'],
           reason: 'Insurance related transaction',
           priority: 4
+        },
+        
+        // 🏦 Banking & Financial Services (Priority 2 - High Business Impact)
+        {
+          keywords: ['bank fee', 'overdraft fee', 'monthly service charge', 'atm fee', 'account maintenance', 'wire transfer', 'ach transfer', 'direct deposit', 'cash withdrawal', 'bank charges', 'overdraft', 'wire', 'ach', 'atm', 'monthly', 'service', 'maintenance', 'direct', 'withdrawal', 'charges'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Bank Fees', 'Banking Services', 'Financial Services'],
+          reason: 'Bank service fees and charges',
+          priority: 2
+        },
+        
+        // 💳 Credit Card & Payment Processing (Priority 2 - High Business Impact)
+        {
+          keywords: ['credit card fee', 'merchant fee', 'processing fee', 'transaction fee', 'chargeback', 'gateway fee', 'payment processing', 'credit card processing', 'merchant processing', 'merchant', 'processing', 'transaction', 'chargeback', 'gateway', 'payment'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Payment Processing Fees', 'Merchant Services', 'Credit Card Fees'],
+          reason: 'Merchant and credit card processing costs',
+          priority: 2
+        },
+        
+        // ☁️ Technology & Digital Services (Priority 2 - High Business Impact)
+        {
+          keywords: ['cloud hosting', 'ssl certificate', 'domain registration', 'it support', 'cybersecurity', 'data recovery', 'managed services', 'web hosting', 'email hosting', 'cloud', 'hosting', 'ssl', 'certificate', 'domain', 'registration', 'support', 'cybersecurity', 'data', 'recovery', 'managed', 'web', 'email', 'it', 'technology', 'digital', 'services'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Technology Services', 'Software Subscriptions', 'Digital Services', 'IT Services'],
+          reason: 'Digital service or infrastructure expense',
+          priority: 2
         }
       ];
 
@@ -1440,6 +1503,18 @@ export class SuggestionService {
       // Assets & Liabilities
       'loan repayment', 'credit card payment', 'equipment purchase', 'personal use',
       
+      // 🏦 Banking & Financial Services
+      'bank fee', 'overdraft fee', 'wire transfer', 'ach transfer', 'atm fee', 'monthly service charge', 
+      'account maintenance', 'direct deposit', 'cash withdrawal', 'bank charges',
+      
+      // 💳 Credit Card & Payment Processing
+      'credit card fee', 'merchant fee', 'processing fee', 'transaction fee', 'chargeback', 
+      'gateway fee', 'payment processing', 'credit card processing', 'merchant processing',
+      
+      // ☁️ Technology & Digital Services
+      'cloud hosting', 'domain registration', 'ssl certificate', 'backup service', 'cybersecurity', 
+      'data recovery', 'it support', 'managed services', 'web hosting', 'email hosting',
+      
       // Additional Business Operations
       'office supplies', 'bank fees', 'credit card fees', 'processing fees', 'interest expense',
       'late fees', 'income tax', 'sales tax', 'property tax', 'business tax'
@@ -1490,6 +1565,19 @@ export class SuggestionService {
       
       // Fees & Charges
       'fees', 'charges', 'penalties', 'fines', 'late',
+      
+      // 🏦 Banking & Financial Services
+      'bank', 'overdraft', 'wire', 'ach', 'atm', 'monthly', 'service', 'maintenance',
+      'direct', 'deposit', 'withdrawal', 'cash', 'charges',
+      
+      // 💳 Credit Card & Payment Processing
+      'merchant', 'processing', 'transaction', 'chargeback', 'gateway', 'payment',
+      'credit', 'card', 'processing', 'merchant', 'transaction',
+      
+      // ☁️ Technology & Digital Services
+      'cloud', 'hosting', 'domain', 'registration', 'ssl', 'certificate', 'backup',
+      'cybersecurity', 'data', 'recovery', 'support', 'managed', 'web', 'email',
+      'it', 'technology', 'digital', 'services',
       
       // Context Keywords
       'initial', 'business', 'personal', 'formation', 'funds'

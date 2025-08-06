@@ -133,6 +133,41 @@ export class AccountWeightService {
     { keyword: "late_fees", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "penalties", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "fines", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // 🏦 Banking & Financial Services
+    { keyword: "bank_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "overdraft_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "monthly_service_charge", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "atm_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "account_maintenance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "wire_transfer", accountId: 0, weight: 85, transactionType: "EXPENSE" },
+    { keyword: "ach_transfer", accountId: 0, weight: 85, transactionType: "EXPENSE" },
+    { keyword: "direct_deposit", accountId: 0, weight: 85, transactionType: "ASSET" },
+    { keyword: "cash_withdrawal", accountId: 0, weight: 85, transactionType: "ASSET" },
+    { keyword: "bank_charges", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // 💳 Credit Card & Payment Processing
+    { keyword: "credit_card_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "merchant_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "processing_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "transaction_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "chargeback", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "gateway_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "payment_processing", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "credit_card_processing", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "merchant_processing", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // ☁️ Technology & Digital Services
+    { keyword: "cloud_hosting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "domain_registration", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "ssl_certificate", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "backup_service", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "cybersecurity", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "data_recovery", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "it_support", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "managed_services", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "web_hosting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "email_hosting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
   ];
 
   async getUserWeights(userId: number): Promise<AccountWeight[]> {
