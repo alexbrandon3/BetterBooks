@@ -1103,7 +1103,10 @@ export class SuggestionService {
           const isEquityKeyword = mapping.accountTypes.includes('EQUITY');
           const hasKeyword = isEquityKeyword ? exactMatch : (exactMatch || partialMatch);
           
-          console.log('🔍 [Fallback] Keyword:', keyword, 'normalized:', normalizedKeyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword, 'equity:', isEquityKeyword);
+          // Reduced verbosity - only log when keyword is found
+          if (hasKeyword) {
+            console.log('🔍 [Fallback] Found keyword:', keyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+          }
           return hasKeyword;
         });
         
@@ -1188,7 +1191,10 @@ export class SuggestionService {
           reasoning.push('recently used account');
         }
 
-        console.log('📊 Account', account.name, 'score:', score, 'reasoning:', reasoning.join(', '));
+        // Only log the best match or if score is very high
+        if (score > bestScore || score > 100) {
+          console.log('📊 Account', account.name, 'score:', score, 'reasoning:', reasoning.join(', '));
+        }
 
         if (score > bestScore) {
           bestScore = score;
