@@ -8,7 +8,8 @@
     "suggestedAccount": "Charitable Contributions",
     "confidence": 95,
     "entryType": "CREDIT",
-    "reason": "Based on account weighting for 'contribution' keyword"
+    "reason": "Based on account weighting for 'contribution' keyword",
+    "source": "simulation"
   },
   {
     "description": "employee salary",
@@ -19,7 +20,8 @@
     "suggestedAccount": "Payroll Expense",
     "confidence": 92,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'salary' keyword"
+    "reason": "Based on account weighting for 'salary' keyword",
+    "source": "simulation"
   },
   {
     "description": "consulting fee",
@@ -30,7 +32,8 @@
     "suggestedAccount": "Professional Services",
     "confidence": 91,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'consulting' keyword"
+    "reason": "Based on account weighting for 'consulting' keyword",
+    "source": "simulation"
   },
   {
     "description": "sold products",
@@ -41,7 +44,8 @@
     "suggestedAccount": "Sales Revenue",
     "confidence": 90,
     "entryType": "CREDIT",
-    "reason": "Based on account weighting for 'sold' keyword"
+    "reason": "Based on account weighting for 'sold' keyword",
+    "source": "simulation"
   },
   {
     "description": "loan payment",
@@ -52,7 +56,8 @@
     "suggestedAccount": "Loan Payable",
     "confidence": 89,
     "entryType": "CREDIT",
-    "reason": "Based on account weighting for 'loan' keyword"
+    "reason": "Based on account weighting for 'loan' keyword",
+    "source": "simulation"
   },
   {
     "description": "rent payment",
@@ -63,7 +68,8 @@
     "suggestedAccount": "Rent Expense",
     "confidence": 88,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'rent' keyword"
+    "reason": "Based on account weighting for 'rent' keyword",
+    "source": "simulation"
   },
   {
     "description": "inventory purchase",
@@ -74,7 +80,8 @@
     "suggestedAccount": "Inventory",
     "confidence": 87,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'inventory' keyword"
+    "reason": "Based on account weighting for 'inventory' keyword",
+    "source": "simulation"
   },
   {
     "description": "insurance premium",
@@ -85,7 +92,8 @@
     "suggestedAccount": "Insurance Expense",
     "confidence": 86,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'insurance' keyword"
+    "reason": "Based on account weighting for 'insurance' keyword",
+    "source": "simulation"
   },
   {
     "description": "bought equipment",
@@ -96,7 +104,8 @@
     "suggestedAccount": "Equipment Purchase",
     "confidence": 85,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'bought' keyword"
+    "reason": "Based on account weighting for 'bought' keyword",
+    "source": "simulation"
   },
   {
     "description": "utility bill",
@@ -107,6 +116,18 @@
     "suggestedAccount": "Utilities Expense",
     "confidence": 83,
     "entryType": "DEBIT",
-    "reason": "Based on account weighting for 'utility' keyword"
+    "reason": "Based on account weighting for 'utility' keyword",
+    "source": "simulation"
+  },
+  {
+    "description": "initial",
+    "keywords": [
+      "initial"
+    ],
+    "suggestedAccount": "Equipment",
+    "confidence": 79,
+    "entryType": "DEBIT",
+    "reason": "Based on account weighting for 'initial' keyword",
+    "source": "real"
   }
 ]

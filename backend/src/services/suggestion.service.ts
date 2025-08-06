@@ -722,6 +722,35 @@ export class SuggestionService {
       .trim();
   }
 
+  private normalizeMultiWordPhrases(description: string): string {
+    // Convert multi-word phrases to underscore format for better matching
+    const multiWordPhrases = [
+      'initial contribution',
+      'owner contribution', 
+      'capital contribution',
+      'business formation',
+      'personal funds',
+      'equity investment',
+      'partner investment',
+      'owner draw',
+      'partner draw',
+      'loan repayment',
+      'credit card payment',
+      'equipment purchase',
+      'personal use'
+    ];
+    
+    let normalized = description.toLowerCase().trim();
+    
+    // Replace multi-word phrases with underscore format
+    for (const phrase of multiWordPhrases) {
+      const underscorePhrase = phrase.replace(/\s+/g, '_');
+      normalized = normalized.replace(new RegExp(phrase, 'gi'), underscorePhrase);
+    }
+    
+    return normalized;
+  }
+
   private determineEntryType(account: Account): 'DEBIT' | 'CREDIT' {
     switch (account.type) {
       case 'EXPENSE':
@@ -830,20 +859,22 @@ export class SuggestionService {
           reason: 'Business travel transaction',
           priority: 2
         },
+        // PRIORITY 0: Equity and Capital Transactions (highest priority)
         {
           keywords: [
-            // Multi-word equity phrases
+            // Multi-word equity phrases (exact matches)
             'initial contribution', 'owner contribution', 'capital contribution', 'business formation',
             'personal funds', 'equity investment', 'partner investment', 'owner draw', 'partner draw',
             'loan repayment', 'credit card payment', 'equipment purchase', 'personal use',
             // Single word equity keywords
-            'draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend', 
-            'capital contribution', 'investment', 'member distribution', 'contribution', 'equity', 'capital'
+            'initial', 'contribution', 'draw', 'drawing', 'withdrawal', 'owner', 'partner', 'distribution', 'dividend', 
+            'capital contribution', 'investment', 'member distribution', 'contribution', 'equity', 'capital',
+            'personal funds', 'partner funds', 'owner funds', 'business formation', 'startup capital'
           ],
-          accountTypes: ['EQUITY', 'ASSET', 'LIABILITY'],
-          categories: ['Owner Equity', 'Contributed Capital', 'Drawings', 'Partner Capital', 'Equipment', 'Loans Payable'],
-          reason: 'Non-revenue/expense business activity',
-          priority: 1
+          accountTypes: ['EQUITY'],
+          categories: ['Owner Equity', 'Capital', 'Contributed Capital', 'Drawings', 'Partner Capital'],
+          reason: 'Equity-related contribution or distribution',
+          priority: 0  // Highest priority to override equipment/asset matches
         },
         {
           keywords: ['insurance', 'business insurance', 'liability insurance', 'property insurance', 'workers comp', 'workers compensation', 'professional liability', 'errors omissions', 'e&o', 'general liability', 'commercial auto', 'business interruption'],
@@ -984,21 +1015,35 @@ export class SuggestionService {
         }
       ];
 
+      // Normalize multi-word phrases for better matching
+      const normalizedDescriptionForMatching = this.normalizeMultiWordPhrases(normalizedDescription);
+      console.log('🔍 [Fallback] Normalized description for matching:', normalizedDescriptionForMatching);
+      
       // Find matching keyword category with priority-based selection
       let matchedCategory = null;
       let matchedKeyword = null;
       let bestPriority = 999; // Start with high number (lower is better)
       
       for (const mapping of keywordMap) {
-                        const foundKeyword = mapping.keywords.find(keyword => {
-                  // Check for exact match first
-                  const exactMatch = normalizedDescription.toLowerCase().includes(keyword.toLowerCase());
-                  // Check for partial match (keyword starts with description or description starts with keyword)
-                  const partialMatch = keyword.toLowerCase().startsWith(normalizedDescription.toLowerCase()) || normalizedDescription.toLowerCase().startsWith(keyword.toLowerCase());
-                  const hasKeyword = exactMatch || partialMatch;
-                  console.log('🔍 [Fallback] Keyword:', keyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword);
-                  return hasKeyword;
-                });
+        const foundKeyword = mapping.keywords.find(keyword => {
+          // Normalize the keyword for matching
+          const normalizedKeyword = this.normalizeMultiWordPhrases(keyword);
+          
+          // Check for exact match first
+          const exactMatch = normalizedDescriptionForMatching.toLowerCase().includes(normalizedKeyword.toLowerCase());
+          
+          // Check for partial match (keyword starts with description or description starts with keyword)
+          const partialMatch = normalizedKeyword.toLowerCase().startsWith(normalizedDescriptionForMatching.toLowerCase()) || 
+                             normalizedDescriptionForMatching.toLowerCase().startsWith(normalizedKeyword.toLowerCase());
+          
+          // For equity keywords, be more strict about matching to avoid false positives
+          const isEquityKeyword = mapping.accountTypes.includes('EQUITY');
+          const hasKeyword = isEquityKeyword ? exactMatch : (exactMatch || partialMatch);
+          
+          console.log('🔍 [Fallback] Keyword:', keyword, 'normalized:', normalizedKeyword, 'exact:', exactMatch, 'partial:', partialMatch, 'found:', hasKeyword, 'equity:', isEquityKeyword);
+          return hasKeyword;
+        });
+        
         if (foundKeyword) {
           // Prioritize by priority number (lower number = higher priority)
           if (mapping.priority < bestPriority) {
@@ -1098,7 +1143,13 @@ export class SuggestionService {
 
       // Calculate confidence score (0-100)
       const maxPossibleScore = 130; // 50 + 20 + 30 + 15 + 10 + 5 (added priority bonus)
-      const confidence = Math.min(100, Math.round((bestScore / maxPossibleScore) * 100));
+      let confidence = Math.min(100, Math.round((bestScore / maxPossibleScore) * 100));
+      
+      // Boost confidence for equity keywords if it's low
+      if (matchedCategory && matchedCategory.accountTypes.includes('EQUITY') && confidence < 85) {
+        confidence = Math.min(100, confidence + 15); // Boost by 15 points
+        console.log('🚀 [Fallback] Boosting equity keyword confidence from', confidence - 15, 'to', confidence);
+      }
 
       // Determine optimal entry type based on account type
       let suggestedEntryType: 'DEBIT' | 'CREDIT';
