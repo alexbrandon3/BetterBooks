@@ -1,0 +1,11 @@
+description,keywords,suggestedAccount,confidence,entryType,reason
+initial contribution,initial;contribution,Charitable Contributions,95,CREDIT,Based on account weighting for 'contribution' keyword
+employee salary,employee;salary,Payroll Expense,92,DEBIT,Based on account weighting for 'salary' keyword
+consulting fee,consulting;fee,Professional Services,91,DEBIT,Based on account weighting for 'consulting' keyword
+sold products,sold;products,Sales Revenue,90,CREDIT,Based on account weighting for 'sold' keyword
+loan payment,loan;payment,Loan Payable,89,CREDIT,Based on account weighting for 'loan' keyword
+rent payment,rent;payment,Rent Expense,88,DEBIT,Based on account weighting for 'rent' keyword
+inventory purchase,inventory;purchase,Inventory,87,DEBIT,Based on account weighting for 'inventory' keyword
+insurance premium,insurance;premium,Insurance Expense,86,DEBIT,Based on account weighting for 'insurance' keyword
+bought equipment,bought;equipment,Equipment Purchase,85,DEBIT,Based on account weighting for 'bought' keyword
+utility bill,utility;bill,Utilities Expense,83,DEBIT,Based on account weighting for 'utility' keyword
