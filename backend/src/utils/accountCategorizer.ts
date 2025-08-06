@@ -217,7 +217,37 @@ export const extractKeywords = (text: string): string[] => {
     /depreciation/i, /amortization/i, /interest/i, /tax/i, /taxes/i,
     /loan/i, /credit/i, /debit/i, /cash/i, /bank/i, /checking/i,
     /savings/i, /investment/i, /equity/i, /capital/i, /draw/i,
-    /withdrawal/i, /contribution/i, /revenue/i, /income/i, /expense/i
+    /withdrawal/i, /contribution/i, /revenue/i, /income/i, /expense/i,
+    // New patterns for expanded coverage
+    /contractor/i, /freelancer/i, /independent contractor/i, /1099/i, /gig worker/i,
+    /legal fees/i, /attorney fees/i, /lawyer fees/i, /legal retainer/i,
+    /processing fee/i, /transaction fee/i, /stripe fee/i, /paypal fee/i,
+    /software/i, /subscription/i, /saas/i, /cloud/i, /microsoft/i, /adobe/i,
+    /quickbooks/i, /salesforce/i, /hubspot/i, /mailchimp/i, /zoom/i, /slack/i,
+    /internet/i, /phone/i, /mobile/i, /cellular/i, /broadband/i,
+    /employee benefits/i, /hsa/i, /fsa/i, /health savings/i, /flexible spending/i,
+    /office supplies/i, /postage/i, /printing/i, /stationery/i,
+    /mileage/i, /fuel/i, /lease payment/i, /car lease/i, /vehicle lease/i,
+    /business meal/i, /client dinner/i, /catering/i, /entertainment/i,
+    /maintenance/i, /repair/i, /service call/i, /technician/i,
+    /continuing education/i, /certification/i, /training/i, /professional development/i,
+    /government fee/i, /inspection cost/i, /regulatory cost/i, /compliance cost/i,
+    /product sales/i, /merchandise sales/i, /inventory sales/i, /retail sales/i,
+    /service revenue/i, /service income/i, /consulting revenue/i, /professional services/i,
+    /rental income/i, /rental revenue/i, /rental fee/i, /lease income/i,
+    /commission income/i, /commission revenue/i, /affiliate revenue/i, /affiliate income/i,
+    /equipment purchase/i, /equipment lease/i, /equipment financing/i, /machinery purchase/i,
+    /business checking/i, /business savings/i, /merchant account/i, /business bank/i,
+    /prepaid expenses/i, /prepaid insurance/i, /prepaid rent/i, /security deposit/i,
+    /credit card/i, /visa/i, /mastercard/i, /amex/i, /american express/i,
+    /line of credit/i, /business loan/i, /sba loan/i, /equipment financing/i,
+    /payroll taxes payable/i, /sales tax payable/i, /income tax payable/i,
+    /deferred revenue/i, /unearned revenue/i, /advance payment/i,
+    /owner contribution/i, /owner investment/i, /capital contribution/i,
+    /partner equity/i, /member equity/i, /stockholder equity/i, /shareholder equity/i,
+    /retained earnings/i, /accumulated earnings/i, /earned surplus/i,
+    /attorney retainer/i, /legal retainer/i, /retainer invoice/i,
+    /bank of america fee/i, /chase fee/i, /wells fargo fee/i, /citibank fee/i, /banking fee/i, /account fee/i
   ];
 
   for (const pattern of businessPatterns) {
@@ -352,6 +382,396 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
 
   // Comprehensive business-focused keyword mappings
   const BUSINESS_ACCOUNT_KEYWORD_MAPPINGS = [
+    // ===== EXPENSES - Missing Categories =====
+    
+    // Contract Labor / Freelance / Gig Work
+    {
+      keywords: ["contractor", "freelancer", "independent contractor", "1099", "gig worker", "subcontractor", "contract labor", "freelance work", "gig work", "consultant payment", "vendor payment", "service provider"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Contract Labor",
+        subcategory: "Freelancers & Gig Workers",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "SALARY_EXPENSE",
+        explanation: "External workers hired on a contract basis for business services.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Legal Fees & Consulting
+    {
+      keywords: ["legal fees", "attorney fees", "lawyer fees", "legal consultation", "legal advice", "contract review", "legal services", "law firm", "legal counsel", "legal bill", "attorney retainer", "legal retainer", "retainer invoice"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Legal Services",
+        subcategory: "Legal Fees & Retainers",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "LEGAL_EXPENSE",
+        explanation: "Legal services, attorney fees, and retainer payments for business legal needs.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Bank & Merchant Fees
+    {
+      keywords: ["processing fee", "transaction fee", "stripe fee", "paypal fee", "credit card processing", "merchant fee", "bank fee", "overdraft fee", "monthly service charge", "atm fee", "account maintenance", "wire transfer fee", "ach fee", "bank charges", "credit card fee", "payment processing", "merchant services", "bank of america fee", "chase fee", "wells fargo fee", "citibank fee", "banking fee", "account fee"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Bank & Merchant Fees",
+        subcategory: "Payment Processing & Bank Charges",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "BANK_FEES",
+        explanation: "Fees from payment processors, banks, and financial service providers.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Software Subscriptions / SaaS
+    {
+      keywords: ["software", "subscription", "saas", "cloud", "microsoft", "adobe", "quickbooks", "salesforce", "hubspot", "mailchimp", "stripe", "paypal", "zoom", "slack", "dropbox", "google workspace", "office 365", "aws", "azure", "web hosting", "domain", "website hosting", "app subscription", "software license"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Software & Technology",
+        subcategory: "Subscriptions & SaaS",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TECHNOLOGY_EXPENSE",
+        explanation: "Software subscriptions, SaaS tools, and technology services for business operations.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Internet, Phone, Utilities
+    {
+      keywords: ["utility", "utilities", "electric", "water", "gas", "internet", "phone", "cable", "wifi", "electricity", "power", "sewer", "trash", "office utilities", "internet service", "phone service", "mobile service", "cellular", "broadband", "fiber", "dsl", "cable internet", "landline"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Utilities",
+        subcategory: "Office Utilities & Communications",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "UTILITIES_EXPENSE",
+        explanation: "Utility expenses including internet, phone, electricity, and other office utilities.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Employee Benefits
+    {
+      keywords: ["employee benefits", "hsa", "fsa", "health savings", "flexible spending", "insurance premium", "health insurance", "dental insurance", "vision insurance", "401k", "retirement", "pension", "workers comp", "disability insurance", "life insurance", "benefit plan", "employee health", "group insurance"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Employee Benefits",
+        subcategory: "Health & Retirement Benefits",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "INSURANCE_EXPENSE",
+        explanation: "Employee benefit expenses including health insurance, retirement plans, and other benefits.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Office Supplies & Postage
+    {
+      keywords: ["office supplies", "postage", "printing", "stationery", "paper", "ink", "toner", "envelopes", "stamps", "shipping supplies", "packaging", "business cards", "letterhead", "office materials", "desk supplies", "filing supplies", "mailing supplies"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Office Expenses",
+        subcategory: "Office Supplies & Postage",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "OFFICE_SUPPLIES",
+        explanation: "Office supplies, postage, printing, and general office materials.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Vehicle-Related Costs
+    {
+      keywords: ["mileage", "fuel", "lease payment", "car lease", "vehicle lease", "auto lease", "gas", "petrol", "exxon", "shell", "bp", "chevron", "mobil", "business fuel", "delivery vehicle", "company car", "fleet", "vehicle maintenance", "car insurance", "auto insurance", "vehicle registration", "parking", "tolls"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Transportation",
+        subcategory: "Vehicle & Fuel Expenses",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "TRAVEL_EXPENSE",
+        explanation: "Vehicle-related expenses including fuel, lease payments, maintenance, and insurance.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Meals, Entertainment, Travel
+    {
+      keywords: ["food", "restaurant", "dining", "meal", "lunch", "dinner", "breakfast", "cafe", "business meal", "client dinner", "catering", "office lunch", "entertainment", "client entertainment", "business entertainment", "travel", "business travel", "conference", "trade show", "meeting", "client visit", "business trip", "airfare", "hotel", "car rental", "lodging", "accommodation"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Food & Entertainment",
+        subcategory: "Business Meals & Travel",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "MEAL_EXPENSE",
+        explanation: "Business meals, entertainment, and travel expenses for client meetings and business development.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Repairs and Maintenance
+    {
+      keywords: ["maintenance", "repair", "service call", "technician", "janitorial", "cleaning", "landscaping", "security", "building maintenance", "equipment repair", "facility maintenance", "preventive maintenance", "emergency repair", "maintenance service", "repair service"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Maintenance",
+        subcategory: "Building & Equipment Maintenance",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "MAINTENANCE_EXPENSE",
+        explanation: "Building and equipment maintenance, repairs, and facility services.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Continuing Education & Certifications
+    {
+      keywords: ["continuing education", "certification", "training", "professional development", "skills development", "workshop", "seminar", "conference", "course", "class", "education", "learning", "certification exam", "license renewal", "professional license", "continuing education credits", "ceu"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Education & Training",
+        subcategory: "Professional Development",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "ADVERTISING_EXPENSE",
+        explanation: "Continuing education, professional certifications, and skill development for business growth.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Government Fees, Licenses, Permits
+    {
+      keywords: ["license", "permit", "compliance fee", "regulatory fee", "business license", "license renewal", "government fee", "inspection cost", "regulatory cost", "compliance cost", "business permit", "occupational license", "professional license", "state fee", "federal fee", "local fee", "municipal fee", "county fee"],
+      result: {
+        type: AccountType.EXPENSE,
+        category: "Licenses & Permits",
+        subcategory: "Government & Regulatory Fees",
+        financialCategory: FinancialCategory.OPERATING_EXPENSE,
+        financialSubcategory: "LEGAL_EXPENSE",
+        explanation: "Government fees, business licenses, permits, and regulatory compliance costs.",
+        confidence: "high" as const
+      }
+    },
+    
+    // ===== INCOME - Missing Categories =====
+    
+    // Product Sales
+    {
+      keywords: ["product sales", "merchandise sales", "inventory sales", "retail sales", "wholesale sales", "product revenue", "merchandise revenue", "inventory revenue", "retail revenue", "wholesale revenue", "goods sold", "product income", "merchandise income"],
+      result: {
+        type: AccountType.INCOME,
+        category: "Product Sales",
+        subcategory: "Merchandise & Inventory Sales",
+        financialCategory: FinancialCategory.OPERATING_REVENUE,
+        financialSubcategory: "SALES_REVENUE",
+        explanation: "Revenue from selling products, merchandise, or inventory items.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Service Revenue
+    {
+      keywords: ["service revenue", "service income", "consulting revenue", "professional services", "service fee", "consulting fee", "project income", "service sales", "consulting income", "professional income", "service billing", "consulting billing"],
+      result: {
+        type: AccountType.INCOME,
+        category: "Service Revenue",
+        subcategory: "Professional Services & Consulting",
+        financialCategory: FinancialCategory.OPERATING_REVENUE,
+        financialSubcategory: "SERVICE_REVENUE",
+        explanation: "Revenue from providing professional services, consulting, or project-based work.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Rental Income
+    {
+      keywords: ["rental income", "rental revenue", "rental fee", "lease income", "lease revenue", "rental property", "property rental", "equipment rental", "space rental", "office rental", "warehouse rental", "storage rental"],
+      result: {
+        type: AccountType.INCOME,
+        category: "Rental Income",
+        subcategory: "Property & Equipment Rentals",
+        financialCategory: FinancialCategory.OPERATING_REVENUE,
+        financialSubcategory: "SALES_REVENUE",
+        explanation: "Income from renting property, equipment, or space to others.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Commission & Affiliate Revenue
+    {
+      keywords: ["commission income", "commission revenue", "affiliate revenue", "affiliate income", "commission fee", "affiliate fee", "referral income", "referral revenue", "commission sales", "affiliate sales", "referral fee", "commission payment"],
+      result: {
+        type: AccountType.INCOME,
+        category: "Commission Income",
+        subcategory: "Affiliate & Referral Revenue",
+        financialCategory: FinancialCategory.OPERATING_REVENUE,
+        financialSubcategory: "SALES_REVENUE",
+        explanation: "Income from commissions, affiliate programs, and referral fees.",
+        confidence: "high" as const
+      }
+    },
+    
+    // ===== ASSETS - Missing Categories =====
+    
+    // Equipment Purchase
+    {
+      keywords: ["equipment purchase", "equipment lease", "equipment financing", "machinery purchase", "vehicle purchase", "computer purchase", "furniture purchase", "office equipment", "production equipment", "manufacturing equipment", "business equipment", "capital equipment"],
+      result: {
+        type: AccountType.ASSET,
+        category: "Fixed Assets",
+        subcategory: "Equipment & Machinery",
+        financialCategory: FinancialCategory.FIXED_ASSET,
+        financialSubcategory: "FIXED_ASSETS",
+        explanation: "Long-term assets like equipment, machinery, and business tools.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Business Banking
+    {
+      keywords: ["business checking", "business savings", "merchant account", "business bank", "commercial account", "business account", "operating account", "business deposit", "business cash", "petty cash", "cash on hand"],
+      result: {
+        type: AccountType.ASSET,
+        category: "Bank",
+        subcategory: "Business Bank Accounts",
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "CASH_AND_EQUIVALENTS",
+        explanation: "Business bank accounts and cash management accounts.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Prepaid Expenses & Deposits
+    {
+      keywords: ["prepaid expenses", "prepaid insurance", "prepaid rent", "prepaid utilities", "security deposit", "rental deposit", "lease deposit", "utility deposit", "prepaid service", "advance payment", "prepayment"],
+      result: {
+        type: AccountType.ASSET,
+        category: "Prepaid Expenses",
+        subcategory: "Prepaid Services & Deposits",
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "PREPAID_EXPENSES",
+        explanation: "Prepaid expenses and security deposits for future services.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Inventory
+    {
+      keywords: ["inventory", "stock", "merchandise", "raw materials", "finished goods", "work in progress", "inventory items", "product inventory", "goods inventory", "stock inventory", "inventory goods"],
+      result: {
+        type: AccountType.ASSET,
+        category: "Inventory",
+        subcategory: "Product & Material Inventory",
+        financialCategory: FinancialCategory.CURRENT_ASSET,
+        financialSubcategory: "INVENTORY",
+        explanation: "Inventory of products, materials, and goods for sale or production.",
+        confidence: "high" as const
+      }
+    },
+    
+    // ===== LIABILITIES - Missing Categories =====
+    
+    // Credit Card
+    {
+      keywords: ["credit card", "visa", "mastercard", "amex", "american express", "discover", "business credit card", "corporate card", "company card", "credit line", "credit limit"],
+      result: {
+        type: AccountType.LIABILITY,
+        category: "Credit Cards",
+        subcategory: "Business Credit Cards",
+        financialCategory: FinancialCategory.CURRENT_LIABILITY,
+        financialSubcategory: "SHORT_TERM_DEBT",
+        explanation: "Business credit cards and revolving credit accounts.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Loans & Lines of Credit
+    {
+      keywords: ["line of credit", "loan", "business loan", "sba loan", "equipment financing", "term loan", "installment loan", "business financing", "commercial loan", "working capital loan", "expansion loan"],
+      result: {
+        type: AccountType.LIABILITY,
+        category: "Loans & Credit",
+        subcategory: "Business Loans & Lines of Credit",
+        financialCategory: FinancialCategory.CURRENT_LIABILITY,
+        financialSubcategory: "SHORT_TERM_DEBT",
+        explanation: "Business loans, lines of credit, and financing arrangements.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Tax Liabilities
+    {
+      keywords: ["payroll taxes payable", "sales tax payable", "income tax payable", "withholding payable", "tax liability", "taxes payable", "payroll liability", "tax deposit", "estimated tax", "quarterly tax"],
+      result: {
+        type: AccountType.LIABILITY,
+        category: "Tax Liabilities",
+        subcategory: "Payroll & Sales Taxes",
+        financialCategory: FinancialCategory.CURRENT_LIABILITY,
+        financialSubcategory: "OTHER_CURRENT_LIABILITY",
+        explanation: "Accrued tax liabilities including payroll taxes and sales taxes.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Deferred Revenue
+    {
+      keywords: ["deferred revenue", "unearned revenue", "advance payment", "prepaid revenue", "customer deposit", "retainer", "advance billing", "prepaid service", "unearned income"],
+      result: {
+        type: AccountType.LIABILITY,
+        category: "Deferred Revenue",
+        subcategory: "Unearned Revenue & Deposits",
+        financialCategory: FinancialCategory.CURRENT_LIABILITY,
+        financialSubcategory: "OTHER_CURRENT_LIABILITY",
+        explanation: "Revenue received in advance for services not yet provided.",
+        confidence: "high" as const
+      }
+    },
+    
+    // ===== EQUITY - Missing Categories =====
+    
+    // Owner Contributions & Withdrawals
+    {
+      keywords: ["owner contribution", "owner investment", "capital contribution", "owner equity", "partner contribution", "member contribution", "owner draw", "partner draw", "member draw", "owner withdrawal", "partner withdrawal", "member withdrawal", "distribution", "owner distribution"],
+      result: {
+        type: AccountType.EQUITY,
+        category: "Owner's Equity",
+        subcategory: "Contributions & Withdrawals",
+        financialCategory: FinancialCategory.EQUITY,
+        financialSubcategory: "RETAINED_EARNINGS",
+        explanation: "Owner contributions to and withdrawals from the business.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Partner Equity
+    {
+      keywords: ["partner equity", "member equity", "stockholder equity", "shareholder equity", "partner investment", "member investment", "stockholder investment", "shareholder investment", "partner capital", "member capital"],
+      result: {
+        type: AccountType.EQUITY,
+        category: "Partner Equity",
+        subcategory: "Partner & Member Equity",
+        financialCategory: FinancialCategory.EQUITY,
+        financialSubcategory: "RETAINED_EARNINGS",
+        explanation: "Equity accounts for business partners and members.",
+        confidence: "high" as const
+      }
+    },
+    
+    // Retained Earnings
+    {
+      keywords: ["retained earnings", "accumulated earnings", "earned surplus", "undistributed profits", "retained profit", "accumulated profit", "earned income", "retained income"],
+      result: {
+        type: AccountType.EQUITY,
+        category: "Retained Earnings",
+        subcategory: "Accumulated Profits",
+        financialCategory: FinancialCategory.RETAINED_EARNINGS,
+        financialSubcategory: "RETAINED_EARNINGS",
+        explanation: "Accumulated profits retained in the business for future use.",
+        confidence: "high" as const
+      }
+    },
+    
+    // ===== EXISTING MAPPINGS (keeping for reference) =====
+    
     {
       keywords: ["cost of goods", "cogs", "raw materials", "direct materials", "production costs", "manufacturing supplies"],
       result: {
@@ -361,18 +781,6 @@ export const getSuggestedMetadata = (name: string): AccountMetadata | null => {
         financialCategory: FinancialCategory.OPERATING_EXPENSE,
         financialSubcategory: "COST_OF_GOODS_SOLD",
         explanation: "Direct costs related to producing goods or services.",
-        confidence: "high" as const
-      }
-    },
-    {
-      keywords: ["contractor", "freelancer", "independent contractor", "1099", "gig worker"],
-      result: {
-        type: AccountType.EXPENSE,
-        category: "Contract Labor",
-        subcategory: "Freelancers & Gig Workers",
-        financialCategory: FinancialCategory.OPERATING_EXPENSE,
-        financialSubcategory: "SALARY_EXPENSE",
-        explanation: "External workers hired on a contract basis.",
         confidence: "high" as const
       }
     },
