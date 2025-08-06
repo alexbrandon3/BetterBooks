@@ -19,6 +19,7 @@ router.delete("/:id", accountController.deleteAccount.bind(accountController));
 // Enhanced suggestion and template routes
 router.post("/suggest-account", accountController.suggestAccount.bind(accountController));
 router.post("/suggest-metadata", accountController.suggestAccountAutoCategory.bind(accountController));
+router.post("/check-duplicate", accountController.checkDuplicateAccountName.bind(accountController));
 router.get("/templates", accountController.getAccountTemplates.bind(accountController));
 
 export default router; 

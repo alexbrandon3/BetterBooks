@@ -174,6 +174,68 @@ export const validateAccountMetadata = (metadata: Partial<AccountMetadata>): Acc
   return validated;
 };
 
+/**
+ * Extracts meaningful keywords from account names and categories
+ * This function is used for indexing accounts for SmartSuggestions
+ */
+export const extractKeywords = (text: string): string[] => {
+  if (!text || typeof text !== 'string') {
+    return [];
+  }
+
+  // Normalize text: lowercase, remove punctuation, trim whitespace
+  const normalizedText = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+    .trim();
+
+  // Split into words and filter out common stop words
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+    'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those',
+    'account', 'accounts', 'expense', 'expenses', 'income', 'revenue', 'asset', 'assets',
+    'liability', 'liabilities', 'equity', 'capital', 'fund', 'funds'
+  ]);
+
+  const words = normalizedText.split(' ')
+    .filter(word => word.length > 2 && !stopWords.has(word))
+    .map(word => word.trim());
+
+  // Remove duplicates while preserving order
+  const uniqueWords = [...new Set(words)];
+
+  // Also extract common business terms and abbreviations
+  const businessTerms: string[] = [];
+  
+  // Check for common business abbreviations and terms
+  const businessPatterns = [
+    /cogs/i, /cost of goods/i, /accounts payable/i, /accounts receivable/i,
+    /payroll/i, /salary/i, /wages/i, /rent/i, /utilities/i, /insurance/i,
+    /marketing/i, /advertising/i, /legal/i, /accounting/i, /software/i,
+    /equipment/i, /inventory/i, /supplies/i, /travel/i, /meals/i,
+    /depreciation/i, /amortization/i, /interest/i, /tax/i, /taxes/i,
+    /loan/i, /credit/i, /debit/i, /cash/i, /bank/i, /checking/i,
+    /savings/i, /investment/i, /equity/i, /capital/i, /draw/i,
+    /withdrawal/i, /contribution/i, /revenue/i, /income/i, /expense/i
+  ];
+
+  for (const pattern of businessPatterns) {
+    if (pattern.test(text)) {
+      const match = text.match(pattern);
+      if (match) {
+        businessTerms.push(match[0].toLowerCase());
+      }
+    }
+  }
+
+  // Combine regular words with business terms
+  const allKeywords = [...uniqueWords, ...businessTerms];
+  
+  // Remove duplicates and return
+  return [...new Set(allKeywords)];
+};
+
 // Personal keywords that should be demoted for business accounting
 const PERSONAL_KEYWORDS_DEMOTE_LIST = [
   "netflix", "spotify", "hulu", "disney", "apple music", "youtube", "amazon prime",

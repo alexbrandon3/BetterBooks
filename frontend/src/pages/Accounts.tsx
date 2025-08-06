@@ -4,6 +4,7 @@ import { Account, AccountForm, AccountType, FinancialCategory, AccountTemplate }
 import * as AccountService from "../services/AccountService";
 import { toast } from 'react-hot-toast';
 import { fetchAccountBalances } from "../services/AccountService";
+import { debounce } from "../utils/debounce";
 
 const initialFormState: AccountForm = {
   name: "",
@@ -51,6 +52,12 @@ const Accounts = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [balanceWarning, setBalanceWarning] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // New state for real-time suggestions
+  const [liveSuggestion, setLiveSuggestion] = useState<any>(null);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -141,6 +148,12 @@ const Accounts = () => {
       return false;
     }
 
+    // Check for duplicate name
+    if (duplicateError) {
+      setError(duplicateError);
+      return false;
+    }
+
     const balance = parseFloat(form.balance);
     if (isNaN(balance)) {
       setError("Balance must be a valid number");
@@ -222,6 +235,10 @@ const Accounts = () => {
       setForm(initialFormState);
       setEditingAccountId(null);
       setBalanceWarning(null);
+      // Clear live suggestion state
+      setLiveSuggestion(null);
+      setDuplicateError(null);
+      setIsLoadingSuggestion(false);
       // Don't clear suggestion explanation immediately - let user read it
       setTimeout(() => {
         setSuggestionExplanation(null);
@@ -402,6 +419,52 @@ const Accounts = () => {
     }
   };
 
+  // Real-time suggestion and duplicate checking
+  const debouncedCheckName = useRef(
+    debounce(async (name: string) => {
+      if (!name.trim() || name.length < 2) {
+        setLiveSuggestion(null);
+        setDuplicateError(null);
+        return;
+      }
+
+      setIsLoadingSuggestion(true);
+      setDuplicateError(null);
+
+      try {
+        // Check for duplicates first
+        const duplicateCheck = await AccountService.checkDuplicateAccountName(name.trim());
+        
+        if (duplicateCheck.isDuplicate) {
+          setDuplicateError(duplicateCheck.message || 'Account name already exists');
+          setLiveSuggestion(null);
+          return;
+        }
+
+        // Get suggestions if no duplicate
+        const suggestion = await AccountService.suggestAccountMetadata(name.trim());
+        setLiveSuggestion(suggestion);
+        
+      } catch (error) {
+        console.error('Error checking name:', error);
+      } finally {
+        setIsLoadingSuggestion(false);
+      }
+    }, 300)
+  ).current;
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    
+    // Clear previous errors
+    setDuplicateError(null);
+    setLiveSuggestion(null);
+    
+    // Trigger real-time checking
+    debouncedCheckName(value);
+  };
+
   const handleTemplateSelect = (template: AccountTemplate) => {
     setForm({
       name: form.name, // Keep the name the user typed
@@ -418,26 +481,48 @@ const Accounts = () => {
     setShowTemplates(false);
   };
 
+  const getConfidencePercentage = (confidence: number | string) => {
+    if (typeof confidence === 'number') {
+      return Math.round(confidence);
+    }
+    switch (confidence) {
+      case 'high': return 90;
+      case 'medium': return 60;
+      case 'low': return 30;
+      default: return 0;
+    }
+  };
+
+  // New helper functions for enhanced suggestions
   const getConfidenceColor = (confidence: number | string) => {
-    const numConfidence = typeof confidence === 'string' ? 
-      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
-    if (numConfidence >= 0.8) return 'text-green-600';
-    if (numConfidence >= 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+    const percentage = getConfidencePercentage(confidence);
+    if (percentage >= 80) return 'text-green-600 bg-green-50';
+    if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
   };
 
   const getConfidenceText = (confidence: number | string) => {
-    const numConfidence = typeof confidence === 'string' ? 
-      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
-    if (numConfidence >= 0.8) return "High Confidence";
-    if (numConfidence >= 0.6) return "Medium Confidence";
-    return "Low Confidence";
+    const percentage = getConfidencePercentage(confidence);
+    if (percentage >= 80) return 'High Confidence';
+    if (percentage >= 60) return 'Medium Confidence';
+    return 'Low Confidence';
   };
 
-  const getConfidencePercentage = (confidence: number | string) => {
-    const numConfidence = typeof confidence === 'string' ? 
-      (confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.6 : 0.3) : confidence;
-    return Math.round(numConfidence * 100);
+  const getReportingPreviewText = (preview: any) => {
+    if (!preview) return null;
+    
+    const sections = [];
+    if (preview.balanceSheet) {
+      sections.push(`${preview.balanceSheet.section} → ${preview.balanceSheet.subsection}`);
+    }
+    if (preview.incomeStatement) {
+      sections.push(`${preview.incomeStatement.section} → ${preview.incomeStatement.subsection}`);
+    }
+    if (preview.cashFlow) {
+      sections.push(`${preview.cashFlow.section} → ${preview.cashFlow.category}`);
+    }
+    
+    return sections.join(', ');
   };
 
   // Helper function to get color-coded styling for account types
@@ -474,21 +559,93 @@ const Accounts = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Account Name *
               </label>
-              <input
-                ref={nameInputRef}
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleInputChange}
-                onBlur={handleNameBlur}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <div className="relative">
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    duplicateError ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {isLoadingSuggestion && (
+                  <div className="absolute right-3 top-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Duplicate Error */}
+              {duplicateError && (
+                <div className="mt-1 text-sm text-red-600 bg-red-50 p-2 rounded">
+                  ⚠️ {duplicateError}
+                </div>
+              )}
+              
+              {/* Live Suggestion */}
+              {liveSuggestion && !duplicateError && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-blue-900">Smart Suggestion</span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getConfidenceColor(liveSuggestion.confidenceScore || liveSuggestion.confidence)}`}>
+                          {getConfidenceText(liveSuggestion.confidenceScore || liveSuggestion.confidence)}
+                        </span>
+                      </div>
+                      
+                      <div className="text-sm text-blue-800 mb-2">
+                        <div><strong>Type:</strong> {formatEnumLabel(liveSuggestion.type)}</div>
+                        <div><strong>Category:</strong> {liveSuggestion.category}</div>
+                        <div><strong>Financial Category:</strong> {formatEnumLabel(liveSuggestion.financialCategory)}</div>
+                      </div>
+                      
+                      {liveSuggestion.explanation && (
+                        <div className="text-xs text-blue-700 mb-2">
+                          💡 {liveSuggestion.explanation}
+                        </div>
+                      )}
+                      
+                      {liveSuggestion.reportingPreview && (
+                        <div className="text-xs text-blue-700">
+                          📊 <strong>Reports:</strong> {getReportingPreviewText(liveSuggestion.reportingPreview)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm(prev => ({
+                          ...prev,
+                          type: liveSuggestion.type,
+                          category: liveSuggestion.category,
+                          subcategory: liveSuggestion.subcategory,
+                          financialCategory: liveSuggestion.financialCategory,
+                          financialSubcategory: liveSuggestion.financialSubcategory
+                        }));
+                        setLiveSuggestion(null);
+                        toast.success('Suggestion applied!');
+                      }}
+                      className="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Account Type *
+                <span className="ml-1 text-gray-500" title="ASSET: Things you own (cash, equipment, receivables) | LIABILITY: Things you owe (loans, payables) | EQUITY: Owner's stake in the business | INCOME: Revenue from business activities | EXPENSE: Costs of doing business">
+                  ⓘ
+                </span>
               </label>
               <select
                 name="type"
@@ -652,29 +809,25 @@ const Accounts = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reporting Category (GAAP) *
+                    Financial Category *
+                    <span className="ml-1 text-gray-500" title="CURRENT_ASSET: Cash and items that will be converted to cash within a year | FIXED_ASSET: Long-term assets like equipment and buildings | CURRENT_LIABILITY: Debts due within a year | LONG_TERM_LIABILITY: Debts due beyond a year | OPERATING_REVENUE: Income from main business activities | OPERATING_EXPENSE: Costs of running the business">
+                      ⓘ
+                    </span>
                   </label>
-                  <div className="relative">
-                    <select
-                      name="financialCategory"
-                      value={form.financialCategory}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      {Object.values(FinancialCategory).map((category) => (
-                        <option key={category} value={category}>
-                          {formatEnumLabel(category)}
-                        </option>
-                      ))}
-                    </select>
-                    {suggestedFields.includes("financialCategory") && (
-                      <span className="absolute top-0 right-0 mt-1 mr-2 text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded">
-                        Suggested
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Used for classification in financial reports. We'll suggest a value when possible.</p>
+                  <select
+                    name="financialCategory"
+                    value={form.financialCategory}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    {Object.values(FinancialCategory).map((category) => (
+                      <option key={category} value={category}>
+                        {formatEnumLabel(category)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Determines how this account appears in financial reports.</p>
                 </div>
 
                 <div>

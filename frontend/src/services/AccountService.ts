@@ -102,6 +102,26 @@ export const suggestAccountMetadata = async (name: string): Promise<AccountSugge
   }
 };
 
+// Check for duplicate account names in real-time
+export const checkDuplicateAccountName = async (name: string): Promise<{
+  isDuplicate: boolean;
+  message?: string;
+  existingAccount?: {
+    id: number;
+    name: string;
+    type: string;
+    category: string;
+  };
+}> => {
+  try {
+    const response = await api.post("/accounts/check-duplicate", { name });
+    return response.data;
+  } catch (error) {
+    console.error("Error checking duplicate account name:", error);
+    return { isDuplicate: false };
+  }
+};
+
 // Get account templates for quick-pick options
 export const getAccountTemplates = async (): Promise<AccountTemplate[]> => {
   try {

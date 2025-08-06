@@ -53,15 +53,31 @@ export interface AccountPayload {
 }
 
 export interface AccountSuggestion {
-  suggestedAccountId: number;
-  suggestedAccountName: string;
-  accountType: string;
+  type: AccountType;
   category: string;
-  financialCategory: string;
-  suggestedEntryType: 'DEBIT' | 'CREDIT';
-  detailedReason: string;
-  toneMessage?: string;
-  confidence: number;
+  subcategory: string;
+  financialCategory: FinancialCategory;
+  financialSubcategory: string;
+  explanation?: string;
+  confidence?: "high" | "medium" | "low";
+  // Enhanced fields for new suggestion system
+  confidenceScore?: number;
+  reportingPreview?: {
+    balanceSheet?: {
+      section: string;
+      subsection: string;
+      category: string;
+    };
+    incomeStatement?: {
+      section: string;
+      subsection: string;
+      category: string;
+    };
+    cashFlow?: {
+      section: string;
+      category: string;
+    };
+  };
 }
 
 export interface AccountTemplate {

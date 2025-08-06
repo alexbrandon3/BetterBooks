@@ -175,18 +175,114 @@ export class AccountController extends BaseController {
         return;
       }
 
+      const { name, type, category, subcategory, financialCategory, financialSubcategory, balance } = req.body;
+
+      // Validate required fields
+      if (!name || !name.trim()) {
+        res.status(400).json({ message: 'Account name is required' });
+        return;
+      }
+
+      // Check for duplicate account names (case-insensitive)
+      const existingAccount = await accountRepo.findOne({
+        where: { 
+          name: name.trim(),
+          user: { id: user.id }
+        }
+      });
+
+      if (existingAccount) {
+        res.status(400).json({ 
+          message: `Account "${name.trim()}" already exists. Please choose a different name.`,
+          duplicateName: name.trim()
+        });
+        return;
+      }
+
       const accountData = {
-        ...req.body,
+        name: name.trim(),
+        type,
+        category: category?.trim() || 'Uncategorized',
+        subcategory: subcategory?.trim() || '',
+        financialCategory,
+        financialSubcategory: financialSubcategory?.trim() || 'UNCATEGORIZED',
+        balance: balance || 0,
         user: { id: user.id }
       };
 
       const account = accountRepo.create(accountData);
       const savedAccount = await accountRepo.save(account);
 
+      // Automatically index the new account for SmartSuggestions
+      try {
+        await this.indexAccountForSuggestions(savedAccount, user.id);
+      } catch (indexError) {
+        console.error('Error indexing account for suggestions:', indexError);
+        // Don't fail account creation if indexing fails
+      }
+
       res.status(201).json(savedAccount);
     } catch (error) {
       console.error('Error creating account:', error);
       res.status(500).json({ message: 'Failed to create account' });
+    }
+  }
+
+  /**
+   * Index a new account for SmartSuggestions by extracting keywords and creating weight mappings
+   */
+  private async indexAccountForSuggestions(account: Account, userId: number): Promise<void> {
+    try {
+      const { extractKeywords } = await import('../utils/accountCategorizer');
+      const AccountWeightService = (await import('../services/AccountWeightService')).AccountWeightService;
+      
+      const accountWeightService = new AccountWeightService();
+      
+      // Extract keywords from account name, category, and subcategory
+      const keywords = extractKeywords(account.name);
+      const categoryKeywords = account.category ? extractKeywords(account.category) : [];
+      const subcategoryKeywords = account.subcategory ? extractKeywords(account.subcategory) : [];
+      
+      // Combine all keywords and remove duplicates
+      const allKeywords = [...new Set([...keywords, ...categoryKeywords, ...subcategoryKeywords])];
+      
+      // Create weight mappings for each keyword
+      for (const keyword of allKeywords) {
+        if (keyword.length > 2) { // Only index meaningful keywords
+          await accountWeightService.createOrUpdateWeight(userId, {
+            keyword: keyword.toLowerCase(),
+            accountId: account.id,
+            weight: 75, // Default weight for account name keywords
+            transactionType: this.getTransactionTypeFromAccountType(account.type),
+            isDefault: false
+          });
+        }
+      }
+      
+      console.log(`✅ Indexed account "${account.name}" with ${allKeywords.length} keywords for SmartSuggestions`);
+    } catch (error) {
+      console.error('Error indexing account for suggestions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Map account type to transaction type for SmartSuggestions
+   */
+  private getTransactionTypeFromAccountType(accountType: string): string {
+    switch (accountType) {
+      case 'ASSET':
+        return 'ASSET';
+      case 'LIABILITY':
+        return 'LIABILITY';
+      case 'EQUITY':
+        return 'EQUITY';
+      case 'INCOME':
+        return 'INCOME';
+      case 'EXPENSE':
+        return 'EXPENSE';
+      default:
+        return 'TRANSFER';
     }
   }
 
@@ -311,10 +407,61 @@ export class AccountController extends BaseController {
       }
 
       const suggestion = getSuggestedMetadata(name);
-      res.json(suggestion);
+      
+      // Add confidence scoring based on SmartSuggestions logic
+      const enhancedSuggestion = {
+        ...suggestion,
+        confidence: this.calculateConfidenceScore(suggestion, name),
+        reportingPreview: this.getReportingPreview(suggestion)
+      };
+      
+      res.json(enhancedSuggestion);
     } catch (error) {
       console.error('Error suggesting account:', error);
       res.status(500).json({ message: 'Failed to suggest account' });
+    }
+  }
+
+  checkDuplicateAccountName = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const user = await getUser(req);
+      if (!user) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
+      }
+
+      const { name } = req.body;
+      if (!name) {
+        res.status(400).json({ message: 'Account name is required' });
+        return;
+      }
+
+      // Check for duplicate account names
+      const existingAccount = await accountRepo.findOne({
+        where: { 
+          name: name.trim(),
+          user: { id: user.id }
+        }
+      });
+
+      if (existingAccount) {
+        res.json({ 
+          isDuplicate: true, 
+          message: `Account "${name.trim()}" already exists`,
+          existingAccount: {
+            id: existingAccount.id,
+            name: existingAccount.name,
+            type: existingAccount.type,
+            category: existingAccount.category
+          }
+        });
+        return;
+      }
+
+      res.json({ isDuplicate: false });
+    } catch (error) {
+      console.error('Error checking account name:', error);
+      res.status(500).json({ message: 'Failed to check account name' });
     }
   }
 
@@ -338,6 +485,122 @@ export class AccountController extends BaseController {
       console.error('Error suggesting account metadata:', error);
       res.status(500).json({ message: 'Failed to suggest account metadata' });
     }
+  }
+
+  /**
+   * Calculate confidence score based on SmartSuggestions logic
+   */
+  private calculateConfidenceScore(suggestion: any, accountName: string): number {
+    if (!suggestion) return 0;
+
+    let score = 0;
+    const normalizedName = accountName.toLowerCase();
+
+    // High confidence indicators
+    if (suggestion.confidence === 'high') score += 40;
+    if (suggestion.confidence === 'medium') score += 25;
+    if (suggestion.confidence === 'low') score += 10;
+
+    // Exact keyword matches
+    const exactMatches = ['cash', 'bank', 'credit', 'loan', 'salary', 'rent', 'utilities', 'insurance'];
+    for (const match of exactMatches) {
+      if (normalizedName.includes(match)) {
+        score += 20;
+        break;
+      }
+    }
+
+    // Business context scoring
+    const businessKeywords = ['business', 'company', 'corp', 'llc', 'inc', 'ltd'];
+    const hasBusinessContext = businessKeywords.some(keyword => normalizedName.includes(keyword));
+    if (hasBusinessContext) score += 15;
+
+    // Length and complexity scoring
+    if (accountName.length > 10) score += 5;
+    if (accountName.split(' ').length > 2) score += 5;
+
+    return Math.min(score, 100); // Cap at 100
+  }
+
+  /**
+   * Get reporting preview for how account will appear in financial statements
+   */
+  private getReportingPreview(suggestion: any): any {
+    if (!suggestion) return null;
+
+    const preview: {
+      balanceSheet: any;
+      incomeStatement: any;
+      cashFlow: any;
+    } = {
+      balanceSheet: null,
+      incomeStatement: null,
+      cashFlow: null
+    };
+
+    switch (suggestion.financialCategory) {
+      case 'CURRENT_ASSET':
+      case 'FIXED_ASSET':
+        preview.balanceSheet = {
+          section: 'Assets',
+          subsection: suggestion.financialCategory === 'CURRENT_ASSET' ? 'Current Assets' : 'Fixed Assets',
+          category: suggestion.category
+        };
+        break;
+      case 'CURRENT_LIABILITY':
+      case 'LONG_TERM_LIABILITY':
+        preview.balanceSheet = {
+          section: 'Liabilities',
+          subsection: suggestion.financialCategory === 'CURRENT_LIABILITY' ? 'Current Liabilities' : 'Long-term Liabilities',
+          category: suggestion.category
+        };
+        break;
+      case 'EQUITY':
+      case 'RETAINED_EARNINGS':
+      case 'DRAWINGS':
+        preview.balanceSheet = {
+          section: 'Equity',
+          subsection: suggestion.financialCategory === 'DRAWINGS' ? 'Owner Withdrawals' : 'Owner Equity',
+          category: suggestion.category
+        };
+        break;
+      case 'OPERATING_REVENUE':
+      case 'NON_OPERATING_REVENUE':
+        preview.incomeStatement = {
+          section: 'Revenue',
+          subsection: suggestion.financialCategory === 'OPERATING_REVENUE' ? 'Operating Revenue' : 'Other Income',
+          category: suggestion.category
+        };
+        break;
+      case 'OPERATING_EXPENSE':
+      case 'NON_OPERATING_EXPENSE':
+        preview.incomeStatement = {
+          section: 'Expenses',
+          subsection: suggestion.financialCategory === 'OPERATING_EXPENSE' ? 'Operating Expenses' : 'Other Expenses',
+          category: suggestion.category
+        };
+        break;
+    }
+
+    // Cash flow categorization
+    if (suggestion.financialCategory === 'CURRENT_ASSET' && suggestion.financialSubcategory === 'CASH_AND_EQUIVALENTS') {
+      preview.cashFlow = {
+        section: 'Operating Activities',
+        category: 'Cash and Cash Equivalents'
+      };
+    } else if (suggestion.financialCategory === 'FIXED_ASSET') {
+      preview.cashFlow = {
+        section: 'Investing Activities',
+        category: 'Capital Expenditures'
+      };
+    } else if (suggestion.financialCategory === 'LONG_TERM_LIABILITY') {
+      preview.cashFlow = {
+        section: 'Financing Activities',
+        category: 'Long-term Debt'
+      };
+    }
+
+    return preview;
   }
 
   getAccountTemplates = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
