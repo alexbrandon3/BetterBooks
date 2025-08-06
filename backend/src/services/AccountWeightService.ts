@@ -168,6 +168,37 @@ export class AccountWeightService {
     { keyword: "managed_services", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "web_hosting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
     { keyword: "email_hosting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // 👩‍💼 Professional Services
+    { keyword: "web_design", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "graphic_design", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "photography", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "copywriting", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "seo", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "social_media", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "event_planning", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "public_relations", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "branding", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // 👥 Employee Benefits
+    { keyword: "health_insurance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "dental_insurance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "vision_insurance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "401k", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "hsa", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "fringe_benefits", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "employee_training", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "background_check", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    
+    // 🏛️ Regulatory & Compliance
+    { keyword: "business_license", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "permit", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "inspection_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "regulatory_filing", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "audit", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "compliance", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "bond", accountId: 0, weight: 90, transactionType: "EXPENSE" },
+    { keyword: "filing_fee", accountId: 0, weight: 90, transactionType: "EXPENSE" },
   ];
 
   async getUserWeights(userId: number): Promise<AccountWeight[]> {

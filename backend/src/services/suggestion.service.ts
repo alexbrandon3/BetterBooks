@@ -773,7 +773,38 @@ export class SuggestionService {
       'it support',
       'managed services',
       'web hosting',
-      'email hosting'
+      'email hosting',
+      
+      // 👩‍💼 Professional Services
+      'web design',
+      'graphic design',
+      'photography',
+      'copywriting',
+      'seo',
+      'social media',
+      'event planning',
+      'public relations',
+      'branding',
+      
+      // 👥 Employee Benefits
+      'health insurance',
+      'dental insurance',
+      'vision insurance',
+      '401k',
+      'hsa',
+      'fringe benefits',
+      'employee training',
+      'background check',
+      
+      // 🏛️ Regulatory & Compliance
+      'business license',
+      'permit',
+      'inspection fee',
+      'regulatory filing',
+      'audit',
+      'compliance',
+      'bond',
+      'filing fee'
     ];
     
     let normalized = description.toLowerCase().trim();
@@ -1074,6 +1105,33 @@ export class SuggestionService {
           accountTypes: ['EXPENSE'],
           categories: ['Technology Services', 'Software Subscriptions', 'Digital Services', 'IT Services'],
           reason: 'Digital service or infrastructure expense',
+          priority: 2
+        },
+        
+        // 👩‍💼 Professional Services (Priority 2 - High Business Impact)
+        {
+          keywords: ['web design', 'graphic design', 'photography', 'copywriting', 'seo', 'social media', 'public relations', 'branding', 'web', 'design', 'graphic', 'photo', 'copy', 'seo', 'social', 'media', 'pr', 'brand', 'creative', 'designer', 'photographer', 'writer', 'marketing'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Professional Services', 'Marketing Services', 'Creative Services', 'Design Services'],
+          reason: 'Digital or creative business services',
+          priority: 2
+        },
+        
+        // 👥 Employee Benefits (Priority 2 - High Business Impact)
+        {
+          keywords: ['health_insurance', 'dental_insurance', 'vision_insurance', '401k', 'hsa', 'fringe_benefits', 'employee_training', 'background_check', 'health insurance', 'dental insurance', 'vision insurance', 'fringe benefits', 'employee training', 'background check', 'employee', 'benefit', 'hr', 'human resources', 'wellness'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Employee Benefits', 'HR Expenses', 'Health Insurance', 'Employee Training'],
+          reason: 'Employee-related benefit or incentive',
+          priority: 2
+        },
+        
+        // 🏛️ Regulatory & Compliance (Priority 2 - High Business Impact)
+        {
+          keywords: ['business license', 'permit', 'inspection fee', 'regulatory filing', 'audit', 'compliance', 'bond', 'filing fee', 'license', 'permit', 'inspection', 'regulatory', 'filing', 'audit', 'compliance', 'bond', 'government', 'regulatory', 'legal', 'compliance', 'licensing'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Regulatory Compliance', 'Licenses & Permits', 'Government Fees', 'Compliance Costs'],
+          reason: 'Government or compliance-related expense',
           priority: 2
         }
       ];
@@ -1520,6 +1578,18 @@ export class SuggestionService {
       // ☁️ Technology & Digital Services
       'cloud hosting', 'domain registration', 'ssl certificate', 'backup service', 'cybersecurity', 
       'data recovery', 'it support', 'managed services', 'web hosting', 'email hosting',
+      
+      // 👩‍💼 Professional Services
+      'web design', 'graphic design', 'photography', 'copywriting', 'seo', 'social media', 
+      'event planning', 'public relations', 'branding',
+      
+      // 👥 Employee Benefits
+      'health insurance', 'dental insurance', 'vision insurance', '401k', 'hsa', 
+      'fringe benefits', 'employee training', 'background check',
+      
+      // 🏛️ Regulatory & Compliance
+      'business license', 'permit', 'inspection fee', 'regulatory filing', 'audit', 
+      'compliance', 'bond', 'filing fee',
       
       // Additional Business Operations
       'office supplies', 'bank fees', 'credit card fees', 'processing fees', 'interest expense',
