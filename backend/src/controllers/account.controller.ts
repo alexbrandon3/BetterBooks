@@ -496,30 +496,31 @@ export class AccountController extends BaseController {
     let score = 0;
     const normalizedName = accountName.toLowerCase();
 
-    // High confidence indicators
-    if (suggestion.confidence === 'high') score += 40;
-    if (suggestion.confidence === 'medium') score += 25;
-    if (suggestion.confidence === 'low') score += 10;
+    // Base confidence from suggestion engine (0-40 points)
+    if (suggestion.confidence === 'high') score += 35;
+    else if (suggestion.confidence === 'medium') score += 25;
+    else if (suggestion.confidence === 'low') score += 15;
 
-    // Exact keyword matches
-    const exactMatches = ['cash', 'bank', 'credit', 'loan', 'salary', 'rent', 'utilities', 'insurance'];
+    // Exact keyword matches (0-20 points)
+    const exactMatches = ['cash', 'bank', 'credit', 'loan', 'salary', 'rent', 'utilities', 'insurance', 'marketing', 'advertising', 'expense', 'expenses'];
     for (const match of exactMatches) {
       if (normalizedName.includes(match)) {
-        score += 20;
-        break;
+        score += 15;
+        break; // Only count the first match to avoid over-scoring
       }
     }
 
-    // Business context scoring
+    // Business context scoring (0-10 points)
     const businessKeywords = ['business', 'company', 'corp', 'llc', 'inc', 'ltd'];
     const hasBusinessContext = businessKeywords.some(keyword => normalizedName.includes(keyword));
-    if (hasBusinessContext) score += 15;
+    if (hasBusinessContext) score += 8;
 
-    // Length and complexity scoring
-    if (accountName.length > 10) score += 5;
-    if (accountName.split(' ').length > 2) score += 5;
+    // Length and complexity scoring (0-5 points)
+    if (accountName.length > 10) score += 3;
+    if (accountName.split(' ').length > 2) score += 2;
 
-    return Math.min(score, 100); // Cap at 100
+    // Ensure score is between 0 and 100
+    return Math.max(0, Math.min(score, 100));
   }
 
   /**

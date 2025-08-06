@@ -445,6 +445,39 @@ const Accounts = () => {
         const suggestion = await AccountService.suggestAccountMetadata(name.trim());
         setLiveSuggestion(suggestion);
         
+        // Auto-apply high-confidence suggestions (80%+ confidence)
+        if (suggestion && (suggestion.confidenceScore || 0) >= 80) {
+          const updates: Partial<AccountForm> = {};
+          
+          // Always update account type for high-confidence suggestions
+          if (suggestion.type) {
+            updates.type = suggestion.type as AccountType;
+          }
+          
+          // Update other fields if they're empty
+          if (!form.category && suggestion.category) {
+            updates.category = suggestion.category;
+          }
+          if (!form.subcategory && suggestion.subcategory) {
+            updates.subcategory = suggestion.subcategory;
+          }
+          if (suggestion.financialCategory) {
+            updates.financialCategory = suggestion.financialCategory as FinancialCategory;
+          }
+          if (!form.financialSubcategory && suggestion.financialSubcategory) {
+            updates.financialSubcategory = suggestion.financialSubcategory;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            setForm(prev => ({
+              ...prev,
+              ...updates
+            }));
+            setSuggestedFields(Object.keys(updates));
+            toast.success('High-confidence suggestion applied automatically!');
+          }
+        }
+        
       } catch (error) {
         console.error('Error checking name:', error);
       } finally {
@@ -594,8 +627,14 @@ const Accounts = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-medium text-blue-900">Smart Suggestion</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${getConfidenceColor(liveSuggestion.confidenceScore || liveSuggestion.confidence)}`}>
-                          {getConfidenceText(liveSuggestion.confidenceScore || liveSuggestion.confidence)}
+                          {getConfidenceText(liveSuggestion.confidenceScore || liveSuggestion.confidence)} 
+                          {liveSuggestion.confidenceScore && ` (${liveSuggestion.confidenceScore}%)`}
                         </span>
+                        {(liveSuggestion.confidenceScore || 0) >= 80 && (
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                            Auto-applied
+                          </span>
+                        )}
                       </div>
                       
                       <div className="text-sm text-blue-800 mb-2">
@@ -617,24 +656,26 @@ const Accounts = () => {
                       )}
                     </div>
                     
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm(prev => ({
-                          ...prev,
-                          type: liveSuggestion.type,
-                          category: liveSuggestion.category,
-                          subcategory: liveSuggestion.subcategory,
-                          financialCategory: liveSuggestion.financialCategory,
-                          financialSubcategory: liveSuggestion.financialSubcategory
-                        }));
-                        setLiveSuggestion(null);
-                        toast.success('Suggestion applied!');
-                      }}
-                      className="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                    >
-                      Apply
-                    </button>
+                    {(liveSuggestion.confidenceScore || 0) < 80 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm(prev => ({
+                            ...prev,
+                            type: liveSuggestion.type,
+                            category: liveSuggestion.category,
+                            subcategory: liveSuggestion.subcategory,
+                            financialCategory: liveSuggestion.financialCategory,
+                            financialSubcategory: liveSuggestion.financialSubcategory
+                          }));
+                          setLiveSuggestion(null);
+                          toast.success('Suggestion applied!');
+                        }}
+                        className="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Apply
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -647,19 +688,26 @@ const Accounts = () => {
                   ⓘ
                 </span>
               </label>
-              <select
-                name="type"
-                value={form.type}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                {Object.values(AccountType).map((type) => (
-                  <option key={type} value={type}>
-                    {formatEnumLabel(type)}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  name="type"
+                  value={form.type}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {Object.values(AccountType).map((type) => (
+                    <option key={type} value={type}>
+                      {formatEnumLabel(type)}
+                    </option>
+                  ))}
+                </select>
+                {suggestedFields.includes("type") && (
+                  <span className="absolute top-0 right-0 mt-1 mr-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                    Auto-applied
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -814,19 +862,26 @@ const Accounts = () => {
                       ⓘ
                     </span>
                   </label>
-                  <select
-                    name="financialCategory"
-                    value={form.financialCategory}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    {Object.values(FinancialCategory).map((category) => (
-                      <option key={category} value={category}>
-                        {formatEnumLabel(category)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="financialCategory"
+                      value={form.financialCategory}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      {Object.values(FinancialCategory).map((category) => (
+                        <option key={category} value={category}>
+                          {formatEnumLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                    {suggestedFields.includes("financialCategory") && (
+                      <span className="absolute top-0 right-0 mt-1 mr-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                        Auto-applied
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">Determines how this account appears in financial reports.</p>
                 </div>
 
