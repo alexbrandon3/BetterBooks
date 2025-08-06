@@ -104,10 +104,20 @@ export class SuggestionService {
         return await this.createSuggestionFromPreference(userPreference);
       }
 
-      // Step 2: Try account weighting (new priority between preferences and memory)
+      // Step 2: TEMPORARILY BYPASSED - Account weighting (new priority between preferences and memory)
+      // TODO: Re-enable when weighting logic is stable
       const weightedSuggestion = await this.findWeightedSuggestion(normalizedDescription, userId);
       if (weightedSuggestion) {
-        return weightedSuggestion;
+        console.log('🔍 [SuggestionService] Weighting system would have suggested:', {
+          description,
+          keywords: this.extractKeywords(description),
+          suggestedAccount: weightedSuggestion.suggestedAccountName,
+          confidence: weightedSuggestion.confidence,
+          entryType: weightedSuggestion.suggestedEntryType,
+          reason: weightedSuggestion.reason
+        });
+        // Temporarily skip weighted suggestions to restore reliability
+        // return weightedSuggestion;
       }
 
       // Step 3: Try memory-based learning
@@ -121,6 +131,13 @@ export class SuggestionService {
         normalizedDescription, 
         userAccounts
       );
+      
+      console.log('🔍 [SuggestionService] Memory-based suggestion:', {
+        description,
+        hasMemorySuggestion: !!memorySuggestion,
+        confidence: memorySuggestion?.confidence,
+        accountName: memorySuggestion?.accountName
+      });
       
       if (memorySuggestion && memorySuggestion.confidence >= 60) {
         
@@ -150,6 +167,14 @@ export class SuggestionService {
         userId,
         role: 'OWNER', // TODO: Use real role when available
         contextOverrides: {}
+      });
+
+      console.log('🔍 [SuggestionService] SmartSuggestionAgent result:', {
+        description,
+        hasAgentResult: !!agentResult,
+        confidence: agentResult?.confidence,
+        suggestedAccount: agentResult?.suggestedAccountName,
+        entryType: agentResult?.suggestedEntryType
       });
 
       if (agentResult && agentResult.confidence >= 50) {
@@ -182,7 +207,17 @@ export class SuggestionService {
         console.log('🔄 [SuggestionService] Agent confidence too low (', agentResult.confidence, '), falling back to keyword matching');
       }
       console.log('🔄 [SuggestionService] Falling back to keyword matching...');
-      return await this.findKeywordSuggestion(normalizedDescription, userId);
+      
+      const keywordSuggestion = await this.findKeywordSuggestion(normalizedDescription, userId);
+      console.log('🔍 [SuggestionService] Keyword fallback result:', {
+        description,
+        hasKeywordSuggestion: !!keywordSuggestion,
+        suggestedAccount: keywordSuggestion?.suggestedAccountName,
+        confidence: keywordSuggestion?.confidence,
+        entryType: keywordSuggestion?.suggestedEntryType
+      });
+      
+      return keywordSuggestion;
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       return null;
