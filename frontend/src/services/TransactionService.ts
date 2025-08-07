@@ -362,3 +362,31 @@ export const clearSuggestionCache = (): void => {
   invalidateSuggestions();
   console.log('🧹 Cleared suggestion cache');
 };
+
+export const getDualSideSuggestion = async (description: string): Promise<{
+  debitSide: {
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    reason: string;
+    accountType: string;
+    confidence: number;
+  } | null;
+  creditSide: {
+    suggestedAccountId: number;
+    suggestedAccountName: string;
+    reason: string;
+    accountType: string;
+    confidence: number;
+  } | null;
+  overallConfidence: number;
+  transactionType: string;
+  rationale: string;
+} | null> => {
+  try {
+    const response = await api.post('/suggestions/suggest-dual-sides', { description });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting dual-side suggestion:', error);
+    return null;
+  }
+};

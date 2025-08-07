@@ -8,6 +8,7 @@ import {
   getSuggestedAccount,
   getSuggestedCategory,
   getSuggestedTransactionType,
+  getDualSideSuggestion,
   saveSuggestionFeedback,
   clearSuggestionCache,
   JournalEntryFields,
@@ -203,6 +204,125 @@ const SmartSuggestionCard: React.FC<{
   );
 };
 
+const DualSideSuggestionCard: React.FC<{
+  suggestion: {
+    debitSide: {
+      suggestedAccountId: number;
+      suggestedAccountName: string;
+      reason: string;
+      accountType: string;
+      confidence: number;
+    } | null;
+    creditSide: {
+      suggestedAccountId: number;
+      suggestedAccountName: string;
+      reason: string;
+      accountType: string;
+      confidence: number;
+    } | null;
+    overallConfidence: number;
+    transactionType: string;
+    rationale: string;
+  };
+  onAccept: () => void;
+  onReject: () => void;
+  onIgnore: () => void;
+}> = ({ suggestion, onAccept, onReject, onIgnore }) => {
+  return (
+    <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl shadow-sm">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center">
+          <Sparkles className="w-5 h-5 text-green-600 mr-2" />
+          <span className="text-sm font-medium text-green-900">Complete Transaction Suggestion</span>
+        </div>
+        <button
+          type="button"
+          onClick={onIgnore}
+          className="text-green-500 hover:text-green-700 transition-colors"
+        >
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+      
+      <div className="mb-3">
+        <div className="text-sm text-green-800 font-medium mb-2">
+          {suggestion.rationale}
+        </div>
+        <div className="text-xs text-green-600">
+          Overall Confidence: {suggestion.overallConfidence}%
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Debit Side */}
+        <div className="bg-white p-3 rounded-lg border border-green-200">
+          <div className="flex items-center mb-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+            <span className="text-sm font-medium text-gray-700">Debit</span>
+          </div>
+          {suggestion.debitSide ? (
+            <>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                {suggestion.debitSide.suggestedAccountName}
+              </div>
+              <div className="text-xs text-gray-600 mb-1">
+                {suggestion.debitSide.reason}
+              </div>
+              <div className="text-xs text-gray-500">
+                Confidence: {suggestion.debitSide.confidence}%
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 italic">No debit suggestion</div>
+          )}
+        </div>
+        
+        {/* Credit Side */}
+        <div className="bg-white p-3 rounded-lg border border-green-200">
+          <div className="flex items-center mb-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+            <span className="text-sm font-medium text-gray-700">Credit</span>
+          </div>
+          {suggestion.creditSide ? (
+            <>
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                {suggestion.creditSide.suggestedAccountName}
+              </div>
+              <div className="text-xs text-gray-600 mb-1">
+                {suggestion.creditSide.reason}
+              </div>
+              <div className="text-xs text-gray-500">
+                Confidence: {suggestion.creditSide.confidence}%
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 italic">No credit suggestion</div>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onAccept}
+          className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+        >
+          <CheckCircle className="w-4 h-4 mr-1" />
+          Accept Both
+        </button>
+        <button
+          type="button"
+          onClick={onReject}
+          className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+        >
+          <XCircle className="w-4 h-4 mr-1" />
+          Reject
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Enhanced Form Field Component
 const FormField: React.FC<{
   label: string;
@@ -232,6 +352,7 @@ const Transactions = () => {
   const [formKey, setFormKey] = useState(0);
   const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
   const [currentSuggestion, setCurrentSuggestion] = useState<any>(null);
+  const [currentDualSuggestion, setCurrentDualSuggestion] = useState<any>(null);
   const [suggestionAccepted, setSuggestionAccepted] = useState<boolean>(false);
   const [suggestionRejected, setSuggestionRejected] = useState<boolean>(false);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
@@ -327,7 +448,7 @@ const Transactions = () => {
     };
   };
 
-  // Simplified suggestion feedback
+  // Simplified suggestion feedback for keyword/rule-based system
   const sendSuggestionFeedback = async (feedbackType: 'ACCEPTED' | 'REJECTED' | 'IGNORED', selectedAccountId?: number, selectedAccountName?: string, rejectionReason?: string) => {
     try {
       await saveSuggestionFeedback({
@@ -340,8 +461,8 @@ const Transactions = () => {
         selectedAccountId,
         selectedAccountName,
         rejectionReason,
-        suggestionMetadata: currentSuggestion,
-        contextData: { formData: watch() }
+        suggestionMetadata: { accountType: currentSuggestion?.accountType, confidence: currentSuggestion?.confidence },
+        contextData: { timestamp: new Date().toISOString() }
       });
     } catch (error) {
       console.error('Failed to send suggestion feedback:', error);
@@ -362,12 +483,48 @@ const Transactions = () => {
     // Set new timeout for debounced API call
     descriptionChangeTimeoutRef.current = setTimeout(async () => {
       try {
+        // Try dual-side suggestion first
+        const dualSuggestion = await getDualSideSuggestion(desc);
+        
+        if (dualSuggestion && dualSuggestion.overallConfidence >= 60) {
+          setCurrentDualSuggestion(dualSuggestion);
+          setCurrentSuggestion(null); // Clear single suggestion
+          
+          // Apply dual-side suggestion to form
+          const currentEntries = watch('entries');
+          const updatedEntries = [...currentEntries];
+          
+          if (dualSuggestion.debitSide) {
+            updatedEntries[0] = {
+              ...updatedEntries[0],
+              accountId: String(dualSuggestion.debitSide.suggestedAccountId),
+              amount: currentEntries[1]?.amount || "0"
+            };
+          }
+          
+          if (dualSuggestion.creditSide) {
+            updatedEntries[1] = {
+              ...updatedEntries[1],
+              accountId: String(dualSuggestion.creditSide.suggestedAccountId),
+              amount: currentEntries[0]?.amount || "0"
+            };
+          }
+          
+          setValue('entries', updatedEntries);
+          setValue('type', dualSuggestion.transactionType as any);
+          
+          console.log('✅ Applied dual-side suggestion:', dualSuggestion);
+          return;
+        }
+
+        // Fall back to single-side suggestions if dual-side confidence is too low
         const accountSuggestion = await getSuggestedAccount(desc);
         const transactionTypeSuggestion = await getSuggestedTransactionType(desc);
         const categorySuggestion = await getSuggestedCategory(desc);
 
         if (accountSuggestion) {
           setCurrentSuggestion(accountSuggestion);
+          setCurrentDualSuggestion(null); // Clear dual suggestion
           
           // Apply suggestion to form
           const currentEntries = watch('entries');
@@ -426,6 +583,7 @@ const Transactions = () => {
     setSuccessMessage(null);
     setWarnings([]);
     setCurrentSuggestion(null);
+    setCurrentDualSuggestion(null);
     setSuggestionAccepted(false);
     setSuggestionRejected(false);
   };
@@ -702,8 +860,39 @@ const Transactions = () => {
             onTypeSelect={(type) => setValue('type', type as any)}
           />
 
-          {/* Smart Suggestions */}
-          {smartSuggestionsEnabled && currentSuggestion && !suggestionAccepted && !suggestionRejected && (
+          {/* Dual-Side Smart Suggestions */}
+          {smartSuggestionsEnabled && currentDualSuggestion && !suggestionAccepted && !suggestionRejected && (
+            <DualSideSuggestionCard
+              suggestion={currentDualSuggestion}
+              onAccept={async () => {
+                setSuggestionAccepted(true);
+                setSuggestionRejected(false);
+                // Simple feedback for keyword/rule-based system
+                await sendSuggestionFeedback('ACCEPTED');
+              }}
+              onReject={async () => {
+                setSuggestionRejected(true);
+                setSuggestionAccepted(false);
+                await sendSuggestionFeedback('REJECTED');
+                reset({
+                  ...watch(),
+                  entries: [
+                    { accountId: "", amount: "", type: "DEBIT" },
+                    { accountId: "", amount: "", type: "CREDIT" }
+                  ]
+                });
+              }}
+              onIgnore={async () => {
+                await sendSuggestionFeedback('IGNORED');
+                setCurrentDualSuggestion(null);
+                setSuggestionAccepted(false);
+                setSuggestionRejected(false);
+              }}
+            />
+          )}
+
+          {/* Single-Side Smart Suggestions */}
+          {smartSuggestionsEnabled && currentSuggestion && !currentDualSuggestion && !suggestionAccepted && !suggestionRejected && (
             <SmartSuggestionCard
               suggestion={currentSuggestion}
               onAccept={async () => {

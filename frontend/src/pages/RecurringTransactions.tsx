@@ -97,6 +97,7 @@ const RecurringTransactions = () => {
       const transactionData: RecurringTransactionData = {
         amount,
         description,
+        type: 'TRANSFER', // Default type for recurring transactions
         recurrencePattern,
         nextRun: new Date().toISOString(), // Start immediately
         primaryAccountId: parseInt(primaryAccountId),

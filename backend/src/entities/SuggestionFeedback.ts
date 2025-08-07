@@ -38,27 +38,16 @@ export class SuggestionFeedback {
 
   @Column({ type: 'text', nullable: true }) userReason: string;
   @Column({ type: 'text', nullable: true }) rejectionReason: string;
+  
+  // Simplified metadata for keyword/rule-based system
   @Column({ type: 'jsonb', nullable: true }) suggestionMetadata: {
-    accountType: string;
-    category: string;
-    financialCategory: string;
-    suggestedEntryType: 'DEBIT' | 'CREDIT';
-    toneMessage?: string;
-    detailedReason: string;
-    businessKeywords?: {
-      category: string;
-      confidence: 'HIGH' | 'MEDIUM' | 'LOW';
-      keywords: string[];
-      businessContext: string;
-    };
+    accountType?: string;
+    confidence?: number;
   };
 
   @Column({ type: 'jsonb', nullable: true })
   contextData: {
-    userAgent?: string;
     timestamp: string;
-    sessionId?: string;
-    suggestionSource: 'SMART_AGENT' | 'USER_PREFERENCE' | 'KEYWORD_FALLBACK';
   };
 
   @CreateDateColumn()

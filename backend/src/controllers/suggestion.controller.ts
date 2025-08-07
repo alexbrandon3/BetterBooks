@@ -101,4 +101,22 @@ export class SuggestionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  async suggestDualSides(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { description } = req.body;
+      
+      if (!description || typeof description !== 'string') {
+        this.sendError(res, 400, 'Description is required and must be a string');
+        return;
+      }
+
+      const userId = req.user.userId;
+      const dualSuggestion = await this.suggestionService.suggestDualSidesForDescription(description, userId);
+      
+      this.sendResponse(res, 200, dualSuggestion);
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 } 

@@ -24,6 +24,9 @@ router.post('/suggest-category', authenticate, suggestionController.suggestCateg
 // Add the suggest transaction type route
 router.post('/suggest-transaction-type', authenticate, suggestionController.suggestTransactionType.bind(suggestionController));
 
+// Add the suggest dual sides route
+router.post('/suggest-dual-sides', authenticate, suggestionController.suggestDualSides.bind(suggestionController));
+
 // Add routes for user preferences management
 router.get('/preferences', authenticate, suggestionController.getUserPreferences.bind(suggestionController));
 router.delete('/preferences', authenticate, suggestionController.clearUserPreferences.bind(suggestionController));

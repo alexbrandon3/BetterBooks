@@ -3,17 +3,11 @@ import { Suggestion } from "../entities/Suggestion";
 import { Account } from "../entities/Account";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
-import { SmartSuggestionAgent } from './suggestionEngine/SmartSuggestionAgent';
-import { MemoryBasedLearning } from './suggestionEngine/MemoryBasedLearning';
-import { AccountWeightService } from './AccountWeightService';
 
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
   private accountRepo = AppDataSource.getRepository(Account);
   private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
-  private smartSuggestionAgent = new SmartSuggestionAgent();
-  private memoryLearning = new MemoryBasedLearning();
-  private accountWeightService = new AccountWeightService();
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -83,8 +77,6 @@ export class SuggestionService {
     confidence: number;
     suggestedEntryType: 'DEBIT' | 'CREDIT';
     detailedReason: string;
-    learningSource?: string;
-    patternData?: any;
   } | null> {
     try {
       
@@ -104,7 +96,7 @@ export class SuggestionService {
         return await this.createSuggestionFromPreference(userPreference);
       }
 
-      // Step 2: Try keyword matching for specific terms (high priority for business terms)
+      // Step 2: Try keyword matching (sole logic - no machine learning)
       const keywordSuggestion = await this.findKeywordSuggestion(normalizedDescription, userId);
       console.log('🔍 [SuggestionService] Keyword suggestion result:', {
         description,
@@ -114,124 +106,15 @@ export class SuggestionService {
         entryType: keywordSuggestion?.suggestedEntryType
       });
       
-      // If keyword suggestion has high confidence (especially for equity terms), use it
-      if (keywordSuggestion && keywordSuggestion.confidence >= 70) {
-        console.log('✅ [SuggestionService] Using high-confidence keyword suggestion:', keywordSuggestion.suggestedAccountName);
+      // Return keyword suggestion if found (no machine learning fallbacks)
+      if (keywordSuggestion && keywordSuggestion.confidence >= 50) {
+        console.log('✅ [SuggestionService] Using keyword-based suggestion:', keywordSuggestion.suggestedAccountName);
         return keywordSuggestion;
       }
 
-      // Step 3: TEMPORARILY BYPASSED - Account weighting (new priority between preferences and memory)
-      // TODO: Re-enable when weighting logic is stable
-      const weightedSuggestion = await this.findWeightedSuggestion(normalizedDescription, userId);
-      if (weightedSuggestion) {
-        console.log('🔍 [SuggestionService] Weighting system would have suggested:', {
-          description,
-          keywords: this.extractKeywords(description),
-          suggestedAccount: weightedSuggestion.suggestedAccountName,
-          confidence: weightedSuggestion.confidence,
-          entryType: weightedSuggestion.suggestedEntryType,
-          reason: weightedSuggestion.reason
-        });
-        // Temporarily skip weighted suggestions to restore reliability
-        // return weightedSuggestion;
-      }
-
-      // Step 4: DISABLED - Memory-based learning (causing more problems than it solves)
-      // TODO: Re-enable only if we can fix the learning from mistakes issue
-      console.log('🔍 [SuggestionService] Memory-based learning disabled to prevent incorrect suggestions');
-      
-      // const userAccounts = await this.accountRepo.find({
-      //   where: { user: { id: userId } },
-      //   order: { updatedAt: 'DESC' }
-      // });
-      
-      // const memorySuggestion = await this.memoryLearning.findMemoryBasedSuggestion(
-      //   userId, 
-      //   normalizedDescription, 
-      //   userAccounts
-      // );
-      
-      // console.log('🔍 [SuggestionService] Memory-based suggestion:', {
-      //   description,
-      //   hasMemorySuggestion: !!memorySuggestion,
-      //   confidence: memorySuggestion?.confidence,
-      //   accountName: memorySuggestion?.accountName
-      // });
-      
-      // if (memorySuggestion && memorySuggestion.confidence >= 60) {
-        
-      //   // Find the account to get additional details
-      //   const suggestedAccount = await this.accountRepo.findOne({
-      //     where: { id: memorySuggestion.accountId }
-      //   });
-        
-      //   if (suggestedAccount) {
-      //     return {
-      //       suggestedAccountId: memorySuggestion.accountId,
-      //       suggestedAccountName: memorySuggestion.accountName,
-      //       reason: memorySuggestion.reason,
-      //       accountType: suggestedAccount.type,
-      //       confidence: memorySuggestion.confidence,
-      //       suggestedEntryType: this.determineEntryType(suggestedAccount),
-      //       detailedReason: memorySuggestion.reason,
-      //       learningSource: memorySuggestion.learningSource,
-      //       patternData: memorySuggestion.patternData
-      //     };
-      //   }
-      // }
-
-      // Step 3: Try SmartSuggestionAgent (new logic)
-      const agentResult = await this.smartSuggestionAgent.suggest({
-        description,
-        userId,
-        role: 'OWNER', // TODO: Use real role when available
-        contextOverrides: {}
-      });
-
-      console.log('🔍 [SuggestionService] SmartSuggestionAgent result:', {
-        description,
-        hasAgentResult: !!agentResult,
-        confidence: agentResult?.confidence,
-        suggestedAccount: agentResult?.suggestedAccountName,
-        entryType: agentResult?.suggestedEntryType
-      });
-
-      if (agentResult && agentResult.confidence >= 60) {
-        
-        // Find the account by name to get the ID
-        const suggestedAccount = await this.accountRepo.findOne({
-          where: { 
-            name: agentResult.suggestedAccountName,
-            user: { id: userId }
-          }
-        });
-
-        if (suggestedAccount) {
-          return {
-            suggestedAccountId: suggestedAccount.id,
-            suggestedAccountName: agentResult.suggestedAccountName,
-            reason: agentResult.detailedReason,
-            accountType: agentResult.accountType,
-            confidence: agentResult.confidence,
-            suggestedEntryType: agentResult.suggestedEntryType,
-            detailedReason: agentResult.toneMessage
-          };
-        }
-      }
-
-      // Step 5: Final fallback to keyword matching (if no other suggestions worked)
-      console.log('🔄 [SuggestionService] No high-confidence suggestions found, trying keyword fallback...');
-      
-      const keywordFallback = await this.findKeywordSuggestion(normalizedDescription, userId);
-      console.log('🔍 [SuggestionService] Keyword fallback result:', {
-        description,
-        hasKeywordSuggestion: !!keywordFallback,
-        suggestedAccount: keywordFallback?.suggestedAccountName,
-        confidence: keywordFallback?.confidence,
-        entryType: keywordFallback?.suggestedEntryType
-      });
-      
-      return keywordFallback;
+      // No suggestions if keyword matching fails
+      console.log('❌ [SuggestionService] No reliable keyword match found for:', description);
+      return null;
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       return null;
@@ -286,16 +169,20 @@ export class SuggestionService {
     contextData: any;
   }): Promise<void> {
     try {
-      // Save feedback for memory learning
-      await this.memoryLearning.saveFeedback(data);
+      // Simple logging for keyword/rule-based system (no machine learning)
+      console.log('📝 [SuggestionService] Feedback logged:', {
+        description: data.description,
+        feedbackType: data.feedbackType,
+        suggestedAccount: data.suggestedAccountName,
+        selectedAccount: data.selectedAccountName,
+        confidence: data.confidence,
+        timestamp: new Date().toISOString()
+      });
 
-      // If accepted, also save as user preference
+      // Optional: Save simple user preference for accepted suggestions
       if (data.feedbackType === 'ACCEPTED' && data.selectedAccountId) {
         await this.saveUserPreference(data.description, data.selectedAccountId, data.userId);
       }
-
-      // Update user preferences based on feedback patterns
-      await this.memoryLearning.updateUserPreferences(data.userId);
     } catch (error) {
       logError(`Failed to save suggestion feedback: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
     }
@@ -645,6 +532,243 @@ export class SuggestionService {
     }
   }
 
+  async suggestDualSidesForDescription(description: string, userId: number): Promise<{
+    debitSide: {
+      suggestedAccountId: number;
+      suggestedAccountName: string;
+      reason: string;
+      accountType: string;
+      confidence: number;
+    } | null;
+    creditSide: {
+      suggestedAccountId: number;
+      suggestedAccountName: string;
+      reason: string;
+      accountType: string;
+      confidence: number;
+    } | null;
+    overallConfidence: number;
+    transactionType: string;
+    rationale: string;
+  } | null> {
+    try {
+      if (!description || description.trim().length === 0) {
+        return null;
+      }
+
+      // Normalize description
+      const normalizedDescription = description.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Get user's accounts
+      const userAccounts = await this.accountRepo.find({
+        where: { user: { id: userId } },
+        order: { updatedAt: 'DESC' }
+      });
+
+      // Define common transaction patterns for small businesses
+      const transactionPatterns = [
+        // Equity Contributions
+        {
+          keywords: ['initial contribution', 'owner contribution', 'capital contribution', 'business formation', 'personal funds', 'equity investment', 'partner investment'],
+          debitSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash received from owner' },
+          creditSide: { accountTypes: ['EQUITY'], keywords: ['owner', 'capital', 'equity', 'contributed'], reason: 'Owner equity increased' },
+          transactionType: 'EQUITY_CONTRIBUTION',
+          rationale: 'Owner contributing personal funds to business',
+          priority: 1
+        },
+        // Owner Draws/Distributions
+        {
+          keywords: ['owner draw', 'partner draw', 'owner withdrawal', 'distribution', 'draw', 'drawing', 'personal use'],
+          debitSide: { accountTypes: ['EQUITY'], keywords: ['owner', 'draw', 'drawing', 'withdrawal'], reason: 'Owner equity decreased' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid to owner' },
+          transactionType: 'EQUITY_WITHDRAWAL',
+          rationale: 'Owner withdrawing funds from business',
+          priority: 1
+        },
+        // Equipment Purchases
+        {
+          keywords: ['equipment purchase', 'machinery purchase', 'computer purchase', 'furniture purchase', 'asset purchase', 'capital expenditure'],
+          debitSide: { accountTypes: ['ASSET'], keywords: ['equipment', 'machinery', 'computer', 'furniture', 'asset'], reason: 'Asset acquired' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid for asset' },
+          transactionType: 'ASSET_PURCHASE',
+          rationale: 'Business purchasing equipment or assets',
+          priority: 2
+        },
+        // Loan Payments
+        {
+          keywords: ['loan payment', 'mortgage payment', 'debt payment', 'credit card payment', 'principal payment', 'interest payment'],
+          debitSide: { accountTypes: ['LIABILITY'], keywords: ['loan', 'mortgage', 'debt', 'credit card', 'payable'], reason: 'Liability reduced' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash used to pay debt' },
+          transactionType: 'LOAN_PAYMENT',
+          rationale: 'Paying down business debt',
+          priority: 2
+        },
+        // Sales/Revenue
+        {
+          keywords: ['sold', 'sale', 'sales', 'revenue', 'income', 'earnings', 'commission', 'service', 'product', 'merchandise', 'goods', 'invoice', 'payment received', 'customer payment', 'client payment'],
+          debitSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings', 'accounts receivable'], reason: 'Cash received or receivable increased' },
+          creditSide: { accountTypes: ['INCOME'], keywords: ['sales', 'revenue', 'income', 'service', 'product'], reason: 'Revenue recognized' },
+          transactionType: 'INCOME',
+          rationale: 'Business earning revenue',
+          priority: 1
+        },
+        // Expense Purchases
+        {
+          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs'],
+          debitSide: { accountTypes: ['EXPENSE', 'ASSET'], keywords: ['supplies', 'equipment', 'inventory', 'expense', 'cost'], reason: 'Expense or asset acquired' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid for expense' },
+          transactionType: 'EXPENSE',
+          rationale: 'Business purchasing goods or services',
+          priority: 2
+        },
+        // Payroll
+        {
+          keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck', 'w2', 'withholding', 'payroll tax'],
+          debitSide: { accountTypes: ['EXPENSE'], keywords: ['payroll', 'salary', 'wage', 'employee', 'labor'], reason: 'Payroll expense recognized' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid to employees' },
+          transactionType: 'EXPENSE',
+          rationale: 'Paying employee wages',
+          priority: 1
+        },
+        // Tax Payments
+        {
+          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax'],
+          debitSide: { accountTypes: ['EXPENSE'], keywords: ['tax', 'taxes', 'taxation'], reason: 'Tax expense recognized' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid for taxes' },
+          transactionType: 'EXPENSE',
+          rationale: 'Paying business taxes',
+          priority: 1
+        },
+        // Rent Payments
+        {
+          keywords: ['rent', 'lease', 'rental', 'landlord', 'property', 'real estate', 'office space', 'warehouse', 'storage'],
+          debitSide: { accountTypes: ['EXPENSE'], keywords: ['rent', 'lease', 'rental'], reason: 'Rent expense recognized' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid for rent' },
+          transactionType: 'EXPENSE',
+          rationale: 'Paying rent for business space',
+          priority: 2
+        },
+        // Utility Payments
+        {
+          keywords: ['utility', 'utilities', 'electric', 'water', 'gas', 'internet', 'phone', 'cable', 'wifi', 'electricity', 'power', 'sewer', 'trash'],
+          debitSide: { accountTypes: ['EXPENSE'], keywords: ['utility', 'utilities', 'electric', 'water', 'gas'], reason: 'Utility expense recognized' },
+          creditSide: { accountTypes: ['ASSET'], keywords: ['cash', 'bank', 'checking', 'savings'], reason: 'Cash paid for utilities' },
+          transactionType: 'EXPENSE',
+          rationale: 'Paying utility bills',
+          priority: 2
+        }
+      ];
+
+      // Find matching pattern
+      let matchedPattern = null;
+      let matchedKeyword = null;
+      let bestPriority = 999;
+
+      for (const pattern of transactionPatterns) {
+        const foundKeyword = pattern.keywords.find(keyword => 
+          normalizedDescription.includes(keyword)
+        );
+        
+        if (foundKeyword && pattern.priority < bestPriority) {
+          matchedPattern = pattern;
+          matchedKeyword = foundKeyword;
+          bestPriority = pattern.priority;
+        }
+      }
+
+      if (!matchedPattern) {
+        console.log('❌ No dual-side pattern match found for:', normalizedDescription);
+        return null;
+      }
+
+      console.log('✅ Found dual-side pattern:', matchedPattern.transactionType, 'for keyword:', matchedKeyword);
+
+      // Find matching accounts for both sides
+      const findMatchingAccount = (sidePattern: any): any => {
+        let bestMatch = null;
+        let bestScore = 0;
+
+        for (const account of userAccounts) {
+          if (!sidePattern.accountTypes.includes(account.type)) {
+            continue;
+          }
+
+          let score = 0;
+          
+          // Check for keyword matches in account name
+          const keywordMatch = sidePattern.keywords.some((keyword: string) => 
+            account.name.toLowerCase().includes(keyword.toLowerCase())
+          );
+          if (keywordMatch) {
+            score += 50;
+          }
+
+          // Check for category matches
+          const categoryMatch = sidePattern.keywords.some((keyword: string) => 
+            account.category?.toLowerCase().includes(keyword.toLowerCase())
+          );
+          if (categoryMatch) {
+            score += 30;
+          }
+
+          // Bonus for recently used accounts
+          const daysSinceUpdate = (Date.now() - new Date(account.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+          if (daysSinceUpdate < 7) {
+            score += 10;
+          }
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = { account, score };
+          }
+        }
+
+        return bestMatch;
+      };
+
+      const debitMatch = findMatchingAccount(matchedPattern.debitSide);
+      const creditMatch = findMatchingAccount(matchedPattern.creditSide);
+
+      // Calculate overall confidence
+      const debitConfidence = debitMatch ? Math.min(100, debitMatch.score) : 0;
+      const creditConfidence = creditMatch ? Math.min(100, creditMatch.score) : 0;
+      const overallConfidence = Math.round((debitConfidence + creditConfidence) / 2);
+
+      // Only return if we have reasonable confidence for both sides
+      if (overallConfidence < 40) {
+        console.log('❌ Overall confidence too low for dual-side suggestion:', overallConfidence);
+        return null;
+      }
+
+      return {
+        debitSide: debitMatch ? {
+          suggestedAccountId: debitMatch.account.id,
+          suggestedAccountName: debitMatch.account.name,
+          reason: matchedPattern.debitSide.reason,
+          accountType: debitMatch.account.type,
+          confidence: debitConfidence
+        } : null,
+        creditSide: creditMatch ? {
+          suggestedAccountId: creditMatch.account.id,
+          suggestedAccountName: creditMatch.account.name,
+          reason: matchedPattern.creditSide.reason,
+          accountType: creditMatch.account.type,
+          confidence: creditConfidence
+        } : null,
+        overallConfidence,
+        transactionType: matchedPattern.transactionType,
+        rationale: matchedPattern.rationale
+      };
+
+    } catch (error) {
+      logError(`Failed to suggest dual sides for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
+      return null;
+    }
+  }
+
   private async findUserPreference(description: string, userId: number): Promise<UserSuggestionPreference | null> {
     try {
       const normalizedDescription = this.normalizeDescription(description);
@@ -858,22 +982,7 @@ export class SuggestionService {
     return normalized;
   }
 
-  private determineEntryType(account: Account): 'DEBIT' | 'CREDIT' {
-    switch (account.type) {
-      case 'EXPENSE':
-        return 'DEBIT';
-      case 'INCOME':
-        return 'CREDIT';
-      case 'ASSET':
-        return 'DEBIT';
-      case 'LIABILITY':
-        return 'CREDIT';
-      case 'EQUITY':
-        return 'CREDIT';
-      default:
-        return 'DEBIT';
-    }
-  }
+
 
 
 
@@ -1245,8 +1354,8 @@ export class SuggestionService {
       let bestScore = 0;
       let bestMatchHadExactKeyword = false;
 
-      console.log('🔍 [Fallback] Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
-      console.log('🔍 [Fallback] Available accounts after type filtering:', userAccounts.filter(acc => matchedCategory!.accountTypes.includes(acc.type)).map(acc => acc.name));
+      console.log('🔍 [Keyword] Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
+      console.log('🔍 [Keyword] Available accounts after type filtering:', userAccounts.filter(acc => matchedCategory!.accountTypes.includes(acc.type)).map(acc => acc.name));
 
       for (const account of userAccounts) {
         if (!matchedCategory!.accountTypes.includes(account.type)) {
@@ -1513,235 +1622,6 @@ export class SuggestionService {
     }
   }
 
-  private async findWeightedSuggestion(normalizedDescription: string, userId: number): Promise<{
-    suggestedAccountId: number;
-    suggestedAccountName: string;
-    reason: string;
-    accountType: string;
-    confidence: number;
-    suggestedEntryType: 'DEBIT' | 'CREDIT';
-    detailedReason: string;
-    learningSource?: string;
-  } | null> {
-    try {
-      // Extract keywords from description
-      const keywords = this.extractKeywords(normalizedDescription);
-      
-      if (keywords.length === 0) {
-        return null;
-      }
 
-      // Get user's accounts
-      const userAccounts = await this.accountRepo.find({
-        where: { user: { id: userId } }
-      });
 
-      let bestWeightedSuggestion: {
-        accountId: number;
-        accountName: string;
-        weight: number;
-        keyword: string;
-      } | null = null;
-
-      // Check each keyword for weights
-      for (const keyword of keywords) {
-        const weights = await this.accountWeightService.getWeightsForKeyword(userId, keyword);
-        
-        for (const weight of weights) {
-          // Find the account
-          const account = userAccounts.find(acc => acc.id === weight.accountId);
-          if (!account) continue;
-
-          // Calculate weighted score (base score * weight multiplier)
-          const baseScore = 85; // Increased base confidence for weighted suggestions
-          const weightMultiplier = weight.weight / 50; // Normalize to 0-2 range
-          const finalScore = baseScore * weightMultiplier;
-
-          if (!bestWeightedSuggestion || finalScore > bestWeightedSuggestion.weight) {
-            bestWeightedSuggestion = {
-              accountId: weight.accountId,
-              accountName: account.name,
-              weight: finalScore,
-              keyword: keyword
-            };
-          }
-        }
-      }
-
-      if (bestWeightedSuggestion && bestWeightedSuggestion.weight >= 75) {
-        const account = userAccounts.find(acc => acc.id === bestWeightedSuggestion!.accountId);
-        if (!account) return null;
-
-        // Increment usage count for the weight
-        const weights = await this.accountWeightService.getWeightsForKeyword(userId, bestWeightedSuggestion.keyword);
-        const matchingWeight = weights.find(w => w.accountId === bestWeightedSuggestion!.accountId);
-        if (matchingWeight) {
-          await this.accountWeightService.incrementUsageCount(matchingWeight.id);
-        }
-
-        // Determine entry type based on weight's transaction type, not account type
-        let suggestedEntryType: 'DEBIT' | 'CREDIT';
-        if (matchingWeight && matchingWeight.transactionType) {
-          switch (matchingWeight.transactionType) {
-            case 'INCOME':
-              suggestedEntryType = 'CREDIT';
-              break;
-            case 'EXPENSE':
-              suggestedEntryType = 'DEBIT';
-              break;
-            case 'ASSET':
-              suggestedEntryType = 'DEBIT';
-              break;
-            case 'LIABILITY':
-              suggestedEntryType = 'CREDIT';
-              break;
-            case 'EQUITY':
-              suggestedEntryType = 'CREDIT';
-              break;
-            case 'TRANSFER':
-              suggestedEntryType = 'DEBIT'; // Default for transfers
-              break;
-            default:
-              suggestedEntryType = this.determineEntryType(account);
-          }
-        } else {
-          suggestedEntryType = this.determineEntryType(account);
-        }
-
-        return {
-          suggestedAccountId: bestWeightedSuggestion.accountId,
-          suggestedAccountName: bestWeightedSuggestion.accountName,
-          reason: `Based on keyword "${bestWeightedSuggestion.keyword}" with account weighting`,
-          accountType: account.type,
-          confidence: Math.min(bestWeightedSuggestion.weight, 95), // Cap at 95%
-          suggestedEntryType: suggestedEntryType,
-          detailedReason: `Account weighting system found "${bestWeightedSuggestion.accountName}" as the preferred account for keyword "${bestWeightedSuggestion.keyword}" (${matchingWeight?.transactionType || 'unknown'} transaction type)`,
-          learningSource: 'ACCOUNT_WEIGHTING'
-        };
-      }
-
-      return null;
-    } catch (error) {
-      logError(`Failed to find weighted suggestion: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
-      return null;
-    }
-  }
-
-  private extractKeywords(description: string): string[] {
-    // Extract meaningful keywords from description
-    const normalizedDescription = description.toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Multi-word phrase detection (check before single word extraction)
-    const multiWordPhrases = [
-      // Equity and Contributions
-      'initial contribution', 'owner contribution', 'capital contribution', 'business formation',
-      'personal funds', 'partner investment', 'equity investment', 'owner draw', 'partner draw',
-      
-      // Employee Payments
-      'employee pay', 'staff payment', 'holiday pay', 'payroll tax', 'withholding', 'deductions',
-      
-      // Contractor Payments
-      'contractor payment', 'vendor payment', 'independent contractor', 'service payment',
-      'contract work', 'project payment', 'professional services', '1099 payment',
-      
-      // Assets & Liabilities
-      'loan repayment', 'credit card payment', 'equipment purchase', 'personal use',
-      
-      // 🏦 Banking & Financial Services
-      'bank fee', 'overdraft fee', 'wire transfer', 'ach transfer', 'atm fee', 'monthly service charge', 
-      'account maintenance', 'direct deposit', 'cash withdrawal', 'bank charges',
-      
-      // 💳 Credit Card & Payment Processing
-      'credit card fee', 'merchant fee', 'processing fee', 'transaction fee', 'chargeback', 
-      'gateway fee', 'payment processing', 'credit card processing', 'merchant processing',
-      
-      // ☁️ Technology & Digital Services
-      'cloud hosting', 'domain registration', 'ssl certificate', 'backup service', 'cybersecurity', 
-      'data recovery', 'it support', 'managed services', 'web hosting', 'email hosting',
-      
-      // 👩‍💼 Professional Services
-      'web design', 'graphic design', 'photography', 'copywriting', 'seo', 'social media', 
-      'event planning', 'public relations', 'branding',
-      
-      // 👥 Employee Benefits
-      'health insurance', 'dental insurance', 'vision insurance', '401k', 'hsa', 
-      'fringe benefits', 'employee training', 'background check',
-      
-      // 🏛️ Regulatory & Compliance
-      'business license', 'permit', 'inspection fee', 'regulatory filing', 'audit', 
-      'compliance', 'bond', 'filing fee',
-      
-      // Additional Business Operations
-      'office supplies', 'bank fees', 'credit card fees', 'processing fees', 'interest expense',
-      'late fees', 'income tax', 'sales tax', 'property tax', 'business tax'
-    ];
-
-    // Check for multi-word phrases first
-    for (const phrase of multiWordPhrases) {
-      if (normalizedDescription.includes(phrase)) {
-        return [phrase.replace(/\s+/g, '_')]; // Return as single keyword
-      }
-    }
-
-    // Single word extraction
-    const words = normalizedDescription.split(' ').filter(word => word.length > 2);
-    
-    // Expanded business keywords to look for
-    const businessKeywords = [
-      // Revenue & Sales
-      'sold', 'sale', 'sales', 'revenue', 'income', 'refund',
-      
-      // Purchases & Expenses
-      'bought', 'buy', 'purchase', 'inventory',
-      'rent', 'utilities', 'marketing', 'advertising', 'insurance', 'legal', 'accounting',
-      
-      // Employee Payments
-      'payroll', 'salary', 'wages', 'employee', 'staff', 'bonus', 'commission', 'overtime',
-      
-      // Contractor Payments
-      'contractor', 'freelancer', 'consultant', 'vendor', 'service',
-      
-      // Tax Keywords
-      'tax', 'taxes', 'irs', 'withholding', 'deductions',
-      
-      // Equity and Contributions
-      'contribution', 'investment', 'equity', 'capital',
-      'owner', 'partner', 'draw', 'withdrawal',
-      
-      // Assets & Liabilities
-      'deposit', 'loan', 'transfer', 'repayment', 'reimbursement',
-      'overdraft', 'credit', 'interest', 'dividend',
-      
-      // Business Operations
-      'equipment', 'machinery', 'furniture', 'supplies', 'maintenance', 'repair',
-      'software', 'subscription', 'membership', 'licenses', 'permits',
-      
-      // Travel & Transportation
-      'travel', 'meals', 'entertainment', 'mileage', 'gas', 'fuel',
-      
-      // Fees & Charges
-      'fees', 'charges', 'penalties', 'fines', 'late',
-      
-      // 🏦 Banking & Financial Services
-      'bank', 'overdraft', 'wire', 'ach', 'atm', 'monthly', 'service', 'maintenance',
-      'direct', 'deposit', 'withdrawal', 'cash', 'charges',
-      
-      // 💳 Credit Card & Payment Processing
-      'merchant', 'processing', 'transaction', 'chargeback', 'gateway', 'payment',
-      'credit', 'card', 'processing', 'merchant', 'transaction',
-      
-      // ☁️ Technology & Digital Services
-      'cloud', 'hosting', 'domain', 'registration', 'ssl', 'certificate', 'backup',
-      'cybersecurity', 'data', 'recovery', 'support', 'managed', 'web', 'email',
-      'it', 'technology', 'digital', 'services',
-      
-      // Context Keywords
-      'initial', 'business', 'personal', 'formation', 'funds'
-    ];
-
-    return words.filter(word => businessKeywords.includes(word.toLowerCase()));
-  }
 } 
