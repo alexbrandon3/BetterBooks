@@ -136,46 +136,49 @@ export class SuggestionService {
         // return weightedSuggestion;
       }
 
-      // Step 4: Try memory-based learning (moved after keyword matching)
-      const userAccounts = await this.accountRepo.find({
-        where: { user: { id: userId } },
-        order: { updatedAt: 'DESC' }
-      });
+      // Step 4: DISABLED - Memory-based learning (causing more problems than it solves)
+      // TODO: Re-enable only if we can fix the learning from mistakes issue
+      console.log('🔍 [SuggestionService] Memory-based learning disabled to prevent incorrect suggestions');
       
-      const memorySuggestion = await this.memoryLearning.findMemoryBasedSuggestion(
-        userId, 
-        normalizedDescription, 
-        userAccounts
-      );
+      // const userAccounts = await this.accountRepo.find({
+      //   where: { user: { id: userId } },
+      //   order: { updatedAt: 'DESC' }
+      // });
       
-      console.log('🔍 [SuggestionService] Memory-based suggestion:', {
-        description,
-        hasMemorySuggestion: !!memorySuggestion,
-        confidence: memorySuggestion?.confidence,
-        accountName: memorySuggestion?.accountName
-      });
+      // const memorySuggestion = await this.memoryLearning.findMemoryBasedSuggestion(
+      //   userId, 
+      //   normalizedDescription, 
+      //   userAccounts
+      // );
       
-      if (memorySuggestion && memorySuggestion.confidence >= 60) {
+      // console.log('🔍 [SuggestionService] Memory-based suggestion:', {
+      //   description,
+      //   hasMemorySuggestion: !!memorySuggestion,
+      //   confidence: memorySuggestion?.confidence,
+      //   accountName: memorySuggestion?.accountName
+      // });
+      
+      // if (memorySuggestion && memorySuggestion.confidence >= 60) {
         
-        // Find the account to get additional details
-        const suggestedAccount = await this.accountRepo.findOne({
-          where: { id: memorySuggestion.accountId }
-        });
+      //   // Find the account to get additional details
+      //   const suggestedAccount = await this.accountRepo.findOne({
+      //     where: { id: memorySuggestion.accountId }
+      //   });
         
-        if (suggestedAccount) {
-          return {
-            suggestedAccountId: memorySuggestion.accountId,
-            suggestedAccountName: memorySuggestion.accountName,
-            reason: memorySuggestion.reason,
-            accountType: suggestedAccount.type,
-            confidence: memorySuggestion.confidence,
-            suggestedEntryType: this.determineEntryType(suggestedAccount),
-            detailedReason: memorySuggestion.reason,
-            learningSource: memorySuggestion.learningSource,
-            patternData: memorySuggestion.patternData
-          };
-        }
-      }
+      //   if (suggestedAccount) {
+      //     return {
+      //       suggestedAccountId: memorySuggestion.accountId,
+      //       suggestedAccountName: memorySuggestion.accountName,
+      //       reason: memorySuggestion.reason,
+      //       accountType: suggestedAccount.type,
+      //       confidence: memorySuggestion.confidence,
+      //       suggestedEntryType: this.determineEntryType(suggestedAccount),
+      //       detailedReason: memorySuggestion.reason,
+      //       learningSource: memorySuggestion.learningSource,
+      //       patternData: memorySuggestion.patternData
+      //     };
+      //   }
+      // }
 
       // Step 3: Try SmartSuggestionAgent (new logic)
       const agentResult = await this.smartSuggestionAgent.suggest({
