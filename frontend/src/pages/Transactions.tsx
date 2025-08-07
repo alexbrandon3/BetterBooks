@@ -365,7 +365,9 @@ const Transactions = () => {
           }
 
           // Handle account suggestion
+          console.log('🔍 Account suggestion result:', accountSuggestion);
           if (accountSuggestion?.suggestedAccountId) {
+            console.log('🎯 Setting account suggestion:', accountSuggestion.suggestedAccountName, 'Entry Type:', accountSuggestion.suggestedEntryType);
             // Store current suggestion for feedback
             setCurrentSuggestion(accountSuggestion);
             
@@ -443,6 +445,8 @@ const Transactions = () => {
             setSuggestionCategory(accountSuggestion.category || null);
             setSuggestionFinancialCategory(accountSuggestion.financialCategory || null);
             setSuggestionEntryType(accountSuggestion.suggestedEntryType || null);
+          } else {
+            console.log('🎯 No account suggestion available');
           }
         } catch (error) {
           console.error('Failed to get suggestions:', error);

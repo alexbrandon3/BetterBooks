@@ -218,9 +218,11 @@ export const getSuggestedAccount = async (description: string): Promise<{
   
   return withCache(cacheKey, async () => {
     try {
+      console.log('🔍 Calling backend for account suggestion:', description.trim());
       const response = await api.post('/suggestions/suggest-account', {
         description: description.trim()
       });
+      console.log('🔍 Backend account suggestion response:', response.data);
       return response.data;
     } catch (error) {
       console.error("Error getting suggested account:", error);
