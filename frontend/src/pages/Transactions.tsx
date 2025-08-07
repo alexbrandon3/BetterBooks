@@ -175,7 +175,7 @@ const Transactions = () => {
     resolver,
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      type: "EXPENSE",
+      type: "TRANSFER", // Changed from "EXPENSE" to "TRANSFER" as a more neutral default
       description: "",
       category: "Uncategorized",
       amount: 0,
@@ -341,6 +341,8 @@ const Transactions = () => {
             getSuggestedTransactionType ? getSuggestedTransactionType(desc) : Promise.resolve(null)
           ]);
 
+          console.log('🔍 Transaction type suggestion result:', transactionTypeSuggestion);
+
           // Handle account suggestion
           if (accountSuggestion?.suggestedAccountId) {
             // Store current suggestion for feedback
@@ -402,6 +404,7 @@ const Transactions = () => {
 
             // Add transaction type suggestion if available
             if (transactionTypeSuggestion?.suggestedType) {
+              console.log('🎯 Setting transaction type to:', transactionTypeSuggestion.suggestedType);
               setValue('type', transactionTypeSuggestion.suggestedType as any);
             }
             
@@ -459,7 +462,7 @@ const Transactions = () => {
   const handleResetForm = () => {
     const resetData: TransactionForm = {
       date: new Date().toISOString().split('T')[0],
-      type: "EXPENSE",
+      type: "TRANSFER", // Changed from "EXPENSE" to "TRANSFER" as a more neutral default
       description: "",
       category: "Uncategorized",
       amount: 0,
