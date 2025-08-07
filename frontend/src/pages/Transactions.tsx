@@ -191,6 +191,10 @@ const Transactions = () => {
     }
   });
 
+  // Debug: Log form type changes
+  const currentType = watch('type');
+  console.log('🔍 Form type changed to:', currentType);
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "entries"
@@ -329,6 +333,9 @@ const Transactions = () => {
       clearTimeout(descriptionChangeTimeoutRef.current);
     }
     
+    console.log('📝 Description changed to:', desc);
+    console.log('🔍 Current form type before suggestions:', watch('type'));
+    
     // Only trigger suggestions if we have at least 3 characters and smart suggestions are enabled
     if (desc && desc.trim().length >= 3 && smartSuggestionsEnabled) {
       // Debounce the suggestion API calls to prevent interference with typing
@@ -406,6 +413,11 @@ const Transactions = () => {
             if (transactionTypeSuggestion?.suggestedType) {
               console.log('🎯 Setting transaction type to:', transactionTypeSuggestion.suggestedType);
               setValue('type', transactionTypeSuggestion.suggestedType as any);
+              
+              // Force a re-render by triggering form validation
+              setTimeout(() => {
+                console.log('🔄 Current form type after setValue:', watch('type'));
+              }, 100);
             }
             
             // Set suggestion explanation and confidence - keep persistent until user dismissal
@@ -460,6 +472,7 @@ const Transactions = () => {
   };
 
   const handleResetForm = () => {
+    console.log('🔄 Form being reset to default values');
     const resetData: TransactionForm = {
       date: new Date().toISOString().split('T')[0],
       type: "TRANSFER", // Changed from "EXPENSE" to "TRANSFER" as a more neutral default
@@ -816,6 +829,7 @@ const Transactions = () => {
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
+    console.log('🔄 Editing transaction, resetting form with type:', transaction.type);
     // Handle both regular transactions and split transactions
     const entries = transaction.entries || (transaction as any).splits?.map((split: any) => ({
       account: { id: split.accountId || "1" }, // Default account if not provided
@@ -1012,11 +1026,10 @@ const Transactions = () => {
       // Re-trigger suggestions when re-enabled if there's a description
       const currentDescription = watch('description');
       if (currentDescription && currentDescription.trim().length > 0) {
-
         handleDescriptionChange(currentDescription);
       }
     }
-  }, [smartSuggestionsEnabled, watch]);
+  }, [smartSuggestionsEnabled]); // Removed 'watch' from dependencies to prevent infinite re-renders
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1090,7 +1103,10 @@ const Transactions = () => {
               onTemplateClear={handleTemplateClear}
               accounts={usableAccounts}
               onEntriesUpdate={(entries) => setValue('entries', entries)}
-              onTransactionTypeUpdate={(type) => setValue('type', type as any)}
+              onTransactionTypeUpdate={(type) => {
+                console.log('🔧 Template selector setting type to:', type);
+                setValue('type', type as any);
+              }}
             />
         {/* Description - Most Important Field */}
         <div className="mb-4">
@@ -1139,6 +1155,29 @@ const Transactions = () => {
               <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
               <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
             </select>
+            {/* Debug button - remove after testing */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('🔧 Manual test: Setting type to EQUITY_CONTRIBUTION');
+                setValue('type', 'EQUITY_CONTRIBUTION' as any);
+                console.log('🔧 Manual test: Current type after setValue:', watch('type'));
+              }}
+              className="mt-1 text-xs bg-red-500 text-white px-2 py-1 rounded"
+            >
+              Test Set EQUITY_CONTRIBUTION
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                console.log('🔧 Manual test: Triggering smart suggestions for "Initial contribution"');
+                setValue('description', 'Initial contribution');
+                handleDescriptionChange('Initial contribution');
+              }}
+              className="mt-1 text-xs bg-blue-500 text-white px-2 py-1 rounded ml-1"
+            >
+              Test Smart Suggestions
+            </button>
           </div>
           
           <div>
