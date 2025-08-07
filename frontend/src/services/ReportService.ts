@@ -21,6 +21,29 @@ export interface DrillDownTransaction {
   }[];
 }
 
+export interface DashboardMetrics {
+  currentCashBalance: number;
+  netIncomeMTD: number;
+  netIncomeYTD: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  largestExpense: number;
+  activeAccountsCount: number;
+  recentTransactionsCount: number;
+  suggestionsThisWeek: number;
+  acceptanceRate: number;
+  mostCommonSuggestionCategory: string;
+}
+
+export interface SuggestionSummary {
+  suggestionsThisWeek: number;
+  acceptanceRate: number;
+  mostCommonSuggestionCategory: string;
+  totalSuggestions: number;
+  acceptedSuggestions: number;
+  rejectedSuggestions: number;
+}
+
 export const fetchBalanceSheet = async (): Promise<BalanceSheet> => {
   console.log("🧠 Entered getBalanceSheet");
   const response = await api.get("reports/balance-sheet");
@@ -45,6 +68,20 @@ export const fetchCashFlowStatement = async (startDate?: string, endDate?: strin
   if (endDate) params.append('endDate', endDate);
   const response = await api.get(`reports/cash-flow?${params.toString()}`);
   console.log("💾 Cash flow response data:", response.data);
+  return response.data;
+};
+
+export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
+  console.log("🧠 Entered getDashboardMetrics");
+  const response = await api.get("reports/dashboard-metrics");
+  console.log("💾 Dashboard metrics response data:", response.data);
+  return response.data;
+};
+
+export const fetchSuggestionSummary = async (): Promise<SuggestionSummary> => {
+  console.log("🧠 Entered getSuggestionSummary");
+  const response = await api.get("reports/suggestion-summary");
+  console.log("💾 Suggestion summary response data:", response.data);
   return response.data;
 };
 

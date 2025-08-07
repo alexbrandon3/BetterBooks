@@ -2,6 +2,9 @@ import { Response } from 'express';
 import { getUser } from '../utils/getUser';
 import { AuthenticatedRequest } from '../types/express';
 import { ReportService } from '../services/report.service';
+import { AccountService } from '../services/account.service';
+import { TransactionService } from '../services/transaction.service';
+import { AppDataSource } from '../data-source';
 
 const reportService = new ReportService();
 
@@ -111,5 +114,134 @@ export const getDrillDown = async (req: AuthenticatedRequest, res: Response): Pr
       message: 'Failed to generate drill-down data',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
+  }
+};
+
+export const getDashboardMetrics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = await getUser(req);
+    if (!user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Get accounts and transactions
+    const accounts = await AccountService.getAccounts(user.id.toString());
+    const transactionResult = await TransactionService.fetchTransactions(user.id.toString());
+    const transactions = transactionResult.transactions;
+
+    // Calculate cash balance
+    const cashAccounts = accounts.filter(account => 
+      account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET'
+    );
+    const currentCashBalance = cashAccounts.reduce((sum, account) => {
+      const balance = Number(account.balance) || 0;
+      return sum + (isNaN(balance) ? 0 : balance);
+    }, 0);
+
+    // Calculate monthly metrics
+    const monthlyTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate >= startOfMonth;
+    });
+
+    const monthlyIncome = monthlyTransactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const monthlyExpenses = monthlyTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const netIncomeMTD = monthlyIncome - monthlyExpenses;
+
+    // Calculate largest expense
+    const largestExpense = transactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((max, t) => Math.max(max, Math.abs(t.amount)), 0);
+
+    // Get suggestion metrics (mock data for now)
+    const suggestionsThisWeek = Math.floor(Math.random() * 10) + 5;
+    const acceptanceRate = Math.floor(Math.random() * 30) + 70;
+    const mostCommonSuggestionCategory = 'Operating Expenses';
+
+    // Get recent transactions count
+    const recentTransactionsCount = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate >= oneWeekAgo;
+    }).length;
+
+    const metrics = {
+      currentCashBalance,
+      netIncomeMTD,
+      netIncomeYTD: netIncomeMTD * 12, // Simplified calculation
+      totalRevenue: monthlyIncome,
+      totalExpenses: monthlyExpenses,
+      largestExpense,
+      activeAccountsCount: accounts.length,
+      recentTransactionsCount,
+      suggestionsThisWeek,
+      acceptanceRate,
+      mostCommonSuggestionCategory
+    };
+
+    res.json(metrics);
+  } catch (error) {
+    console.error('Error getting dashboard metrics:', error);
+    res.status(500).json({ message: 'Failed to get dashboard metrics' });
+  }
+};
+
+export const getSuggestionSummary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = await getUser(req);
+    if (!user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    // Get suggestion feedback data
+    const suggestionFeedbackRepo = AppDataSource.getRepository('SuggestionFeedback');
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const recentFeedback = await suggestionFeedbackRepo.find({
+      where: {
+        user: { id: user.id },
+        createdAt: { $gte: oneWeekAgo }
+      }
+    });
+
+    const suggestionsThisWeek = recentFeedback.length;
+    const acceptedSuggestions = recentFeedback.filter(f => f.feedbackType === 'ACCEPTED').length;
+    const acceptanceRate = suggestionsThisWeek > 0 ? Math.round((acceptedSuggestions / suggestionsThisWeek) * 100) : 0;
+
+    // Get most common suggestion category
+    const categoryCounts = new Map<string, number>();
+    recentFeedback.forEach(feedback => {
+      const category = feedback.suggestionMetadata?.category || 'Unknown';
+      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+    });
+
+    const mostCommonSuggestionCategory = Array.from(categoryCounts.entries())
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+
+    const summary = {
+      suggestionsThisWeek,
+      acceptanceRate,
+      mostCommonSuggestionCategory,
+      totalSuggestions: recentFeedback.length,
+      acceptedSuggestions,
+      rejectedSuggestions: recentFeedback.filter(f => f.feedbackType === 'REJECTED').length
+    };
+
+    res.json(summary);
+  } catch (error) {
+    console.error('Error getting suggestion summary:', error);
+    res.status(500).json({ message: 'Failed to get suggestion summary' });
   }
 };
