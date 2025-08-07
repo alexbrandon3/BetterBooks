@@ -365,9 +365,10 @@ const Transactions = () => {
           }
 
           // Handle account suggestion
-          console.log('🔍 Account suggestion result:', accountSuggestion);
-          if (accountSuggestion?.suggestedAccountId) {
-            console.log('🎯 Setting account suggestion:', accountSuggestion.suggestedAccountName, 'Entry Type:', accountSuggestion.suggestedEntryType);
+                  console.log('🔍 Account suggestion result:', accountSuggestion);
+        console.log('🎯 Account suggestion full object:', JSON.stringify(accountSuggestion, null, 2));
+        if (accountSuggestion?.suggestedAccountId) {
+          console.log('🎯 Setting account suggestion:', accountSuggestion.suggestedAccountName, 'Entry Type:', accountSuggestion.suggestedEntryType);
             // Store current suggestion for feedback
             setCurrentSuggestion(accountSuggestion);
             
