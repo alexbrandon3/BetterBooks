@@ -1168,32 +1168,6 @@ const Transactions = () => {
               <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
               <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
             </select>
-            {/* Debug button - remove after testing */}
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🔧 Manual test: Setting type to EQUITY_CONTRIBUTION');
-                setValue('type', 'EQUITY_CONTRIBUTION' as any);
-                console.log('🔧 Manual test: Current type after setValue:', watch('type'));
-              }}
-              className="mt-1 text-xs bg-red-500 text-white px-2 py-1 rounded"
-            >
-              Test Set EQUITY_CONTRIBUTION
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🔧 Manual test: Triggering smart suggestions for "Initial contribution"');
-                setValue('description', 'Initial contribution');
-                handleDescriptionChange('Initial contribution');
-              }}
-              className="mt-1 text-xs bg-blue-500 text-white px-2 py-1 rounded ml-1"
-            >
-              Test Smart Suggestions
-            </button>
-            <div className="mt-1 text-xs text-gray-600">
-              Current form type: <span className="font-mono bg-gray-100 px-1 rounded">{watch('type')}</span>
-            </div>
           </div>
           
           <div>
