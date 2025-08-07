@@ -1,10 +1,11 @@
-import { AppDataSource } from './data-source';
+import { AppDataSource } from './config/data-source';
 import { User, RiskTolerance } from './entities/User';
-import { Account, FinancialCategory } from './entities/Account';
+import { Account } from './entities/Account';
 import { Transaction } from './entities/Transaction';
 import { FinancialGoal, GoalType } from './entities/FinancialGoal';
 import { TransactionType } from './types/transaction.types';
 import { hashPassword } from './utils/auth';
+import { getDefaultAccounts } from './seeders/seedDefaultAccounts';
 
 async function clearDatabase() {
   try {
@@ -35,40 +36,15 @@ async function seed() {
     await AppDataSource.manager.save(user);
     console.log('👤 Test business user created');
 
-    // Create sample accounts for small business
-    const accounts = [
-      {
-        name: 'Business Checking',
-        type: 'ASSET',
-        balance: 15000,
-        isLiquid: true,
-        financialCategory: FinancialCategory.CURRENT_ASSET,
-        user
-      },
-      {
-        name: 'Accounts Receivable',
-        type: 'ASSET',
-        balance: 8500,
-        isLiquid: false,
-        financialCategory: FinancialCategory.CURRENT_ASSET,
-        user
-      },
-      {
-        name: 'Equipment',
-        type: 'ASSET',
-        balance: 25000,
-        isLiquid: false,
-        financialCategory: FinancialCategory.FIXED_ASSET,
-        user
-      }
-    ];
-
-    for (const accountData of accounts) {
+    // Create default accounts for small business
+    const defaultAccounts = getDefaultAccounts(user.id);
+    
+    for (const accountData of defaultAccounts) {
       const account = new Account();
       Object.assign(account, accountData);
       await AppDataSource.manager.save(account);
     }
-    console.log('💰 Sample accounts created');
+    console.log('💰 Default accounts created');
 
     // Create sample transactions for small business
     const transactions = [

@@ -112,7 +112,19 @@ export class MemoryBasedLearning {
         const successRate = pattern.totalSuggestions > 0 ? pattern.acceptedCount / pattern.totalSuggestions : 0;
         
         // Only include patterns with some success or recent activity
-        if (successRate > 0 || pattern.totalSuggestions >= 2) {
+        // Skip patterns with very low success rates to avoid bad suggestions
+        if ((successRate > 0.1 && pattern.totalSuggestions >= 2) || (successRate > 0.5 && pattern.totalSuggestions >= 1)) {
+          // Extract keywords from the actual feedback descriptions, not the current description
+          const allKeywords = new Set<string>();
+          const allCategories = new Set<string>();
+          
+          for (const desc of pattern.descriptions) {
+            const descKeywords = this.extractBusinessKeywords(desc);
+            const descCategory = this.categorizeDescription(desc);
+            descKeywords.forEach(keyword => allKeywords.add(keyword));
+            allCategories.add(descCategory);
+          }
+          
           patterns.push({
             description: normalizedDescription,
             accountId: pattern.accountId,
@@ -121,8 +133,8 @@ export class MemoryBasedLearning {
             usageCount: pattern.totalSuggestions,
             successRate,
             lastUsed: pattern.lastUsed,
-            businessKeywords: this.extractBusinessKeywords(normalizedDescription),
-            category: this.categorizeDescription(normalizedDescription)
+            businessKeywords: Array.from(allKeywords),
+            category: Array.from(allCategories)[0] || 'Other'
           });
         }
       }
@@ -353,11 +365,21 @@ export class MemoryBasedLearning {
       const recencyScore = Math.max(0, 30 - daysSinceLastUse) / 30;
       score += recencyScore * 20;
 
-      // Keyword similarity (20% weight)
-      const descriptionWords = new Set(description.toLowerCase().split(' '));
+      // Keyword similarity (20% weight) - More strict matching
+      const descriptionWords = new Set(description.toLowerCase().split(' ').filter(word => word.length > 2));
       const patternWords = new Set(pattern.businessKeywords);
       const commonWords = [...descriptionWords].filter(word => patternWords.has(word));
-      const similarityScore = commonWords.length / Math.max(descriptionWords.size, patternWords.size);
+      
+      // Only give similarity score if there are meaningful keyword matches
+      // This prevents "sold" from matching "office" just because they both have "o"
+      let similarityScore = 0;
+      if (commonWords.length > 0 && descriptionWords.size > 0) {
+        // Require at least 50% of description words to match pattern keywords
+        const matchRatio = commonWords.length / descriptionWords.size;
+        if (matchRatio >= 0.5) {
+          similarityScore = matchRatio;
+        }
+      }
       score += similarityScore * 20;
 
       return { ...pattern, score };

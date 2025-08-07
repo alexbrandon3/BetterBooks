@@ -30,8 +30,9 @@ export class SmartSuggestionAgent {
       const normalizedDescription = this.normalizeDescription(request.description);
       
       // Don't suggest for very short descriptions (less than 4 characters)
-      // This prevents "initi" from triggering suggestions
-      if (normalizedDescription.length < 4) {
+      // But allow common short business terms like "tax", "rent", "pay"
+      const allowedShortTerms = ['tax', 'rent', 'pay', 'buy', 'sold'];
+      if (normalizedDescription.length < 4 && !allowedShortTerms.includes(normalizedDescription)) {
         console.log('⏭️ [SmartSuggest] Description too short (', normalizedDescription.length, 'chars), skipping suggestion');
         return null;
       }
@@ -287,14 +288,49 @@ export class SmartSuggestionAgent {
         continue;
       }
       
-      // Check for exact keyword matches in account name (highest priority)
-      const exactKeywordMatch = businessKeywords.keywords.some((keyword: string) => 
-        account.name.toLowerCase().includes(keyword.toLowerCase())
-      );
-      if (exactKeywordMatch) {
-        score += 100; // Highest priority for exact keyword matches
-        console.log('✅ [SmartSuggest] Exact keyword match for', account.name, 'with keyword');
-      }
+             // Check for exact keyword matches in account name (highest priority)
+       const exactKeywordMatch = businessKeywords.keywords.some((keyword: string) => {
+         const keywordLower = keyword.toLowerCase();
+         const accountNameLower = account.name.toLowerCase();
+         
+         // Check for exact match
+         if (accountNameLower.includes(keywordLower)) {
+           return true;
+         }
+         
+         // Check for singular/plural variations
+         if (keywordLower === 'tax' && accountNameLower.includes('taxes')) {
+           return true;
+         }
+         if (keywordLower === 'taxes' && accountNameLower.includes('tax')) {
+           return true;
+         }
+         
+         // Check for word boundary matches (more precise)
+         const keywordWords = keywordLower.split(' ');
+         const accountWords = accountNameLower.split(' ');
+         
+         for (const keywordWord of keywordWords) {
+           for (const accountWord of accountWords) {
+             if (accountWord === keywordWord) {
+               return true;
+             }
+             // Handle singular/plural variations
+             if (keywordWord === 'tax' && accountWord === 'taxes') {
+               return true;
+             }
+             if (keywordWord === 'taxes' && accountWord === 'tax') {
+               return true;
+             }
+           }
+         }
+         
+         return false;
+       });
+       if (exactKeywordMatch) {
+         score += 100; // Highest priority for exact keyword matches
+         console.log('✅ [SmartSuggest] Exact keyword match for', account.name, 'with keyword');
+       }
       
       // Check for category-specific account name matches (high priority)
       let categorySpecificMatch = false;
@@ -350,6 +386,22 @@ export class SmartSuggestionAgent {
         });
         if (categorySpecificMatch) {
           categorySpecificScore = 80;
+        }
+      } else if (businessKeywords.category === 'Taxes & Compliance') {
+        const taxKeywords = ['tax', 'taxes', 'income tax', 'sales tax', 'property tax', 'payroll tax', 'withholding', 'filing', 'compliance', 'irs', 'federal tax', 'state tax', 'local tax', 'business tax', 'corporate tax'];
+        categorySpecificMatch = taxKeywords.some(keyword => {
+          const accountNameLower = account.name.toLowerCase();
+          const keywordLower = keyword.toLowerCase();
+          
+          const hasKeyword = accountNameLower === keywordLower || 
+                           accountNameLower.includes(` ${keywordLower} `) ||
+                           accountNameLower.startsWith(`${keywordLower} `) ||
+                           accountNameLower.endsWith(` ${keywordLower}`);
+          
+          return hasKeyword;
+        });
+        if (categorySpecificMatch) {
+          categorySpecificScore = 85; // High priority for tax-related accounts
         }
       }
       if (categorySpecificMatch) {

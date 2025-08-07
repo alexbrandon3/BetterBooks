@@ -920,9 +920,9 @@ export class SuggestionService {
           priority: 2
         },
         {
-          keywords: ['business travel', 'conference', 'trade show', 'meeting', 'client visit', 'business trip', 'mileage', 'travel expense', 'business lunch', 'client lunch', 'meals entertainment', 'airfare', 'hotel', 'car rental', 'parking', 'toll'],
+          keywords: ['business travel', 'conference', 'trade show', 'meeting', 'client visit', 'business trip', 'mileage', 'travel expense', 'business lunch', 'client lunch', 'meals entertainment', 'airfare', 'hotel', 'car rental', 'parking', 'toll', 'mileage expense', 'travel mileage'],
           accountTypes: ['EXPENSE'],
-          categories: ['Travel', 'Business Travel', 'Travel Expense', 'Meals & Entertainment'],
+          categories: ['Travel', 'Business Travel', 'Travel Expense', 'Meals & Entertainment', 'Travel Expense'],
           reason: 'Business travel transaction',
           priority: 2
         },
@@ -944,9 +944,9 @@ export class SuggestionService {
           priority: 0  // Highest priority to override equipment/asset matches
         },
         {
-          keywords: ['insurance', 'business insurance', 'liability insurance', 'property insurance', 'workers comp', 'workers compensation', 'professional liability', 'errors omissions', 'e&o', 'general liability', 'commercial auto', 'business interruption'],
+          keywords: ['insurance', 'business insurance', 'liability insurance', 'property insurance', 'workers comp', 'workers compensation', 'professional liability', 'errors omissions', 'e&o', 'general liability', 'commercial auto', 'business interruption', 'car insurance', 'auto insurance', 'health insurance', 'life insurance', 'disability insurance'],
           accountTypes: ['EXPENSE'],
-          categories: ['Insurance', 'Business Insurance', 'Liability Insurance'],
+          categories: ['Insurance', 'Business Insurance', 'Liability Insurance', 'Insurance Expense'],
           reason: 'Business insurance transaction',
           priority: 2
         },
@@ -965,6 +965,13 @@ export class SuggestionService {
           categories: ['Rent', 'Rent Expense', 'Office Rent', 'Warehouse Rent'],
           reason: 'Business rent transaction',
           priority: 3
+        },
+        {
+          keywords: ['tax', 'taxes', 'irs', 'income tax', 'sales tax', 'property tax', 'business tax', 'corporate tax', 'tax payment', 'tax filing', 'tax expense'],
+          accountTypes: ['EXPENSE'],
+          categories: ['Tax', 'Tax Expense', 'Income Tax', 'Business Tax', 'Income Taxes'],
+          reason: 'Business tax transaction',
+          priority: 2
         },
         {
           keywords: ['equipment', 'machinery', 'computer', 'furniture', 'office equipment', 'tools', 'machinery purchase', 'computer equipment', 'office furniture', 'production equipment', 'manufacturing equipment', 'office supplies', 'desk', 'chair', 'printer', 'copier'],
@@ -1196,6 +1203,7 @@ export class SuggestionService {
       // Find matching user account with better prioritization
       let bestMatch = null;
       let bestScore = 0;
+      let bestMatchHadExactKeyword = false;
 
       console.log('🔍 [Fallback] Looking for accounts matching category:', matchedCategory.categories[0], 'accountTypes:', matchedCategory.accountTypes);
       console.log('🔍 [Fallback] Available accounts after type filtering:', userAccounts.filter(acc => matchedCategory!.accountTypes.includes(acc.type)).map(acc => acc.name));
@@ -1216,6 +1224,18 @@ export class SuggestionService {
         if (exactKeywordMatch) {
           score += 50; // Higher priority for exact keyword matches
           reasoning.push('exact keyword match in account name');
+        }
+        
+        // Check for partial keyword matches in account name (medium priority)
+        const partialKeywordMatch = matchedCategory!.keywords.some(keyword => {
+          const keywordWords = keyword.toLowerCase().split(' ');
+          return keywordWords.some(word => 
+            word.length > 2 && account.name.toLowerCase().includes(word)
+          );
+        });
+        if (partialKeywordMatch && !exactKeywordMatch) {
+          score += 30; // Medium priority for partial keyword matches
+          reasoning.push('partial keyword match in account name');
         }
         
         // Bonus for high priority categories (business-focused)
@@ -1266,6 +1286,7 @@ export class SuggestionService {
         if (score > bestScore) {
           bestScore = score;
           bestMatch = account;
+          bestMatchHadExactKeyword = exactKeywordMatch;
         }
       }
 
@@ -1288,9 +1309,16 @@ export class SuggestionService {
       }
       
       // Don't suggest if confidence is too low (prevents bad suggestions)
-      if (confidence < 40) {
+      // But allow higher confidence for exact keyword matches
+      if (confidence < 15) {
         console.log('❌ [Fallback] Confidence too low (', confidence, '), not suggesting');
         return null;
+      }
+      
+      // For exact keyword matches, allow lower confidence
+      if (bestMatchHadExactKeyword && confidence >= 20) {
+        confidence = Math.min(confidence + 20, 100); // Boost confidence for exact matches
+        console.log('🚀 [Fallback] Boosting exact keyword match confidence from', confidence - 20, 'to', confidence);
       }
 
       // Determine optimal entry type based on account type
