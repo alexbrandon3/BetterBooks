@@ -1140,7 +1140,11 @@ const Transactions = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Type</label>
             <select
-              {...register("type")}
+              value={watch("type") || "TRANSFER"}
+              onChange={(e) => {
+                console.log('🔧 Select onChange: Setting type to:', e.target.value);
+                setValue('type', e.target.value as any);
+              }}
               id="transaction-type"
               aria-label="Type"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -1178,6 +1182,9 @@ const Transactions = () => {
             >
               Test Smart Suggestions
             </button>
+            <div className="mt-1 text-xs text-gray-600">
+              Current form type: <span className="font-mono bg-gray-100 px-1 rounded">{watch('type')}</span>
+            </div>
           </div>
           
           <div>
