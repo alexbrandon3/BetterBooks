@@ -104,7 +104,23 @@ export class SuggestionService {
         return await this.createSuggestionFromPreference(userPreference);
       }
 
-      // Step 2: TEMPORARILY BYPASSED - Account weighting (new priority between preferences and memory)
+      // Step 2: Try keyword matching for specific terms (high priority for business terms)
+      const keywordSuggestion = await this.findKeywordSuggestion(normalizedDescription, userId);
+      console.log('🔍 [SuggestionService] Keyword suggestion result:', {
+        description,
+        hasKeywordSuggestion: !!keywordSuggestion,
+        suggestedAccount: keywordSuggestion?.suggestedAccountName,
+        confidence: keywordSuggestion?.confidence,
+        entryType: keywordSuggestion?.suggestedEntryType
+      });
+      
+      // If keyword suggestion has high confidence (especially for equity terms), use it
+      if (keywordSuggestion && keywordSuggestion.confidence >= 70) {
+        console.log('✅ [SuggestionService] Using high-confidence keyword suggestion:', keywordSuggestion.suggestedAccountName);
+        return keywordSuggestion;
+      }
+
+      // Step 3: TEMPORARILY BYPASSED - Account weighting (new priority between preferences and memory)
       // TODO: Re-enable when weighting logic is stable
       const weightedSuggestion = await this.findWeightedSuggestion(normalizedDescription, userId);
       if (weightedSuggestion) {
@@ -120,7 +136,7 @@ export class SuggestionService {
         // return weightedSuggestion;
       }
 
-      // Step 3: Try memory-based learning
+      // Step 4: Try memory-based learning (moved after keyword matching)
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: userId } },
         order: { updatedAt: 'DESC' }
@@ -161,7 +177,7 @@ export class SuggestionService {
         }
       }
 
-      // Step 2: Try SmartSuggestionAgent (new logic)
+      // Step 3: Try SmartSuggestionAgent (new logic)
       const agentResult = await this.smartSuggestionAgent.suggest({
         description,
         userId,
@@ -200,24 +216,19 @@ export class SuggestionService {
         }
       }
 
-      // Step 3: Fallback to keyword matching (existing logic)
-      if (!agentResult) {
-        console.log('🔄 [SuggestionService] Agent returned null, falling back to keyword matching');
-      } else {
-        console.log('🔄 [SuggestionService] Agent confidence too low (', agentResult.confidence, '), falling back to keyword matching');
-      }
-      console.log('🔄 [SuggestionService] Falling back to keyword matching...');
+      // Step 5: Final fallback to keyword matching (if no other suggestions worked)
+      console.log('🔄 [SuggestionService] No high-confidence suggestions found, trying keyword fallback...');
       
-      const keywordSuggestion = await this.findKeywordSuggestion(normalizedDescription, userId);
+      const keywordFallback = await this.findKeywordSuggestion(normalizedDescription, userId);
       console.log('🔍 [SuggestionService] Keyword fallback result:', {
         description,
-        hasKeywordSuggestion: !!keywordSuggestion,
-        suggestedAccount: keywordSuggestion?.suggestedAccountName,
-        confidence: keywordSuggestion?.confidence,
-        entryType: keywordSuggestion?.suggestedEntryType
+        hasKeywordSuggestion: !!keywordFallback,
+        suggestedAccount: keywordFallback?.suggestedAccountName,
+        confidence: keywordFallback?.confidence,
+        entryType: keywordFallback?.suggestedEntryType
       });
       
-      return keywordSuggestion;
+      return keywordFallback;
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
       return null;
