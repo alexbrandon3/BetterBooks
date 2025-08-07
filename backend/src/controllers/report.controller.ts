@@ -2,9 +2,11 @@ import { Response } from 'express';
 import { getUser } from '../utils/getUser';
 import { AuthenticatedRequest } from '../types/express';
 import { ReportService } from '../services/report.service';
-import { AccountService } from '../services/account.service';
-import { TransactionService } from '../services/transaction.service';
-import { AppDataSource } from '../data-source';
+import { AccountService } from '../services/AccountService';
+import { TransactionService } from '../services/TransactionService';
+import { AppDataSource } from '../config/data-source';
+import { Account } from '../entities/Account';
+import { Transaction } from '../entities/Transaction';
 
 const reportService = new ReportService();
 
@@ -100,7 +102,7 @@ export const getDrillDown = async (req: AuthenticatedRequest, res: Response): Pr
 
     const result = await reportService.getDrillDown(
       user.id,
-      type as string,
+      type,
       accountId ? Number(accountId) : undefined,
       subcategory as string,
       start,
@@ -109,11 +111,8 @@ export const getDrillDown = async (req: AuthenticatedRequest, res: Response): Pr
 
     res.json(result);
   } catch (error) {
-    console.error('Error generating drill-down data:', error);
-    res.status(500).json({ 
-      message: 'Failed to generate drill-down data',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Error generating drill-down report:', error);
+    res.status(500).json({ message: 'Failed to generate drill-down report' });
   }
 };
 
@@ -127,7 +126,6 @@ export const getDashboardMetrics = async (req: AuthenticatedRequest, res: Respon
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Get accounts and transactions
@@ -136,34 +134,34 @@ export const getDashboardMetrics = async (req: AuthenticatedRequest, res: Respon
     const transactions = transactionResult.transactions;
 
     // Calculate cash balance
-    const cashAccounts = accounts.filter(account => 
+    const cashAccounts = accounts.filter((account: Account) => 
       account.type === 'ASSET' && account.financialCategory === 'CURRENT_ASSET'
     );
-    const currentCashBalance = cashAccounts.reduce((sum, account) => {
+    const currentCashBalance = cashAccounts.reduce((sum: number, account: Account) => {
       const balance = Number(account.balance) || 0;
       return sum + (isNaN(balance) ? 0 : balance);
     }, 0);
 
     // Calculate monthly metrics
-    const monthlyTransactions = transactions.filter(t => {
+    const monthlyTransactions = transactions.filter((t: Transaction) => {
       const transactionDate = new Date(t.date);
       return transactionDate >= startOfMonth;
     });
 
     const monthlyIncome = monthlyTransactions
-      .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      .filter((t: Transaction) => t.type === 'INCOME')
+      .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
 
     const monthlyExpenses = monthlyTransactions
-      .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      .filter((t: Transaction) => t.type === 'EXPENSE')
+      .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
 
     const netIncomeMTD = monthlyIncome - monthlyExpenses;
 
     // Calculate largest expense
     const largestExpense = transactions
-      .filter(t => t.type === 'EXPENSE')
-      .reduce((max, t) => Math.max(max, Math.abs(t.amount)), 0);
+      .filter((t: Transaction) => t.type === 'EXPENSE')
+      .reduce((max: number, t: Transaction) => Math.max(max, Math.abs(t.amount)), 0);
 
     // Get suggestion metrics (mock data for now)
     const suggestionsThisWeek = Math.floor(Math.random() * 10) + 5;
@@ -171,7 +169,7 @@ export const getDashboardMetrics = async (req: AuthenticatedRequest, res: Respon
     const mostCommonSuggestionCategory = 'Operating Expenses';
 
     // Get recent transactions count
-    const recentTransactionsCount = transactions.filter(t => {
+    const recentTransactionsCount = transactions.filter((t: Transaction) => {
       const transactionDate = new Date(t.date);
       return transactionDate >= oneWeekAgo;
     }).length;
@@ -217,12 +215,12 @@ export const getSuggestionSummary = async (req: AuthenticatedRequest, res: Respo
     });
 
     const suggestionsThisWeek = recentFeedback.length;
-    const acceptedSuggestions = recentFeedback.filter(f => f.feedbackType === 'ACCEPTED').length;
+    const acceptedSuggestions = recentFeedback.filter((f: any) => f.feedbackType === 'ACCEPTED').length;
     const acceptanceRate = suggestionsThisWeek > 0 ? Math.round((acceptedSuggestions / suggestionsThisWeek) * 100) : 0;
 
     // Get most common suggestion category
     const categoryCounts = new Map<string, number>();
-    recentFeedback.forEach(feedback => {
+    recentFeedback.forEach((feedback: any) => {
       const category = feedback.suggestionMetadata?.category || 'Unknown';
       categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
     });
@@ -236,7 +234,7 @@ export const getSuggestionSummary = async (req: AuthenticatedRequest, res: Respo
       mostCommonSuggestionCategory,
       totalSuggestions: recentFeedback.length,
       acceptedSuggestions,
-      rejectedSuggestions: recentFeedback.filter(f => f.feedbackType === 'REJECTED').length
+      rejectedSuggestions: recentFeedback.filter((f: any) => f.feedbackType === 'REJECTED').length
     };
 
     res.json(summary);
