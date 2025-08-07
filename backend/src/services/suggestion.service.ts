@@ -534,9 +534,16 @@ export class SuggestionService {
         },
         // Equity contribution transactions
         {
-          keywords: ['equity contribution', 'owner contribution', 'capital contribution', 'investment', 'owner investment', 'partner contribution', 'shareholder contribution'],
+          keywords: ['equity contribution', 'owner contribution', 'capital contribution', 'initial contribution', 'partner contribution', 'shareholder contribution'],
           suggestedType: 'EQUITY_CONTRIBUTION',
           reason: 'Equity or capital contribution transaction',
+          priority: 1
+        },
+        // Investment transactions (separate from equity contributions)
+        {
+          keywords: ['investment', 'owner investment'],
+          suggestedType: 'EQUITY_CONTRIBUTION',
+          reason: 'Investment transaction',
           priority: 2
         },
         // Equity withdrawal transactions
@@ -561,14 +568,33 @@ export class SuggestionService {
       let bestPriority = 999; // Start with high number (lower is better)
       
       for (const mapping of typeKeywordMap) {
-        const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
+        const foundKeyword = mapping.keywords.find(keyword => {
+          // Check for exact phrase match first (higher priority)
+          if (normalizedDescription.includes(keyword)) {
+            return true;
+          }
+          
+          // For multi-word keywords, also check if all words are present
+          if (keyword.includes(' ')) {
+            const keywordWords = keyword.split(' ');
+            return keywordWords.every(word => normalizedDescription.includes(word));
+          }
+          
+          return false;
+        });
+        
         if (foundKeyword) {
           // Prioritize by priority number (lower number = higher priority)
-          if (mapping.priority < bestPriority) {
+          // Also prioritize longer keywords over shorter ones to avoid partial matches
+          const currentPriority = mapping.priority;
+          const keywordLength = foundKeyword.length;
+          
+          if (currentPriority < bestPriority || 
+              (currentPriority === bestPriority && keywordLength > (matchedKeyword?.length || 0))) {
             matchedType = mapping;
             matchedKeyword = foundKeyword;
-            bestPriority = mapping.priority;
-            console.log('✅ Found keyword match for transaction type:', foundKeyword, 'Type:', mapping.suggestedType, 'Priority:', mapping.priority);
+            bestPriority = currentPriority;
+            console.log('✅ Found keyword match for transaction type:', foundKeyword, 'Type:', mapping.suggestedType, 'Priority:', mapping.priority, 'Length:', keywordLength);
           }
         }
       }
