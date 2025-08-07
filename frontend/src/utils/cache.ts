@@ -206,4 +206,8 @@ export function invalidateReports(): void {
 
 export function invalidateAll(): void {
   cache.clear();
+}
+
+export function invalidateSuggestions(): void {
+  cache.invalidatePattern('SUGGESTIONS');
 } 

@@ -8,6 +8,7 @@ import {
   getSuggestedCategory,
   getSuggestedTransactionType,
   saveSuggestionFeedback,
+  clearSuggestionCache,
   JournalEntryFields,
   BalanceWarning,
   TransactionResponse,
@@ -1222,9 +1223,22 @@ const Transactions = () => {
                 Enable Smart Suggestions
               </label>
             </div>
-            {smartSuggestionsEnabled && (
-              <span className="text-xs text-gray-500">Auto-populates accounts based on description</span>
-            )}
+            <div className="flex items-center gap-2">
+              {smartSuggestionsEnabled && (
+                <span className="text-xs text-gray-500">Auto-populates accounts based on description</span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  clearSuggestionCache();
+                  toast.success('Suggestion cache cleared!');
+                }}
+                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                title="Clear suggestion cache"
+              >
+                🧹 Clear Cache
+              </button>
+            </div>
           </div>
         </div>
 

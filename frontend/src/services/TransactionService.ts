@@ -1,7 +1,7 @@
 import api from "../utils/axios";
 import { Transaction } from "../types/transaction";
 import { JournalEntry } from "../types/journalEntry";
-import { cache, CACHE_KEYS, withCache, invalidateTransactions } from "../utils/cache";
+import { cache, CACHE_KEYS, withCache, invalidateTransactions, invalidateSuggestions } from "../utils/cache";
 
 export interface TransactionForm {
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY';
@@ -356,4 +356,9 @@ export const getUniqueCategories = async (): Promise<string[]> => {
     console.error("Error fetching unique categories:", error);
     throw error;
   }
+};
+
+export const clearSuggestionCache = (): void => {
+  invalidateSuggestions();
+  console.log('🧹 Cleared suggestion cache');
 };
