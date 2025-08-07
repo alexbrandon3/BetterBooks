@@ -412,12 +412,15 @@ const Transactions = () => {
             // Add transaction type suggestion if available
             if (transactionTypeSuggestion?.suggestedType) {
               console.log('🎯 Setting transaction type to:', transactionTypeSuggestion.suggestedType);
+              console.log('🎯 Transaction type suggestion full object:', JSON.stringify(transactionTypeSuggestion, null, 2));
               setValue('type', transactionTypeSuggestion.suggestedType as any);
               
               // Force a re-render by triggering form validation
               setTimeout(() => {
                 console.log('🔄 Current form type after setValue:', watch('type'));
               }, 100);
+            } else {
+              console.log('🎯 No transaction type suggestion available');
             }
             
             // Set suggestion explanation and confidence - keep persistent until user dismissal
