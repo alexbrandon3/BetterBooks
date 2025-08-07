@@ -29,6 +29,13 @@ export class SmartSuggestionAgent {
       // Normalize description
       const normalizedDescription = this.normalizeDescription(request.description);
       
+      // Don't suggest for very short descriptions (less than 4 characters)
+      // This prevents "initi" from triggering suggestions
+      if (normalizedDescription.length < 4) {
+        console.log('⏭️ [SmartSuggest] Description too short (', normalizedDescription.length, 'chars), skipping suggestion');
+        return null;
+      }
+      
       // Get user's accounts
       const userAccounts = await this.accountRepo.find({
         where: { user: { id: request.userId } },

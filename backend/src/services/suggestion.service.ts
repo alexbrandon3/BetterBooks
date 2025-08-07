@@ -177,7 +177,7 @@ export class SuggestionService {
         entryType: agentResult?.suggestedEntryType
       });
 
-      if (agentResult && agentResult.confidence >= 50) {
+      if (agentResult && agentResult.confidence >= 60) {
         
         // Find the account by name to get the ID
         const suggestedAccount = await this.accountRepo.findOne({
@@ -1153,7 +1153,16 @@ export class SuggestionService {
           // Check for exact match first
           const exactMatch = normalizedDescriptionForMatching.toLowerCase().includes(normalizedKeyword.toLowerCase());
           
-          // Check for partial match (keyword starts with description or description starts with keyword)
+          // For very short descriptions (less than 4 characters), only allow exact matches
+          // This prevents "initi" from matching "initial contribution"
+          if (normalizedDescriptionForMatching.length < 4) {
+            if (exactMatch) {
+              console.log('🔍 [Fallback] Found exact keyword match for short description:', keyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+            }
+            return exactMatch;
+          }
+          
+          // For longer descriptions, allow partial matches but be more strict
           const partialMatch = normalizedKeyword.toLowerCase().startsWith(normalizedDescriptionForMatching.toLowerCase()) || 
                              normalizedDescriptionForMatching.toLowerCase().startsWith(normalizedKeyword.toLowerCase());
           
@@ -1276,6 +1285,12 @@ export class SuggestionService {
       if (matchedCategory && matchedCategory.accountTypes.includes('EQUITY') && confidence < 85) {
         confidence = Math.min(100, confidence + 15); // Boost by 15 points
         console.log('🚀 [Fallback] Boosting equity keyword confidence from', confidence - 15, 'to', confidence);
+      }
+      
+      // Don't suggest if confidence is too low (prevents bad suggestions)
+      if (confidence < 40) {
+        console.log('❌ [Fallback] Confidence too low (', confidence, '), not suggesting');
+        return null;
       }
 
       // Determine optimal entry type based on account type
