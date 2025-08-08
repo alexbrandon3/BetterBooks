@@ -1,6 +1,7 @@
-const axios = require('axios');
+// Browser-compatible comprehensive dual-side suggestion test
+// Run this in your browser's developer console
 
-const BASE_URL = 'http://localhost:10000/api';
+const BASE_URL = 'https://betterbooks.onrender.com/api';
 
 // Test scenarios from acceptance criteria
 const testScenarios = [
@@ -53,11 +54,22 @@ async function testScenario(description, expected) {
   console.log(`📋 Expected:`, expected);
   
   try {
-    const response = await axios.post(`${BASE_URL}/suggestions/debug-dual-sides`, {
-      description: description
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('❌ No authentication token found. Please log in first.');
+      return;
+    }
+    
+    const response = await fetch(`${BASE_URL}/suggestions/debug-dual-sides`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ description: description })
     });
     
-    const result = response.data;
+    const result = await response.json();
     console.log(`📊 Response status: ${response.status}`);
     
     if (result.dualSideResult === null) {
@@ -67,23 +79,23 @@ async function testScenario(description, expected) {
         console.log(`❌ UNEXPECTED: Returned null but expected:`, expected);
       }
     } else {
-      const { debitAccount, creditAccount, overallConfidence } = result.dualSideResult;
-      console.log(`💳 Debit: ${debitAccount.name} (${debitAccount.score}%)`);
-      console.log(`💳 Credit: ${creditAccount.name} (${creditAccount.score}%)`);
+      const { debitSide, creditSide, overallConfidence } = result.dualSideResult;
+      console.log(`💳 Debit: ${debitSide.suggestedAccountName} (${debitSide.confidence}%)`);
+      console.log(`💳 Credit: ${creditSide.suggestedAccountName} (${creditSide.confidence}%)`);
       console.log(`📊 Overall Confidence: ${overallConfidence}%`);
       
       if (expected.shouldBeNull) {
         console.log(`❌ UNEXPECTED: Should have returned null (${expected.reason})`);
       } else {
-        const debitMatch = debitAccount.name.toLowerCase().includes(expected.debit.toLowerCase());
-        const creditMatch = creditAccount.name.toLowerCase().includes(expected.credit.toLowerCase());
+        const debitMatch = debitSide.suggestedAccountName.toLowerCase().includes(expected.debit.toLowerCase());
+        const creditMatch = creditSide.suggestedAccountName.toLowerCase().includes(expected.credit.toLowerCase());
         
         if (debitMatch && creditMatch) {
           console.log(`✅ CORRECT: Both accounts match expected`);
         } else {
           console.log(`⚠️  PARTIAL: Debit match: ${debitMatch}, Credit match: ${creditMatch}`);
           console.log(`   Expected: ${expected.debit} ↔ ${expected.credit}`);
-          console.log(`   Got: ${debitAccount.name} ↔ ${creditAccount.name}`);
+          console.log(`   Got: ${debitSide.suggestedAccountName} ↔ ${creditSide.suggestedAccountName}`);
         }
       }
     }
