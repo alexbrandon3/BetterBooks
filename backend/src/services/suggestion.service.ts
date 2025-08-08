@@ -658,7 +658,7 @@ export class SuggestionService {
     
     // Find matching accounts for both sides using different strategies
     const debitAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'debit', context);
-    const creditAccount = this.findPaymentAccount(accounts, context); // Use payment account logic for credit
+          const creditAccount = this.findPaymentAccount(accounts); // Use payment account logic for credit
     
     console.log(`💳 Debit account found:`, debitAccount ? `${debitAccount.name} (score: ${debitAccount.score})` : 'null');
     console.log(`💳 Credit account found:`, creditAccount ? `${creditAccount.name} (score: ${creditAccount.score})` : 'null');
@@ -778,8 +778,7 @@ export class SuggestionService {
   }
 
   private findPaymentAccount(
-    accounts: Account[],
-    context: TransactionContext
+    accounts: Account[]
   ): { id: number; name: string; type: string; score: number; reason: string } | null {
     console.log(`\n🔍 Finding payment account for credit side...`);
     
