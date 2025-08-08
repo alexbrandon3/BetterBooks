@@ -671,7 +671,7 @@ export class SuggestionService {
     
     if (!creditAccount || creditAccount.score < 60) {
       console.log(`⚠️ Pattern match for credit side was weak or null. Falling back to payment account logic.`);
-      creditAccount = this.findPaymentAccount(accounts);
+      creditAccount = this.findPaymentAccount(accounts, description);
     }
     
     console.log(`💳 Debit account found:`, debitAccount ? `${debitAccount.name} (score: ${debitAccount.score})` : 'null');
@@ -1120,9 +1120,11 @@ export class SuggestionService {
   }
 
   private findPaymentAccount(
-    accounts: Account[]
+    accounts: Account[],
+    description?: string
   ): { id: number; name: string; type: string; score: number; reason: string } | null {
     console.log(`\n🔍 Finding payment account for credit side...`);
+    console.log(`📝 Description context:`, description);
     
     let bestMatch: { account: Account; score: number; reason: string } | null = null;
     
@@ -1138,6 +1140,29 @@ export class SuggestionService {
       { type: 'ASSET', keywords: ['savings', 'petty cash', 'undeposited funds'], score: 75, reason: 'Payment account' },
       { type: 'LIABILITY', keywords: ['accounts payable', 'loan payable'], score: 70, reason: 'Liability payment' }
     ];
+    
+    // Analyze description for payment method hints
+    const descriptionLower = description?.toLowerCase() || '';
+    let paymentMethodHint = '';
+    let paymentMethodScore = 0;
+    
+    // Check for credit card indicators
+    if (descriptionLower.includes('credit card') || descriptionLower.includes('credit') || descriptionLower.includes('on credit')) {
+      paymentMethodHint = 'credit card';
+      paymentMethodScore = 95;
+    }
+    // Check for checking/check indicators
+    else if (descriptionLower.includes('check') || descriptionLower.includes('by check') || descriptionLower.includes('checking')) {
+      paymentMethodHint = 'checking';
+      paymentMethodScore = 90;
+    }
+    // Check for cash indicators
+    else if (descriptionLower.includes('cash') || descriptionLower.includes('in cash') || descriptionLower.includes('with cash')) {
+      paymentMethodHint = 'cash';
+      paymentMethodScore = 85;
+    }
+    
+    console.log(`    🎯 Payment method hint: ${paymentMethodHint} (score: ${paymentMethodScore})`);
     
     for (const account of accounts) {
       console.log(`\n📋 Checking payment account: "${account.name}" (${account.type})`);
@@ -1201,6 +1226,36 @@ export class SuggestionService {
           score = Math.max(score, 75);
           reason = 'Liability payment';
           console.log(`    📋 Liability preference: ${score} points. Reason: ${reason}`);
+        }
+      }
+      
+      // Apply payment method hint bonus
+      if (paymentMethodHint && score > 0) {
+        if (paymentMethodHint === 'credit card' && accountNameLower.includes('credit card')) {
+          score += 20;
+          reason += ' (enhanced by credit card hint)';
+          console.log(`    🎯 Credit card hint bonus: +20 points`);
+        }
+        else if (paymentMethodHint === 'checking' && accountNameLower.includes('checking')) {
+          score += 20;
+          reason += ' (enhanced by checking hint)';
+          console.log(`    🎯 Checking hint bonus: +20 points`);
+        }
+        else if (paymentMethodHint === 'cash' && accountNameLower.includes('cash')) {
+          score += 15;
+          reason += ' (enhanced by cash hint)';
+          console.log(`    🎯 Cash hint bonus: +15 points`);
+        }
+        // Penalize mismatched payment methods
+        else if (paymentMethodHint === 'credit card' && !accountNameLower.includes('credit card')) {
+          score -= 30;
+          reason += ' (penalized - not credit card)';
+          console.log(`    ⚠️ Credit card mismatch penalty: -30 points`);
+        }
+        else if (paymentMethodHint === 'checking' && !accountNameLower.includes('checking')) {
+          score -= 25;
+          reason += ' (penalized - not checking)';
+          console.log(`    ⚠️ Checking mismatch penalty: -25 points`);
         }
       }
       
@@ -1490,10 +1545,22 @@ export class SuggestionService {
       'paid advertising': 'advertising expense',
       'paid salaries': 'salaries expense',
       
-      // Credit variations
+      // Credit variations with specific payment methods
       'paid rent with credit card': 'rent expense credit card',
       'bought laptop on credit': 'equipment credit card',
       'paid utilities by check': 'utilities expense checking',
+      'paid rent credit card': 'rent expense credit card',
+      'bought laptop credit': 'equipment credit card',
+      'paid utilities check': 'utilities expense checking',
+      'rent credit card': 'rent expense credit card',
+      'laptop credit': 'equipment credit card',
+      'utilities check': 'utilities expense checking',
+      'rent with credit': 'rent expense credit card',
+      'laptop with credit': 'equipment credit card',
+      'utilities with check': 'utilities expense checking',
+      'rent by credit card': 'rent expense credit card',
+      'laptop by credit': 'equipment credit card',
+      'utilities by check': 'utilities expense checking',
       
       // Payment variations with amounts
       'received payment': 'received customer payment',
