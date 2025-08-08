@@ -746,6 +746,21 @@ export class SuggestionService {
       // Calculate enhanced confidence with pairing validation
       const confidenceResult = this.calculatePairConfidence(debitMatch, creditMatch, context, pairValidation);
 
+      // Check for vague descriptions that shouldn't get dual-side suggestions
+      const vagueTerms = ['business', 'transaction', 'goods', 'services', 'general', 'miscellaneous'];
+      const isVagueDescription = vagueTerms.some(term => 
+        normalizedDescription.includes(term)
+      );
+      
+      // For vague descriptions, require much higher confidence or return null
+      if (isVagueDescription && confidenceResult.overallConfidence < 80) {
+        console.log('❌ Vague description requires higher confidence for dual-side suggestion:', {
+          confidence: confidenceResult.overallConfidence,
+          description: normalizedDescription
+        });
+        return null;
+      }
+      
       // Only return if we have reasonable confidence and valid pair
       if (confidenceResult.overallConfidence < 60 || !pairValidation.isValid) {
         console.log('❌ Confidence too low or invalid pair for dual-side suggestion:', {
@@ -1030,7 +1045,7 @@ export class SuggestionService {
         },
         {
           keywords: [
-            // Core purchase terms
+            // Specific purchase terms (higher precision)
             'purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery',
             // Common variations and partial matches
             'purchased', 'buying', 'bought', 'buy', 'procure', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost', 'goods', 'cogs', 'raw', 'component', 'part', 'tool', 'machinery',
@@ -1040,9 +1055,11 @@ export class SuggestionService {
             'office supplies', 'computer', 'laptop', 'printer', 'paper', 'ink', 'toner', 'furniture', 'desk', 'chair', 'table', 'shelf', 'cabinet', 'filing', 'storage', 'boxes', 'packaging', 'shipping supplies', 'labels', 'tape', 'staples', 'pens', 'pencils', 'notebooks', 'folders', 'binders'
           ],
           accountTypes: ['EXPENSE', 'ASSET'],
-          categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials'],
+          categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials', 'Operating Expenses', 'General Expenses'],
           reason: 'Business purchase transaction',
-          priority: 1
+          priority: 1,
+          // Add specific exclusions to prevent false matches
+          exclusions: ['interest', 'tax', 'loan', 'mortgage', 'insurance', 'rent', 'utilities', 'payroll']
         },
         {
           keywords: ['payroll', 'salary', 'wage', 'employee', 'staff', 'labor', 'compensation', 'benefits', 'paycheck', 'w2', 'withholding', 'payroll tax', 'employee payroll', 'bonus', 'commission', 'overtime', 'holiday pay', 'sick pay', 'vacation pay'],
@@ -1406,6 +1423,17 @@ export class SuggestionService {
           reasoning.push('high priority business category');
         }
         
+        // Check for exclusions first (negative scoring)
+        if (matchedCategory!.exclusions) {
+          const hasExclusion = matchedCategory!.exclusions.some(exclusion => 
+            account.name.toLowerCase().includes(exclusion.toLowerCase())
+          );
+          if (hasExclusion) {
+            score -= 50; // Heavy penalty for excluded terms
+            reasoning.push('excluded term in account name');
+          }
+        }
+        
         // Check name match (higher priority)
         const nameMatch = matchedCategory!.categories.some(cat => 
           account.name.toLowerCase().includes(cat.toLowerCase())
@@ -1474,6 +1502,17 @@ export class SuggestionService {
       // But allow higher confidence for exact keyword matches
       if (confidence < 15) {
         console.log('❌ [Fallback] Confidence too low (', confidence, '), not suggesting');
+        return null;
+      }
+      
+      // For very vague descriptions, require higher confidence
+      const vagueTerms = ['business', 'transaction', 'goods', 'services', 'general', 'miscellaneous'];
+      const isVagueDescription = vagueTerms.some(term => 
+        normalizedDescription.includes(term)
+      );
+      
+      if (isVagueDescription && confidence < 40) {
+        console.log('❌ [Fallback] Vague description requires higher confidence (', confidence, '), not suggesting');
         return null;
       }
       
