@@ -447,18 +447,30 @@ export class SuggestionController extends BaseController {
 
   async suggestDualSides(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      console.log('🔍 DUAL-SIDE API CALL START');
+      console.log('📝 Request body:', req.body);
+      console.log('👤 User ID:', req.user.userId);
+      
       const { description } = req.body;
       
       if (!description || typeof description !== 'string') {
+        console.log('❌ Invalid description:', description);
         this.sendError(res, 400, 'Description is required and must be a string');
         return;
       }
 
+      console.log('✅ Description is valid:', description);
+      
       const userId = req.user.userId;
+      console.log('🔍 Calling suggestDualSidesForDescription with:', { description, userId });
+      
       const dualSuggestion = await this.suggestionService.suggestDualSidesForDescription(description, userId);
+      
+      console.log('📊 Dual suggestion result:', dualSuggestion);
       
       this.sendResponse(res, 200, dualSuggestion);
     } catch (error) {
+      console.error('❌ Error in suggestDualSides:', error);
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
