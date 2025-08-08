@@ -44,4 +44,7 @@ router.post('/weights/initialize-defaults', authenticate, suggestionController.i
 // Add test backend route
 router.get('/test-backend', authenticate, suggestionController.testBackend.bind(suggestionController));
 
+// Add debug dual-sides route
+router.post('/debug-dual-sides', authenticate, suggestionController.debugDualSides.bind(suggestionController));
+
 export default router; 

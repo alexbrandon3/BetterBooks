@@ -516,6 +516,47 @@ export class SuggestionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  // Detailed debug endpoint for dual-side logic
+  async debugDualSides(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('🔍 DEBUG DUAL-SIDES ENDPOINT CALLED');
+      
+      const { description } = req.body;
+      const userId = req.user.userId;
+      
+      if (!description) {
+        this.sendError(res, 400, 'Description is required');
+        return;
+      }
+
+      console.log(`🔍 Debugging dual-side for: "${description}"`);
+      
+      // Get accounts
+      const accounts = await this.suggestionService['accountRepo'].find({
+        where: { user: { id: userId } }
+      });
+      
+      console.log(`📋 Found ${accounts.length} accounts`);
+      
+      // Test the dual-side method step by step
+      const result = await this.suggestionService.suggestDualSidesForDescription(description, userId);
+      
+      console.log(`📊 Dual-side result:`, result);
+      
+      this.sendResponse(res, 200, {
+        message: 'Debug completed',
+        description,
+        userId,
+        accountCount: accounts.length,
+        dualSideResult: result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error in debugDualSides:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 }
 
 export const getSuggestions = async (req: Request, res: Response) => {
