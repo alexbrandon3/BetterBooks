@@ -370,6 +370,7 @@ const Transactions = () => {
     setValue,
     reset,
     control,
+    trigger,
     formState: { errors },
   } = useForm<TransactionForm>({
     defaultValues: {
@@ -565,9 +566,14 @@ const Transactions = () => {
 
         if (categorySuggestion) {
           console.log('✅ Applying category suggestion:', categorySuggestion);
+          console.log('📝 Current category field value before update:', watch('category'));
           setValue('category', categorySuggestion.suggestedCategory);
           setCurrentCategorySuggestion(categorySuggestion);
           console.log('✅ Category field updated to:', categorySuggestion.suggestedCategory);
+          console.log('📝 Current category field value after update:', watch('category'));
+          
+          // Force a re-render by triggering form validation
+          trigger('category');
         } else {
           console.log('❌ No category suggestion found');
           setCurrentCategorySuggestion(null);

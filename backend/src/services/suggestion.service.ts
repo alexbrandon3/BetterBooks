@@ -387,9 +387,9 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station'],
           categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
-          reason: 'Fuel and gas related transaction',
+          reason: 'Fuel and transportation related transaction',
           priority: 4
         },
         {
@@ -433,6 +433,18 @@ export class SuggestionService {
           keywords: ['bank', 'banking', 'checking', 'savings', 'credit card', 'debit card', 'atm', 'wire transfer', 'ach', 'direct deposit'],
           categories: ['Banking', 'Financial Services'],
           reason: 'Banking and financial services transaction',
+          priority: 4
+        },
+        {
+          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy'],
+          categories: ['Supplies', 'Office Supplies', 'Equipment'],
+          reason: 'Printing and office supplies transaction',
+          priority: 4
+        },
+        {
+          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance'],
+          categories: ['Insurance', 'Professional Services'],
+          reason: 'Insurance related transaction',
           priority: 4
         }
       ];
