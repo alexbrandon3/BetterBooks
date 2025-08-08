@@ -471,11 +471,8 @@ const Transactions = () => {
 
   // Simplified description change handler
   const handleDescriptionChange = async (desc: string) => {
-    if (!smartSuggestionsEnabled || !desc || desc.trim().length === 0) {
-      return;
-    }
-
-    // Clear previous timeout
+    console.log('🔍 handleDescriptionChange called with:', desc);
+    
     if (descriptionChangeTimeoutRef.current) {
       clearTimeout(descriptionChangeTimeoutRef.current);
     }
@@ -483,10 +480,15 @@ const Transactions = () => {
     // Set new timeout for debounced API call
     descriptionChangeTimeoutRef.current = setTimeout(async () => {
       try {
+        console.log('🔄 Starting suggestion process for:', desc);
+        
         // Try dual-side suggestion first
+        console.log('🔍 Calling getDualSideSuggestion...');
         const dualSuggestion = await getDualSideSuggestion(desc);
+        console.log('📊 Dual-side suggestion result:', dualSuggestion);
         
         if (dualSuggestion && dualSuggestion.overallConfidence >= 60) {
+          console.log('✅ Using dual-side suggestion with confidence:', dualSuggestion.overallConfidence);
           setCurrentDualSuggestion(dualSuggestion);
           setCurrentSuggestion(null); // Clear single suggestion
           
@@ -515,12 +517,21 @@ const Transactions = () => {
           
           console.log('✅ Applied dual-side suggestion:', dualSuggestion);
           return;
+        } else {
+          console.log('❌ Dual-side suggestion failed or low confidence:', dualSuggestion);
         }
 
         // Fall back to single-side suggestions if dual-side confidence is too low
+        console.log('🔄 Falling back to single-side suggestions...');
         const accountSuggestion = await getSuggestedAccount(desc);
         const transactionTypeSuggestion = await getSuggestedTransactionType(desc);
         const categorySuggestion = await getSuggestedCategory(desc);
+
+        console.log('📊 Single-side suggestions:', {
+          account: accountSuggestion,
+          transactionType: transactionTypeSuggestion,
+          category: categorySuggestion
+        });
 
         if (accountSuggestion) {
           setCurrentSuggestion(accountSuggestion);
@@ -555,7 +566,7 @@ const Transactions = () => {
           setValue('category', categorySuggestion.suggestedCategory);
         }
       } catch (error) {
-        console.error('Error getting suggestions:', error);
+        console.error('❌ Error getting suggestions:', error);
       }
     }, 500);
   };
