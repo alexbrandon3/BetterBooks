@@ -556,11 +556,8 @@ export class SuggestionService {
         return null;
       }
 
-      // Normalize description
-      const normalizedDescription = description.toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+      // Enhanced description normalization with phrase normalization
+      const normalizedDescription = this.normalizePhrases(description);
 
       // Get user's accounts
       const userAccounts = await this.accountRepo.find({
@@ -687,6 +684,9 @@ export class SuggestionService {
       console.log('✅ Found dual-side pattern:', matchedPattern.transactionType, 'for keyword:', matchedKeyword);
 
       // Find matching accounts for both sides
+      // Parse transaction context for directionality
+      const context = this.parseTransactionContext(description);
+      
       const findMatchingAccount = (sidePattern: any): any => {
         let bestMatch = null;
         let bestScore = 0;
@@ -698,20 +698,25 @@ export class SuggestionService {
 
           let score = 0;
           
-          // Check for keyword matches in account name
-          const keywordMatch = sidePattern.keywords.some((keyword: string) => 
-            account.name.toLowerCase().includes(keyword.toLowerCase())
-          );
-          if (keywordMatch) {
-            score += 50;
+          // Enhanced keyword matching with word boundaries
+          for (const keyword of sidePattern.keywords) {
+            const keywordScore = this.scoreKeywordMatch(account.name, keyword);
+            score = Math.max(score, keywordScore);
           }
 
-          // Check for category matches
-          const categoryMatch = sidePattern.keywords.some((keyword: string) => 
-            account.category?.toLowerCase().includes(keyword.toLowerCase())
-          );
-          if (categoryMatch) {
-            score += 30;
+          // Check for category matches with word boundaries
+          if (account.category) {
+            for (const keyword of sidePattern.keywords) {
+              const categoryScore = this.scoreKeywordMatch(account.category, keyword);
+              score = Math.max(score, categoryScore * 0.6); // Category matches worth 60% of name matches
+            }
+          }
+
+          // Context alignment bonus
+          if (context.direction === 'incoming' && account.type === 'INCOME') {
+            score += 15;
+          } else if (context.direction === 'outgoing' && account.type === 'EXPENSE') {
+            score += 15;
           }
 
           // Bonus for recently used accounts
@@ -732,14 +737,22 @@ export class SuggestionService {
       const debitMatch = findMatchingAccount(matchedPattern.debitSide);
       const creditMatch = findMatchingAccount(matchedPattern.creditSide);
 
-      // Calculate overall confidence
-      const debitConfidence = debitMatch ? Math.min(100, debitMatch.score) : 0;
-      const creditConfidence = creditMatch ? Math.min(100, creditMatch.score) : 0;
-      const overallConfidence = Math.round((debitConfidence + creditConfidence) / 2);
+      // Validate account pair compatibility
+      let pairValidation = { isValid: true, score: 100, reason: 'Valid pair' };
+      if (debitMatch && creditMatch) {
+        pairValidation = this.validateAccountPair(debitMatch.account, creditMatch.account);
+      }
 
-      // Only return if we have reasonable confidence for both sides
-      if (overallConfidence < 40) {
-        console.log('❌ Overall confidence too low for dual-side suggestion:', overallConfidence);
+      // Calculate enhanced confidence with pairing validation
+      const confidenceResult = this.calculatePairConfidence(debitMatch, creditMatch, context, pairValidation);
+
+      // Only return if we have reasonable confidence and valid pair
+      if (confidenceResult.overallConfidence < 60 || !pairValidation.isValid) {
+        console.log('❌ Confidence too low or invalid pair for dual-side suggestion:', {
+          confidence: confidenceResult.overallConfidence,
+          pairValid: pairValidation.isValid,
+          reason: pairValidation.reason
+        });
         return null;
       }
 
@@ -749,18 +762,18 @@ export class SuggestionService {
           suggestedAccountName: debitMatch.account.name,
           reason: matchedPattern.debitSide.reason,
           accountType: debitMatch.account.type,
-          confidence: debitConfidence
+          confidence: confidenceResult.debitConfidence
         } : null,
         creditSide: creditMatch ? {
           suggestedAccountId: creditMatch.account.id,
           suggestedAccountName: creditMatch.account.name,
           reason: matchedPattern.creditSide.reason,
           accountType: creditMatch.account.type,
-          confidence: creditConfidence
+          confidence: confidenceResult.creditConfidence
         } : null,
-        overallConfidence,
+        overallConfidence: confidenceResult.overallConfidence,
         transactionType: matchedPattern.transactionType,
-        rationale: matchedPattern.rationale
+        rationale: `${matchedPattern.rationale}; ${confidenceResult.reason}`
       };
 
     } catch (error) {
@@ -1622,6 +1635,276 @@ export class SuggestionService {
     }
   }
 
+  // Enhanced keyword matching with word boundaries and exact match weighting
+  private scoreKeywordMatch(accountName: string, keyword: string): number {
+    const accountWords = accountName.toLowerCase().split(/\s+/);
+    const keywordLower = keyword.toLowerCase();
+    
+    // Exact word match (highest score)
+    if (accountWords.includes(keywordLower)) {
+      return 100;
+    }
+    
+    // Word boundary match (medium score)
+    if (new RegExp(`\\b${keywordLower}\\b`).test(accountName.toLowerCase())) {
+      return 80;
+    }
+    
+    // Substring match (lowest score) - only if not a false positive
+    if (accountName.toLowerCase().includes(keywordLower)) {
+      // Penalize common false positives
+      const falsePositives: Record<string, string[]> = {
+        'cash': ['cash flow', 'cash flow statement', 'cash management'],
+        'equipment': ['equipment maintenance', 'equipment rental'],
+        'credit': ['credit card', 'credit limit', 'credit score'],
+        'loan': ['loan application', 'loan officer', 'loan processing']
+      };
+      
+      const falsePositiveList = falsePositives[keywordLower] || [];
+      const isFalsePositive = falsePositiveList.some((fp: string) => 
+        accountName.toLowerCase().includes(fp)
+      );
+      
+      return isFalsePositive ? 0 : 30;
+    }
+    
+    return 0;
+  }
 
+  // Context-aware description parsing for directionality
+  private parseTransactionContext(description: string): {
+    direction: 'incoming' | 'outgoing' | 'neutral';
+    verbs: string[];
+    context: string;
+  } {
+    const normalizedDesc = description.toLowerCase();
+    
+    const outgoingVerbs = [
+      'paid', 'bought', 'purchased', 'spent', 'withdrew', 'distributed',
+      'purchased', 'bought', 'paid for', 'spent on', 'invested in',
+      'withdrew', 'drew', 'took', 'removed', 'transferred out'
+    ];
+    
+    const incomingVerbs = [
+      'received', 'sold', 'earned', 'collected', 'deposited', 'invested',
+      'received', 'got', 'obtained', 'acquired', 'gained', 'won',
+      'refunded', 'reimbursed', 'returned', 'credited'
+    ];
+    
+    const outgoingWords = outgoingVerbs.filter(verb => 
+      normalizedDesc.includes(verb)
+    );
+    
+    const incomingWords = incomingVerbs.filter(verb => 
+      normalizedDesc.includes(verb)
+    );
+    
+    let direction: 'incoming' | 'outgoing' | 'neutral' = 'neutral';
+    let context = '';
+    
+    if (outgoingWords.length > incomingWords.length) {
+      direction = 'outgoing';
+      context = `Outgoing transaction (${outgoingWords[0]})`;
+    } else if (incomingWords.length > outgoingWords.length) {
+      direction = 'incoming';
+      context = `Incoming transaction (${incomingWords[0]})`;
+    } else {
+      // Check for other context clues
+      if (normalizedDesc.includes('contribution') || normalizedDesc.includes('investment')) {
+        direction = 'incoming';
+        context = 'Capital contribution/investment';
+      } else if (normalizedDesc.includes('draw') || normalizedDesc.includes('withdrawal')) {
+        direction = 'outgoing';
+        context = 'Owner withdrawal/draw';
+      } else if (normalizedDesc.includes('payment') && normalizedDesc.includes('received')) {
+        direction = 'incoming';
+        context = 'Payment received';
+      } else if (normalizedDesc.includes('payment') && normalizedDesc.includes('made')) {
+        direction = 'outgoing';
+        context = 'Payment made';
+      }
+    }
+    
+    return {
+      direction,
+      verbs: [...outgoingWords, ...incomingWords],
+      context
+    };
+  }
+
+  // Pair compatibility validation
+  private validateAccountPair(debitAccount: Account, creditAccount: Account): {
+    isValid: boolean;
+    score: number;
+    reason: string;
+  } {
+    // Valid account type pairs for business transactions
+    const validPairs = {
+      'ASSET': ['LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'],
+      'LIABILITY': ['ASSET', 'EXPENSE'],
+      'EQUITY': ['ASSET', 'EXPENSE'],
+      'INCOME': ['ASSET', 'LIABILITY'],
+      'EXPENSE': ['ASSET', 'LIABILITY', 'EQUITY']
+    };
+    
+    const isValidPair = validPairs[debitAccount.type]?.includes(creditAccount.type);
+    
+    if (!isValidPair) {
+      return {
+        isValid: false,
+        score: 0,
+        reason: `Invalid pair: ${debitAccount.type} ↔ ${creditAccount.type}`
+      };
+    }
+    
+    // Additional logical checks
+    const logicalChecks = [
+      // Can't have two income accounts
+      {
+        condition: debitAccount.type === 'INCOME' && creditAccount.type === 'INCOME',
+        valid: false,
+        reason: 'Cannot debit and credit income accounts in same entry'
+      },
+      // Can't have two expense accounts (unless adjusting entry)
+      {
+        condition: debitAccount.type === 'EXPENSE' && creditAccount.type === 'EXPENSE',
+        valid: false,
+        reason: 'Cannot debit and credit expense accounts in same entry'
+      },
+      // Can't have two equity accounts (unless owner transfer)
+      {
+        condition: debitAccount.type === 'EQUITY' && creditAccount.type === 'EQUITY',
+        valid: false,
+        reason: 'Cannot debit and credit equity accounts in same entry'
+      }
+    ];
+    
+    for (const check of logicalChecks) {
+      if (check.condition) {
+        return {
+          isValid: false,
+          score: 0,
+          reason: check.reason
+        };
+      }
+    }
+    
+    return {
+      isValid: true,
+      score: 100,
+      reason: `Valid pair: ${debitAccount.type} ↔ ${creditAccount.type}`
+    };
+  }
+
+  // Enhanced phrase normalization with synonyms
+  private normalizePhrases(description: string): string {
+    const synonyms = {
+      // Purchase variations
+      'bought': 'purchase',
+      'purchased': 'purchase',
+      'bought a': 'purchase',
+      'paid for': 'purchase',
+      'spent on': 'purchase',
+      
+      // Equity variations
+      'initial contribution': 'owner contribution',
+      'capital contribution': 'owner contribution',
+      'equity contribution': 'owner contribution',
+      'owner investment': 'owner contribution',
+      'equity injection': 'owner contribution',
+      'personal funds': 'owner contribution',
+      
+      // Draw variations
+      'owner draw': 'owner withdrawal',
+      'partner draw': 'owner withdrawal',
+      'owner withdrawal': 'owner withdrawal',
+      'personal use': 'owner withdrawal',
+      'drawing': 'owner withdrawal',
+      
+      // Payment variations
+      'loan payment': 'debt payment',
+      'mortgage payment': 'debt payment',
+      'credit card payment': 'debt payment',
+      'principal payment': 'debt payment',
+      
+      // Equipment variations
+      'equipment purchase': 'asset purchase',
+      'machinery purchase': 'asset purchase',
+      'computer purchase': 'asset purchase',
+      'furniture purchase': 'asset purchase',
+      'laptop purchase': 'asset purchase',
+      'laptop computer': 'asset purchase',
+      'computer equipment': 'asset purchase'
+    };
+    
+    let normalized = description.toLowerCase();
+    
+    // Apply synonyms
+    Object.entries(synonyms).forEach(([original, replacement]) => {
+      normalized = normalized.replace(new RegExp(original, 'gi'), replacement);
+    });
+    
+    // Clean up extra spaces
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+    
+    return normalized;
+  }
+
+  // Deterministic confidence composer
+  private calculatePairConfidence(
+    debitMatch: any,
+    creditMatch: any,
+    context: any,
+    pairValidation: any
+  ): {
+    overallConfidence: number;
+    debitConfidence: number;
+    creditConfidence: number;
+    pairScore: number;
+    reason: string;
+  } {
+    const debitConfidence = debitMatch ? Math.min(100, debitMatch.score) : 0;
+    const creditConfidence = creditMatch ? Math.min(100, creditMatch.score) : 0;
+    const pairScore = pairValidation.score;
+    
+    // Base confidence is average of individual scores
+    let baseConfidence = (debitConfidence + creditConfidence) / 2;
+    
+    // Adjust for context alignment
+    let contextBonus = 0;
+    if (context.direction === 'incoming' && creditMatch?.account.type === 'INCOME') {
+      contextBonus += 10;
+    } else if (context.direction === 'outgoing' && debitMatch?.account.type === 'EXPENSE') {
+      contextBonus += 10;
+    }
+    
+    // Adjust for pair validation
+    let pairBonus = 0;
+    if (pairValidation.isValid) {
+      pairBonus += 15;
+    }
+    
+    // Penalize if one side is missing
+    if (!debitMatch || !creditMatch) {
+      baseConfidence *= 0.5;
+    }
+    
+    const overallConfidence = Math.min(100, Math.round(baseConfidence + contextBonus + pairBonus));
+    
+    // Build reason string
+    const reasons = [];
+    if (debitMatch) reasons.push(`DR: ${debitMatch.account.name} (${debitConfidence}%)`);
+    if (creditMatch) reasons.push(`CR: ${creditMatch.account.name} (${creditConfidence}%)`);
+    if (context.context) reasons.push(context.context);
+    if (pairValidation.reason) reasons.push(pairValidation.reason);
+    
+    return {
+      overallConfidence,
+      debitConfidence,
+      creditConfidence,
+      pairScore,
+      reason: reasons.join('; ')
+    };
+  }
 
 } 
