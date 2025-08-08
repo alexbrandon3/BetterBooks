@@ -303,7 +303,7 @@ export class SuggestionService {
           priority: 1
         },
         {
-          keywords: ['purchase', 'buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
+          keywords: ['buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
           categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials'],
           reason: 'Business purchase transaction',
           priority: 1
@@ -315,7 +315,7 @@ export class SuggestionService {
           priority: 1
         },
         {
-          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'local', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax', 'business tax', 'payroll tax', 'futa', 'fica', 'medicare', 'social security'],
+          keywords: ['tax', 'taxes', 'taxation', 'irs', 'federal', 'state', 'property tax', 'income tax', 'sales tax', 'withholding', 'estimated tax', 'quarterly tax', 'business tax', 'payroll tax', 'futa', 'fica', 'medicare', 'social security'],
           categories: ['Taxes', 'Tax Expense', 'Tax Liability', 'Payroll Taxes'],
           reason: 'Tax related transaction',
           priority: 1
@@ -328,7 +328,7 @@ export class SuggestionService {
         },
         // PRIORITY 2: Business Operations & Professional Services
         {
-          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'pr'],
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations'],
           categories: ['Marketing', 'Marketing Expense', 'Advertising', 'Promotion'],
           reason: 'Marketing and advertising transaction',
           priority: 2
@@ -372,7 +372,7 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase', 'gas station fuel', 'exxon fuel', 'shell gasoline'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase', 'gas station fuel', 'exxon fuel', 'shell gasoline', 'gas station fuel purchase'],
           categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
           reason: 'Fuel and transportation related transaction',
           priority: 1  // Highest priority to override generic keywords
@@ -416,13 +416,13 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy', 'printer paper', 'toner cartridge', 'photocopy paper', 'printer paper and ink', 'office depot toner'],
+          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy', 'printer paper', 'toner cartridge', 'photocopy paper', 'printer paper and ink', 'office depot toner', 'printer paper and ink'],
           categories: ['Supplies', 'Office Supplies', 'Equipment'],
           reason: 'Printing and office supplies transaction',
           priority: 1  // Highest priority to override generic keywords
         },
         {
-          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance', 'insurance premium', 'liability insurance', 'property insurance', 'car insurance', 'home insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'commercial insurance', 'workers comp', 'insurance policy'],
+          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance', 'insurance premium', 'liability insurance', 'property insurance', 'car insurance', 'home insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'commercial insurance', 'workers comp', 'insurance policy', 'insurance premium payment'],
           categories: ['Insurance', 'Business Insurance', 'Professional Services'],
           reason: 'Insurance related transaction',
           priority: 1  // Highest priority to override generic keywords
@@ -433,6 +433,7 @@ export class SuggestionService {
       let matchedCategory = null;
       let matchedKeyword = null;
       let bestPriority = 999; // Start with high number (lower is better)
+      let bestKeywordLength = 0; // Track longest keyword match for same priority
       
       console.log('🔍 Searching for keyword matches...');
       
@@ -445,11 +446,14 @@ export class SuggestionService {
         if (foundKeyword) {
           console.log(`✅ Found keyword match: "${foundKeyword}" for category: ${mapping.categories[0]} (priority: ${mapping.priority})`);
           // Prioritize by priority number (lower number = higher priority)
-          if (mapping.priority < bestPriority) {
+          // For same priority, prefer longer keywords (more specific)
+          if (mapping.priority < bestPriority || 
+              (mapping.priority === bestPriority && foundKeyword.length > bestKeywordLength)) {
             matchedCategory = mapping;
             matchedKeyword = foundKeyword;
             bestPriority = mapping.priority;
-            console.log('✅ Updated best match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+            bestKeywordLength = foundKeyword.length;
+            console.log('✅ Updated best match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority, 'Length:', foundKeyword.length);
           }
         }
       }
