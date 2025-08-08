@@ -656,9 +656,9 @@ export class SuggestionService {
     });
     console.log(`📋 Total accounts available: ${accounts.length}`);
     
-    // Find matching accounts for both sides
+    // Find matching accounts for both sides using different strategies
     const debitAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'debit', context);
-    const creditAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'credit', context);
+    const creditAccount = this.findPaymentAccount(accounts, context); // Use payment account logic for credit
     
     console.log(`💳 Debit account found:`, debitAccount ? `${debitAccount.name} (score: ${debitAccount.score})` : 'null');
     console.log(`💳 Credit account found:`, creditAccount ? `${creditAccount.name} (score: ${creditAccount.score})` : 'null');
@@ -774,6 +774,71 @@ export class SuggestionService {
     }
     
     console.log(`\n❌ No ${side} match found`);
+    return null;
+  }
+
+  private findPaymentAccount(
+    accounts: Account[],
+    context: TransactionContext
+  ): { id: number; name: string; type: string; score: number; reason: string } | null {
+    console.log(`\n🔍 Finding payment account for credit side...`);
+    
+    let bestMatch: { account: Account; score: number; reason: string } | null = null;
+    
+    // Define payment account types and keywords
+    const paymentAccounts = [
+      { type: 'ASSET', keywords: ['cash', 'checking', 'savings', 'petty cash', 'undeposited funds'] },
+      { type: 'LIABILITY', keywords: ['credit card', 'accounts payable', 'loan payable'] }
+    ];
+    
+    for (const account of accounts) {
+      console.log(`\n📋 Checking payment account: "${account.name}" (${account.type})`);
+      
+      let score = 0;
+      let reason = '';
+      
+      // Check if this is a payment account type
+      const paymentType = paymentAccounts.find(pa => pa.type === account.type);
+      if (paymentType) {
+        // Check for keyword matches in account name
+        const accountNameLower = account.name.toLowerCase();
+        for (const keyword of paymentType.keywords) {
+          if (accountNameLower.includes(keyword)) {
+            score = 80; // High score for payment accounts
+            reason = `Payment account: ${account.name}`;
+            console.log(`    ✅ Payment account match: ${score} points. Reason: ${reason}`);
+            break;
+          }
+        }
+        
+        // If no keyword match but it's the right type, give a lower score
+        if (score === 0) {
+          score = 40; // Medium score for payment account types
+          reason = `Payment account type: ${account.type}`;
+          console.log(`    🎯 Payment account type match: ${score} points. Reason: ${reason}`);
+        }
+      }
+      
+      console.log(`    📊 Final score for "${account.name}": ${score}`);
+      
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { account, score, reason };
+        console.log(`    🏆 New best payment match: "${account.name}" with score ${score}`);
+      }
+    }
+    
+    if (bestMatch) {
+      console.log(`\n✅ Best payment account: "${bestMatch.account.name}" (score: ${bestMatch.score})`);
+      return {
+        id: bestMatch.account.id,
+        name: bestMatch.account.name,
+        type: bestMatch.account.type,
+        score: bestMatch.score,
+        reason: bestMatch.reason
+      };
+    }
+    
+    console.log(`\n❌ No payment account found`);
     return null;
   }
 
