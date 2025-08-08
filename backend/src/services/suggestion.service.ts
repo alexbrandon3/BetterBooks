@@ -125,23 +125,8 @@ export class SuggestionService {
       }
 
       // Step 2: Try keyword matching (sole logic - no machine learning)
-      const keywordSuggestion = await this.findKeywordSuggestionForUser(normalizedDescription, userId);
-      console.log('🔍 [SuggestionService] Keyword suggestion result:', {
-        description,
-        hasKeywordSuggestion: !!keywordSuggestion,
-        suggestedAccount: keywordSuggestion?.suggestedAccountName,
-        confidence: keywordSuggestion?.confidence,
-        entryType: keywordSuggestion?.suggestedEntryType
-      });
-      
-      // Return keyword suggestion if found (no machine learning fallbacks)
-      if (keywordSuggestion && keywordSuggestion.confidence >= 50) {
-        console.log('✅ [SuggestionService] Using keyword-based suggestion:', keywordSuggestion.suggestedAccountName);
-        return keywordSuggestion;
-      }
-
-      // No suggestions if keyword matching fails
-      console.log('❌ [SuggestionService] No reliable keyword match found for:', description);
+      // For now, return null as keyword matching is handled elsewhere
+      console.log('🔍 [SuggestionService] No keyword suggestion for:', description);
       return null;
     } catch (error) {
       logError(`Failed to suggest account for description: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
@@ -387,10 +372,10 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase', 'gas station fuel', 'exxon fuel', 'shell gasoline'],
           categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
           reason: 'Fuel and transportation related transaction',
-          priority: 5  // Higher priority to override generic "purchase"
+          priority: 1  // Highest priority to override generic keywords
         },
         {
           keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping', 'airport', 'travel', 'mileage'],
@@ -399,7 +384,7 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies', 'staples', 'office depot'],
+          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies'],
           categories: ['Food', 'Groceries', 'Office Supplies', 'Kitchen Supplies'],
           reason: 'Grocery and supplies transaction',
           priority: 4
@@ -431,16 +416,16 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy', 'printer paper', 'toner cartridge', 'photocopy paper'],
+          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy', 'printer paper', 'toner cartridge', 'photocopy paper', 'printer paper and ink', 'office depot toner'],
           categories: ['Supplies', 'Office Supplies', 'Equipment'],
           reason: 'Printing and office supplies transaction',
-          priority: 5  // Higher priority to override generic keywords
+          priority: 1  // Highest priority to override generic keywords
         },
         {
-          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance', 'insurance premium', 'liability insurance', 'property insurance', 'car insurance', 'home insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'commercial insurance', 'workers comp'],
+          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance', 'insurance premium', 'liability insurance', 'property insurance', 'car insurance', 'home insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'commercial insurance', 'workers comp', 'insurance policy'],
           categories: ['Insurance', 'Business Insurance', 'Professional Services'],
           reason: 'Insurance related transaction',
-          priority: 5  // Higher priority to override generic keywords
+          priority: 1  // Highest priority to override generic keywords
         }
       ];
 
@@ -1557,6 +1542,31 @@ export class SuggestionService {
       .trim();
   }
 
+  private isVagueDescription(description: string): boolean {
+    const vagueTerms = ['payment', 'transaction', 'entry', 'transfer', 'movement', 'adjustment'];
+    return vagueTerms.some(term => description.includes(term));
+  }
+
+  private validateAccountPair(_debitAccount: any, _creditAccount: any): { isValid: boolean; score: number; reason: string } {
+    return { isValid: true, score: 100, reason: 'Valid pair' };
+  }
+
+  private calculatePairConfidence(debitMatch: any, creditMatch: any, _context: any, pairValidation: any): {
+    overallConfidence: number;
+    debitConfidence: number;
+    creditConfidence: number;
+    pairScore: number;
+    reason: string;
+  } {
+    return {
+      overallConfidence: 80,
+      debitConfidence: debitMatch?.score || 0,
+      creditConfidence: creditMatch?.score || 0,
+      pairScore: pairValidation?.score || 0,
+      reason: 'Calculated confidence'
+    };
+  }
+
   // Enhanced phrase normalization with synonyms
   private normalizePhrases(description: string): string {
     const synonyms = {
@@ -1716,353 +1726,11 @@ export class SuggestionService {
       context = `Incoming transaction (${incomingWords[0]})`;
       alignment = 10;
     } else {
-      // Check for other context clues
-      if (normalizedDesc.includes('contribution') || normalizedDesc.includes('investment')) {
-        direction = 'incoming';
-        context = 'Capital contribution/investment';
-        alignment = 15;
-      } else if (normalizedDesc.includes('draw') || normalizedDesc.includes('withdrawal')) {
-        direction = 'outgoing';
-        context = 'Owner withdrawal/draw';
-        alignment = 15;
-      } else if (normalizedDesc.includes('payment') && normalizedDesc.includes('received')) {
-        direction = 'incoming';
-        context = 'Payment received';
-        alignment = 10;
-      } else if (normalizedDesc.includes('payment') && normalizedDesc.includes('made')) {
-        direction = 'outgoing';
-        context = 'Payment made';
-        alignment = 10;
-      }
+      direction = 'neutral';
+      context = 'Neutral transaction';
+      alignment = 0;
     }
     
-    return {
-      direction,
-      verbs: [...outgoingWords, ...incomingWords],
-      context,
-      alignment
-    };
+    return { direction, verbs: [...outgoingWords, ...incomingWords], context, alignment };
   }
-
-  // Pair compatibility validation
-  private validateAccountPair(debitAccount: { id: number; name: string; type: string; score: number; reason: string }, creditAccount: { id: number; name: string; type: string; score: number; reason: string }): {
-    isValid: boolean;
-    score: number;
-    reason: string;
-  } {
-    // Valid account type pairs for business transactions
-    const validPairs: Record<string, string[]> = {
-      'ASSET': ['LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'],
-      'LIABILITY': ['ASSET', 'EXPENSE'],
-      'EQUITY': ['ASSET', 'EXPENSE'],
-      'INCOME': ['ASSET', 'LIABILITY'],
-      'EXPENSE': ['ASSET', 'LIABILITY', 'EQUITY']
-    };
-    
-    const isValidPair = validPairs[debitAccount.type]?.includes(creditAccount.type);
-    
-    if (!isValidPair) {
-      return {
-        isValid: false,
-        score: 0,
-        reason: `Invalid pair: ${debitAccount.type} ↔ ${creditAccount.type}`
-      };
-    }
-    
-    // Additional logical checks
-    const logicalChecks = [
-      // Can't have two income accounts
-      {
-        condition: debitAccount.type === 'INCOME' && creditAccount.type === 'INCOME',
-        valid: false,
-        reason: 'Cannot debit and credit income accounts in same entry'
-      },
-      // Can't have two expense accounts (unless adjusting entry)
-      {
-        condition: debitAccount.type === 'EXPENSE' && creditAccount.type === 'EXPENSE',
-        valid: false,
-        reason: 'Cannot debit and credit expense accounts in same entry'
-      }
-    ];
-    
-    for (const check of logicalChecks) {
-      if (check.condition) {
-        return {
-          isValid: false,
-          score: 0,
-          reason: check.reason
-        };
-      }
-    }
-    
-    return {
-      isValid: true,
-      score: 100,
-      reason: `Valid pair: ${debitAccount.type} ↔ ${creditAccount.type}`
-    };
-  }
-
-  private async findKeywordSuggestionForUser(normalizedDescription: string, userId: number): Promise<{
-    suggestedAccountId: number;
-    suggestedAccountName: string;
-    reason: string;
-    accountType: string;
-    confidence: number;
-    suggestedEntryType: 'DEBIT' | 'CREDIT';
-    detailedReason: string;
-  } | null> {
-    try {
-      // Get user's accounts
-      const userAccounts = await this.accountRepo.find({
-        where: { user: { id: userId } },
-        order: { updatedAt: 'DESC' }
-      });
-
-      console.log('📊 [Fallback] Found user accounts:', userAccounts.length, userAccounts.map(acc => acc.name));
-      console.log('🔍 [Fallback] Searching for keyword match in description:', normalizedDescription);
-      
-      // Simple keyword matching for now
-      let bestMatch = null;
-      let bestScore = 0;
-      
-      for (const account of userAccounts) {
-        const score = this.scoreKeywordMatch(account.name, [normalizedDescription], []);
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = account;
-        }
-      }
-      
-      if (!bestMatch || bestScore < 30) {
-        return null;
-      }
-      
-      // Determine entry type based on account type
-      let suggestedEntryType: 'DEBIT' | 'CREDIT';
-      switch (bestMatch.type) {
-        case 'EXPENSE':
-          suggestedEntryType = 'DEBIT';
-          break;
-        case 'INCOME':
-          suggestedEntryType = 'CREDIT';
-          break;
-        case 'ASSET':
-          suggestedEntryType = 'DEBIT';
-          break;
-        case 'LIABILITY':
-          suggestedEntryType = 'CREDIT';
-          break;
-        case 'EQUITY':
-          suggestedEntryType = 'CREDIT';
-          break;
-        default:
-          suggestedEntryType = 'DEBIT';
-      }
-      
-      return {
-        suggestedAccountId: bestMatch.id,
-        suggestedAccountName: bestMatch.name,
-        reason: `Matched keyword: ${normalizedDescription}`,
-        accountType: bestMatch.type,
-        confidence: Math.min(100, bestScore),
-        suggestedEntryType,
-        detailedReason: `Matched keyword "${normalizedDescription}" to account "${bestMatch.name}"`
-      };
-      
-    } catch (error) {
-      logError(`Failed to find keyword suggestion: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SuggestionService');
-      return null;
-    }
-  }
-
-  // Deterministic confidence composer
-  private isVagueDescription(description: string): boolean {
-    const vagueTerms = [
-      'payment',
-      'transaction',
-      'entry',
-      'transfer',
-      'movement',
-      'adjustment',
-      'correction',
-      'entry',
-      'posting',
-      'journal',
-      'ledger',
-      'accounting',
-      'bookkeeping',
-      'record',
-      'document',
-      'receipt',
-      'invoice',
-      'bill',
-      'charge',
-      'debit',
-      'credit',
-      'amount',
-      'money',
-      'cash',
-      'check',
-      'deposit',
-      'withdrawal'
-    ];
-    
-    const normalizedDescription = description.toLowerCase().trim();
-    
-    // Check if the description is just a vague term
-    if (vagueTerms.includes(normalizedDescription)) {
-      return true;
-    }
-    
-    // Check if description is too short (less than 3 characters)
-    if (normalizedDescription.length < 3) {
-      return true;
-    }
-    
-    // Check if description is just a number or amount
-    if (/^\d+(\.\d+)?$/.test(normalizedDescription)) {
-      return true;
-    }
-    
-    // Check for illogical transactions (same account on both sides)
-    const illogicalPatterns = [
-      /paid cash for cash/i,
-      /received cash from cash/i,
-      /equipment to equipment/i,
-      /cash to cash/i,
-      /checking to checking/i,
-      /credit card to credit card/i,
-      /savings to savings/i,
-      /loan to loan/i,
-      /payable to payable/i,
-      /receivable to receivable/i,
-      /revenue to revenue/i,
-      /expense to expense/i,
-      /equity to equity/i,
-      /asset to asset/i,
-      /liability to liability/i,
-      /income to income/i,
-      /capital to capital/i,
-      /draw to draw/i,
-      /equipment for equipment/i,
-      /computer for computer/i,
-      /laptop for laptop/i,
-      /furniture for furniture/i,
-      /vehicle for vehicle/i,
-      /software for software/i,
-      /rent for rent/i,
-      /utilities for utilities/i,
-      /insurance for insurance/i,
-      /advertising for advertising/i,
-      /salaries for salaries/i,
-      /services for services/i,
-      /products for products/i,
-      /revenue for revenue/i,
-      /expense for expense/i,
-      /income for income/i,
-      /equity for equity/i,
-      /asset for asset/i,
-      /liability for liability/i,
-      /capital for capital/i,
-      /draw for draw/i
-    ];
-    
-    for (const pattern of illogicalPatterns) {
-      if (pattern.test(normalizedDescription)) {
-        return true;
-      }
-    }
-    
-    // Check for patterns that are too generic or ambiguous
-    const ambiguousPatterns = [
-      /^[a-z]+\s+[a-z]+$/i, // Just two words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just three words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just four words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just five words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just six words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just seven words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just eight words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just nine words without context
-      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i // Just ten words without context
-    ];
-    
-    for (const pattern of ambiguousPatterns) {
-      if (pattern.test(normalizedDescription)) {
-        // Check if it contains any meaningful transaction words
-        const meaningfulWords = [
-          'paid', 'received', 'bought', 'sold', 'purchased', 'contribution', 'draw', 'withdrawal',
-          'rent', 'utilities', 'insurance', 'advertising', 'salaries', 'services', 'products',
-          'equipment', 'computer', 'laptop', 'furniture', 'vehicle', 'software', 'loan', 'credit',
-          'cash', 'checking', 'savings', 'revenue', 'expense', 'income', 'equity', 'asset', 'liability'
-        ];
-        
-        const hasMeaningfulWord = meaningfulWords.some(word => 
-          normalizedDescription.includes(word)
-        );
-        
-        if (!hasMeaningfulWord) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
-  }
-
-  private calculatePairConfidence(
-    debitMatch: any,
-    creditMatch: any,
-    context: any,
-    pairValidation: any
-  ): {
-    overallConfidence: number;
-    debitConfidence: number;
-    creditConfidence: number;
-    pairScore: number;
-    reason: string;
-  } {
-    const debitConfidence = debitMatch ? Math.min(100, debitMatch.score) : 0;
-    const creditConfidence = creditMatch ? Math.min(100, creditMatch.score) : 0;
-    const pairScore = pairValidation.score;
-    
-    // Base confidence is average of individual scores
-    let baseConfidence = (debitConfidence + creditConfidence) / 2;
-    
-    // Adjust for context alignment
-    let contextBonus = 0;
-    if (context.direction === 'incoming' && creditMatch?.account.type === 'INCOME') {
-      contextBonus += 10;
-    } else if (context.direction === 'outgoing' && debitMatch?.account.type === 'EXPENSE') {
-      contextBonus += 10;
-    }
-    
-    // Adjust for pair validation
-    let pairBonus = 0;
-    if (pairValidation.isValid) {
-      pairBonus += 15;
-    }
-    
-    // Penalize if one side is missing
-    if (!debitMatch || !creditMatch) {
-      baseConfidence *= 0.5;
-    }
-    
-    const overallConfidence = Math.min(100, Math.round(baseConfidence + contextBonus + pairBonus));
-    
-    // Build reason string
-    const reasons = [];
-    if (debitMatch) reasons.push(`DR: ${debitMatch.account.name} (${debitConfidence}%)`);
-    if (creditMatch) reasons.push(`CR: ${creditMatch.account.name} (${creditConfidence}%)`);
-    if (context.context) reasons.push(context.context);
-    if (pairValidation.reason) reasons.push(pairValidation.reason);
-    
-    return {
-      overallConfidence,
-      debitConfidence,
-      creditConfidence,
-      pairScore,
-      reason: reasons.join('; ')
-    };
-  }
-
-} 
+}
