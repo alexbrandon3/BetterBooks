@@ -41,4 +41,7 @@ router.post('/weights', authenticate, suggestionController.createOrUpdateWeight.
 router.delete('/weights/:id', authenticate, suggestionController.deleteWeight.bind(suggestionController));
 router.post('/weights/initialize-defaults', authenticate, suggestionController.initializeDefaultWeights.bind(suggestionController));
 
+// Add test backend route
+router.get('/test-backend', authenticate, suggestionController.testBackend.bind(suggestionController));
+
 export default router; 

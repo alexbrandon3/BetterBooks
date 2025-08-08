@@ -490,6 +490,32 @@ export class SuggestionController extends BaseController {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
+
+  // Simple test endpoint to verify backend is working
+  async testBackend(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      console.log('🧪 TEST BACKEND ENDPOINT CALLED');
+      console.log('👤 User ID:', req.user.userId);
+      
+      // Test basic service functionality
+      const userId = req.user.userId;
+      const accounts = await this.suggestionService['accountRepo'].find({
+        where: { user: { id: userId } }
+      });
+      
+      console.log(`📋 Found ${accounts.length} accounts for user`);
+      
+      this.sendResponse(res, 200, {
+        message: 'Backend is working',
+        userId,
+        accountCount: accounts.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error in testBackend:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
 }
 
 export const getSuggestions = async (req: Request, res: Response) => {
