@@ -6,23 +6,23 @@ import { logError } from '../utils/logger';
 
 // Type definitions for dual-side suggestions
 interface DualSideSuggestion {
-  debitAccount: {
-    id: number;
-    name: string;
-    type: string;
-    score: number;
+  debitSide: {
+    suggestedAccountId: number;
+    suggestedAccountName: string;
     reason: string;
-  };
-  creditAccount: {
-    id: number;
-    name: string;
-    type: string;
-    score: number;
+    accountType: string;
+    confidence: number;
+  } | null;
+  creditSide: {
+    suggestedAccountId: number;
+    suggestedAccountName: string;
     reason: string;
-  };
+    accountType: string;
+    confidence: number;
+  } | null;
   overallConfidence: number;
-  pairValidation: string;
-  context: string;
+  transactionType: string;
+  rationale: string;
 }
 
 type TransactionContext = {
@@ -694,28 +694,28 @@ export class SuggestionService {
     }
     
     const suggestion: DualSideSuggestion = {
-      debitAccount: {
-        id: debitAccount.id,
-        name: debitAccount.name,
-        type: debitAccount.type,
-        score: debitAccount.score,
-        reason: debitAccount.reason
+      debitSide: {
+        suggestedAccountId: debitAccount.id,
+        suggestedAccountName: debitAccount.name,
+        reason: debitAccount.reason,
+        accountType: debitAccount.type,
+        confidence: debitAccount.score
       },
-      creditAccount: {
-        id: creditAccount.id,
-        name: creditAccount.name,
-        type: creditAccount.type,
-        score: creditAccount.score,
-        reason: creditAccount.reason
+      creditSide: {
+        suggestedAccountId: creditAccount.id,
+        suggestedAccountName: creditAccount.name,
+        reason: creditAccount.reason,
+        accountType: creditAccount.type,
+        confidence: creditAccount.score
       },
       overallConfidence: confidenceResult.overallConfidence,
-      pairValidation: pairValidation.reason,
-      context: context.direction
+      transactionType: 'EXPENSE', // Default type, could be enhanced later
+      rationale: `Complete transaction: ${debitAccount.name} ↔ ${creditAccount.name}. ${pairValidation.reason}`
     };
     
     console.log(`✅ DUAL-SIDE SUGGESTION COMPLETE:`, {
-      debit: suggestion.debitAccount.name,
-      credit: suggestion.creditAccount.name,
+      debit: suggestion.debitSide?.suggestedAccountName,
+      credit: suggestion.creditSide?.suggestedAccountName,
       confidence: suggestion.overallConfidence
     });
     
