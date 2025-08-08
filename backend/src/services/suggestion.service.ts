@@ -665,7 +665,14 @@ export class SuggestionService {
     
     // Find matching accounts for both sides using different strategies
     const debitAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'debit', context);
-          const creditAccount = this.findPaymentAccount(accounts); // Use payment account logic for credit
+    
+    // Try pattern matching for credit side first, then fall back to payment account logic
+    let creditAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'credit', context);
+    
+    if (!creditAccount || creditAccount.score < 60) {
+      console.log(`⚠️ Pattern match for credit side was weak or null. Falling back to payment account logic.`);
+      creditAccount = this.findPaymentAccount(accounts);
+    }
     
     console.log(`💳 Debit account found:`, debitAccount ? `${debitAccount.name} (score: ${debitAccount.score})` : 'null');
     console.log(`💳 Credit account found:`, creditAccount ? `${creditAccount.name} (score: ${creditAccount.score})` : 'null');
