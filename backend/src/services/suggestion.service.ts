@@ -387,10 +387,10 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase'],
           categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
           reason: 'Fuel and transportation related transaction',
-          priority: 4
+          priority: 5  // Higher priority to override generic "purchase"
         },
         {
           keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping', 'airport', 'travel', 'mileage'],
@@ -410,12 +410,7 @@ export class SuggestionService {
           reason: 'Shopping and retail transaction',
           priority: 4
         },
-        {
-          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance', 'commercial insurance', 'liability', 'workers comp'],
-          categories: ['Insurance', 'Business Insurance'],
-          reason: 'Insurance related transaction',
-          priority: 4
-        },
+
         // Additional common business categories
         {
           keywords: ['maintenance', 'repair', 'service', 'cleaning', 'janitorial', 'landscaping', 'plumbing', 'electrical', 'hvac service', 'pest control'],
@@ -436,16 +431,16 @@ export class SuggestionService {
           priority: 4
         },
         {
-          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy'],
+          keywords: ['printer', 'paper', 'ink', 'toner', 'staples', 'office depot', 'print', 'copying', 'photocopy', 'printer paper', 'toner cartridge', 'photocopy paper'],
           categories: ['Supplies', 'Office Supplies', 'Equipment'],
           reason: 'Printing and office supplies transaction',
-          priority: 4
+          priority: 5  // Higher priority to override generic keywords
         },
         {
-          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance'],
-          categories: ['Insurance', 'Professional Services'],
+          keywords: ['insurance', 'premium', 'policy', 'coverage', 'liability', 'property insurance', 'business insurance', 'health insurance', 'auto insurance', 'insurance premium', 'liability insurance', 'property insurance', 'car insurance', 'home insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'commercial insurance', 'workers comp'],
+          categories: ['Insurance', 'Business Insurance', 'Professional Services'],
           reason: 'Insurance related transaction',
-          priority: 4
+          priority: 5  // Higher priority to override generic keywords
         }
       ];
 
@@ -457,7 +452,11 @@ export class SuggestionService {
       console.log('🔍 Searching for keyword matches...');
       
       for (const mapping of keywordMap) {
-        const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
+        const foundKeyword = mapping.keywords.find(keyword => {
+          // Use word boundary matching to prevent partial word matches
+          const wordBoundaryRegex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          return wordBoundaryRegex.test(normalizedDescription);
+        });
         if (foundKeyword) {
           console.log(`✅ Found keyword match: "${foundKeyword}" for category: ${mapping.categories[0]} (priority: ${mapping.priority})`);
           // Prioritize by priority number (lower number = higher priority)
