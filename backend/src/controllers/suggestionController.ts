@@ -464,13 +464,29 @@ export class SuggestionController extends BaseController {
       const userId = req.user.userId;
       console.log('🔍 Calling suggestDualSidesForDescription with:', { description, userId });
       
-      const dualSuggestion = await this.suggestionService.suggestDualSidesForDescription(description, userId);
+      // Test if the service is working at all
+      console.log('🔍 Testing service instantiation...');
+      console.log('🔍 Service instance:', this.suggestionService);
+      console.log('🔍 Service methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(this.suggestionService)));
       
-      console.log('📊 Dual suggestion result:', dualSuggestion);
+      // Add try-catch around the service call to catch any exceptions
+      let dualSuggestion;
+      try {
+        dualSuggestion = await this.suggestionService.suggestDualSidesForDescription(description, userId);
+        console.log('📊 Dual suggestion result from service:', dualSuggestion);
+      } catch (serviceError) {
+        console.error('❌ Error in suggestDualSidesForDescription:', serviceError);
+        console.error('❌ Error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack trace');
+        this.sendError(res, 500, `Service error: ${serviceError instanceof Error ? serviceError.message : 'Unknown error'}`);
+        return;
+      }
+      
+      console.log('📊 Final dual suggestion result:', dualSuggestion);
       
       this.sendResponse(res, 200, dualSuggestion);
     } catch (error) {
       console.error('❌ Error in suggestDualSides:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
