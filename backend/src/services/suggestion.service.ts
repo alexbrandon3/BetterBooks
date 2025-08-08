@@ -753,7 +753,17 @@ export class SuggestionService {
         creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
       },
       {
+        description: 'owner contribution',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
         description: 'owner draw',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'owner withdrawal',
         debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
         creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
       },
@@ -776,6 +786,65 @@ export class SuggestionService {
         description: 'loan repayment',
         debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
         creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid loan',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      // Equipment and asset patterns
+      {
+        description: 'asset purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop', 'furniture', 'vehicle', 'software'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      // Expense patterns
+      {
+        description: 'utilities expense',
+        debitAccount: { keywords: ['utilities expense', 'utilities'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'insurance expense',
+        debitAccount: { keywords: ['insurance expense', 'insurance'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'advertising expense',
+        debitAccount: { keywords: ['advertising expense', 'advertising'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'salaries expense',
+        debitAccount: { keywords: ['salaries expense', 'salaries'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      // Revenue patterns
+      {
+        description: 'service revenue',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['service revenue', 'revenue'], type: 'INCOME' }
+      },
+      {
+        description: 'sales revenue',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['sales revenue', 'revenue'], type: 'INCOME' }
+      },
+      // Credit card patterns
+      {
+        description: 'rent expense credit card',
+        debitAccount: { keywords: ['rent expense', 'rent'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['credit card'], type: 'LIABILITY' }
+      },
+      {
+        description: 'equipment credit card',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['credit card'], type: 'LIABILITY' }
+      },
+      {
+        description: 'utilities expense checking',
+        debitAccount: { keywords: ['utilities expense', 'utilities'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['checking'], type: 'ASSET' }
       }
     ];
     
@@ -861,10 +930,17 @@ export class SuggestionService {
     
     let bestMatch: { account: Account; score: number; reason: string } | null = null;
     
-    // Define payment account types and keywords
+    // Define payment account types and keywords with priority
     const paymentAccounts = [
-      { type: 'ASSET', keywords: ['cash', 'checking', 'savings', 'petty cash', 'undeposited funds'] },
-      { type: 'LIABILITY', keywords: ['credit card', 'accounts payable', 'loan payable'] }
+      // Credit cards (highest priority for credit transactions)
+      { type: 'LIABILITY', keywords: ['credit card'], score: 90, reason: 'Credit card payment' },
+      // Checking accounts (second priority)
+      { type: 'ASSET', keywords: ['checking'], score: 85, reason: 'Checking account payment' },
+      // Cash accounts (third priority)
+      { type: 'ASSET', keywords: ['cash'], score: 80, reason: 'Cash payment' },
+      // Other payment accounts
+      { type: 'ASSET', keywords: ['savings', 'petty cash', 'undeposited funds'], score: 75, reason: 'Payment account' },
+      { type: 'LIABILITY', keywords: ['accounts payable', 'loan payable'], score: 70, reason: 'Liability payment' }
     ];
     
     for (const account of accounts) {
@@ -880,8 +956,8 @@ export class SuggestionService {
         const accountNameLower = account.name.toLowerCase();
         for (const keyword of paymentType.keywords) {
           if (accountNameLower.includes(keyword)) {
-            score = 80; // High score for payment accounts
-            reason = `Payment account: ${account.name}`;
+            score = paymentType.score;
+            reason = paymentType.reason;
             console.log(`    ✅ Payment account match: ${score} points. Reason: ${reason}`);
             break;
           }
@@ -1151,6 +1227,8 @@ export class SuggestionService {
       'mortgage payment': 'debt payment',
       'credit card payment': 'debt payment',
       'principal payment': 'debt payment',
+      'rent payment': 'paid rent',
+      'customer payment received': 'received customer payment',
       
       // Equipment variations
       'equipment purchase': 'asset purchase',
@@ -1159,7 +1237,28 @@ export class SuggestionService {
       'furniture purchase': 'asset purchase',
       'laptop purchase': 'asset purchase',
       'laptop computer': 'asset purchase',
-      'computer equipment': 'asset purchase'
+      'computer equipment': 'asset purchase',
+      'purchased computer': 'bought laptop',
+      'bought office furniture': 'bought laptop',
+      'purchased vehicle': 'bought laptop',
+      'bought software': 'bought laptop',
+      
+      // Revenue variations
+      'sold services': 'service revenue',
+      'received payment for services': 'service revenue',
+      'sold products': 'sales revenue',
+      'received payment for products': 'sales revenue',
+      
+      // Expense variations
+      'paid utilities': 'utilities expense',
+      'paid insurance': 'insurance expense',
+      'paid advertising': 'advertising expense',
+      'paid salaries': 'salaries expense',
+      
+      // Credit variations
+      'paid rent with credit card': 'rent expense credit card',
+      'bought laptop on credit': 'equipment credit card',
+      'paid utilities by check': 'utilities expense checking'
     };
     
     let normalized = description.toLowerCase();
@@ -1418,6 +1517,22 @@ export class SuggestionService {
     // Check if description is just a number or amount
     if (/^\d+(\.\d+)?$/.test(normalizedDescription)) {
       return true;
+    }
+    
+    // Check for illogical transactions (same account on both sides)
+    const illogicalPatterns = [
+      /paid cash for cash/i,
+      /received cash from cash/i,
+      /equipment to equipment/i,
+      /cash to cash/i,
+      /checking to checking/i,
+      /credit card to credit card/i
+    ];
+    
+    for (const pattern of illogicalPatterns) {
+      if (pattern.test(normalizedDescription)) {
+        return true;
+      }
     }
     
     return false;
