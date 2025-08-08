@@ -731,6 +731,40 @@ export class SuggestionService {
     console.log(`\n🔍 Finding ${side} account...`);
     console.log(`📝 Phrases to match:`, normalizedPhrases);
     
+    // Define specific transaction patterns for better matching
+    const transactionPatterns = [
+      {
+        description: 'initial contribution',
+        debitAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'owner draw',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid rent',
+        debitAccount: { keywords: ['rent expense', 'rent'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'received customer payment',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['accounts receivable', 'receivable'], type: 'ASSET' }
+      },
+      {
+        description: 'bought laptop',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'loan repayment',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      }
+    ];
+    
     let bestMatch: { account: Account; score: number; reason: string } | null = null;
     
     for (const account of accounts) {
@@ -739,12 +773,41 @@ export class SuggestionService {
       let score = 0;
       let reason = '';
       
-      // Check each pattern - using the existing keyword matching logic
-      const keywordSuggestion = this.findKeywordSuggestion(normalizedPhrases[0], account);
-      if (keywordSuggestion) {
-        score = keywordSuggestion.score;
-        reason = keywordSuggestion.reason;
-        console.log(`    ✅ Keyword match: ${score} points. Reason: ${reason}`);
+      // Check specific transaction patterns first
+      const description = normalizedPhrases[0];
+      const matchingPattern = transactionPatterns.find(pattern => 
+        description.includes(pattern.description) || pattern.description.includes(description)
+      );
+      
+      if (matchingPattern) {
+        const targetAccount = side === 'debit' ? matchingPattern.debitAccount : matchingPattern.creditAccount;
+        
+        // Check if account matches the pattern
+        const accountNameLower = account.name.toLowerCase();
+        const typeMatch = account.type === targetAccount.type;
+        const keywordMatch = targetAccount.keywords.some(keyword => 
+          accountNameLower.includes(keyword.toLowerCase())
+        );
+        
+        if (typeMatch && keywordMatch) {
+          score = 90; // High score for pattern matches
+          reason = `Pattern match: ${matchingPattern.description} → ${account.name}`;
+          console.log(`    ✅ Pattern match: ${score} points. Reason: ${reason}`);
+        } else if (typeMatch) {
+          score = 60; // Medium score for type match
+          reason = `Type match for pattern: ${account.type}`;
+          console.log(`    🎯 Type match for pattern: ${score} points. Reason: ${reason}`);
+        }
+      }
+      
+      // Fall back to keyword matching if no pattern match
+      if (score === 0) {
+        const keywordSuggestion = this.findKeywordSuggestion(description, account);
+        if (keywordSuggestion) {
+          score = keywordSuggestion.score;
+          reason = keywordSuggestion.reason;
+          console.log(`    ✅ Keyword match: ${score} points. Reason: ${reason}`);
+        }
       }
       
       // Apply context alignment bonus
