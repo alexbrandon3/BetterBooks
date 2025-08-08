@@ -641,6 +641,13 @@ export class SuggestionService {
     const normalizedDescription = description.toLowerCase().trim();
     console.log(`🔄 Normalized description: "${normalizedDescription}"`);
     
+    // Check for vague descriptions
+    const isActuallyVague = this.isVagueDescription(normalizedDescription);
+    if (isActuallyVague) {
+      console.log(`❌ Description is too vague: "${description}" - returning null`);
+      return null;
+    }
+    
     // Apply phrase normalization
     const normalizedPhrases = this.normalizePhrases(normalizedDescription);
     console.log(`📝 Normalized phrases:`, normalizedPhrases);
@@ -735,8 +742,8 @@ export class SuggestionService {
     const transactionPatterns = [
       {
         description: 'initial contribution',
-        debitAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' },
-        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
       },
       {
         description: 'owner draw',
@@ -1358,6 +1365,57 @@ export class SuggestionService {
   }
 
   // Deterministic confidence composer
+  private isVagueDescription(description: string): boolean {
+    const vagueTerms = [
+      'payment',
+      'transaction',
+      'entry',
+      'transfer',
+      'movement',
+      'adjustment',
+      'correction',
+      'entry',
+      'posting',
+      'journal',
+      'ledger',
+      'accounting',
+      'bookkeeping',
+      'record',
+      'document',
+      'receipt',
+      'invoice',
+      'bill',
+      'charge',
+      'debit',
+      'credit',
+      'amount',
+      'money',
+      'cash',
+      'check',
+      'deposit',
+      'withdrawal'
+    ];
+    
+    const normalizedDescription = description.toLowerCase().trim();
+    
+    // Check if the description is just a vague term
+    if (vagueTerms.includes(normalizedDescription)) {
+      return true;
+    }
+    
+    // Check if description is too short (less than 3 characters)
+    if (normalizedDescription.length < 3) {
+      return true;
+    }
+    
+    // Check if description is just a number or amount
+    if (/^\d+(\.\d+)?$/.test(normalizedDescription)) {
+      return true;
+    }
+    
+    return false;
+  }
+
   private calculatePairConfidence(
     debitMatch: any,
     creditMatch: any,
