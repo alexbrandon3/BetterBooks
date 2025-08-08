@@ -669,6 +669,41 @@ export class SuggestionService {
     // Try pattern matching for credit side first, then fall back to payment account logic
     let creditAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'credit', context);
     
+    // Check if we need to override the credit account based on payment method hints
+    const descriptionLower = description.toLowerCase();
+    const hasCreditCardHint = descriptionLower.includes('credit card') || descriptionLower.includes('credit') || descriptionLower.includes('on credit');
+    const hasCheckHint = descriptionLower.includes('check') || descriptionLower.includes('by check') || descriptionLower.includes('checking');
+    
+    // If we have payment method hints, try to find the specific payment account
+    if (hasCreditCardHint || hasCheckHint) {
+      console.log(`🎯 Payment method hint detected: ${hasCreditCardHint ? 'credit card' : 'check'}`);
+      
+      // Look for the specific payment account
+      const specificPaymentAccount = accounts.find(account => {
+        const accountNameLower = account.name.toLowerCase();
+        if (hasCreditCardHint && accountNameLower.includes('credit card')) {
+          return true;
+        }
+        if (hasCheckHint && accountNameLower.includes('checking')) {
+          return true;
+        }
+        return false;
+      });
+      
+      if (specificPaymentAccount) {
+        console.log(`✅ Found specific payment account: ${specificPaymentAccount.name}`);
+        creditAccount = {
+          id: specificPaymentAccount.id,
+          name: specificPaymentAccount.name,
+          type: specificPaymentAccount.type,
+          score: 95, // High score for specific payment method match
+          reason: `Specific payment method: ${hasCreditCardHint ? 'credit card' : 'check'}`
+        };
+      } else {
+        console.log(`⚠️ Specific payment account not found, keeping pattern match`);
+      }
+    }
+    
     if (!creditAccount || creditAccount.score < 60) {
       console.log(`⚠️ Pattern match for credit side was weak or null. Falling back to payment account logic.`);
       creditAccount = this.findPaymentAccount(accounts, description);
