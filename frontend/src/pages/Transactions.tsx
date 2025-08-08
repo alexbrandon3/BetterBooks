@@ -353,6 +353,7 @@ const Transactions = () => {
   const [warnings, setWarnings] = useState<BalanceWarning[]>([]);
   const [currentSuggestion, setCurrentSuggestion] = useState<any>(null);
   const [currentDualSuggestion, setCurrentDualSuggestion] = useState<any>(null);
+  const [currentCategorySuggestion, setCurrentCategorySuggestion] = useState<any>(null);
   const [suggestionAccepted, setSuggestionAccepted] = useState<boolean>(false);
   const [suggestionRejected, setSuggestionRejected] = useState<boolean>(false);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
@@ -563,7 +564,13 @@ const Transactions = () => {
         }
 
         if (categorySuggestion) {
+          console.log('✅ Applying category suggestion:', categorySuggestion);
           setValue('category', categorySuggestion.suggestedCategory);
+          setCurrentCategorySuggestion(categorySuggestion);
+          console.log('✅ Category field updated to:', categorySuggestion.suggestedCategory);
+        } else {
+          console.log('❌ No category suggestion found');
+          setCurrentCategorySuggestion(null);
         }
       } catch (error) {
         console.error('❌ Error getting suggestions:', error);
@@ -595,6 +602,7 @@ const Transactions = () => {
     setWarnings([]);
     setCurrentSuggestion(null);
     setCurrentDualSuggestion(null);
+    setCurrentCategorySuggestion(null);
     setSuggestionAccepted(false);
     setSuggestionRejected(false);
   };
@@ -935,6 +943,46 @@ const Transactions = () => {
             />
           )}
 
+          {/* Category Suggestion */}
+          {smartSuggestionsEnabled && currentCategorySuggestion && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-medium">📂</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-900">Category Suggestion</h3>
+                    <p className="text-sm text-blue-700">
+                      Suggested: <span className="font-semibold">{currentCategorySuggestion.suggestedCategory}</span>
+                      <span className="ml-2 text-xs">({currentCategorySuggestion.confidence}% confidence)</span>
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">{currentCategorySuggestion.reason}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentCategorySuggestion(null)}
+                    className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('category', '');
+                      setCurrentCategorySuggestion(null);
+                    }}
+                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Accepted Message */}
           {suggestionAccepted && smartSuggestionsEnabled && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -956,12 +1004,28 @@ const Transactions = () => {
             </FormField>
             
             <FormField label="Category" error={errors.category?.message}>
-              <input
-                type="text"
-                {...register("category")}
-                placeholder="e.g., Food, Transportation, Utilities"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  {...register("category")}
+                  placeholder="e.g., Food, Transportation, Utilities, Marketing, Rent"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+                {/* Help text */}
+                <div className="mt-1 text-xs text-gray-500">
+                  Categories help organize transactions for reporting and analysis. 
+                  Smart suggestions will auto-fill based on your description.
+                </div>
+                {/* Visual indicator when category is suggested */}
+                {watch("category") && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-600 font-medium">Suggested</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </FormField>
           </div>
 

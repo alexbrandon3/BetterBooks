@@ -293,8 +293,10 @@ export class SuggestionService {
     detailedReason: string;
   } | null> {
     try {
+      console.log('🔍 suggestCategoryForDescription called with:', description);
       
       if (!description || description.trim().length === 0) {
+        console.log('❌ Empty description provided');
         return null;
       }
 
@@ -303,6 +305,8 @@ export class SuggestionService {
         .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .trim();
+      
+      console.log('🔍 Normalized description:', normalizedDescription);
       
       // Use the same keyword mapping as account suggestions but extract category information
       const keywordMap = [
@@ -377,39 +381,58 @@ export class SuggestionService {
         },
         // PRIORITY 4: Business-Specific Expenses
         {
-          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal', 'client dinner', 'business lunch', 'catering', 'office lunch'],
+          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal', 'client dinner', 'business lunch', 'catering', 'office lunch', 'delivery', 'takeout', 'fast food', 'subway', 'mcdonalds', 'starbucks', 'chipotle'],
           categories: ['Food', 'Dining', 'Meals & Entertainment', 'Business Meals'],
           reason: 'Food and dining related transaction',
           priority: 4
         },
         {
-          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van'],
+          keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel'],
           categories: ['Transportation', 'Auto', 'Fuel', 'Vehicle Expense'],
           reason: 'Fuel and gas related transaction',
           priority: 4
         },
         {
-          keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping'],
+          keywords: ['uber', 'lyft', 'taxi', 'transport', 'parking', 'toll', 'metro', 'subway', 'bus', 'train', 'transit', 'rideshare', 'business transport', 'delivery', 'courier', 'shipping', 'airport', 'travel', 'mileage'],
           categories: ['Transportation', 'Auto', 'Public Transport', 'Delivery'],
           reason: 'Transportation related transaction',
           priority: 4
         },
         {
-          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies'],
+          keywords: ['grocery', 'supermarket', 'walmart', 'target', 'costco', 'safeway', 'kroger', 'whole foods', 'trader joes', 'aldi', 'publix', 'wegmans', 'office supplies', 'break room', 'kitchen supplies', 'staples', 'office depot'],
           categories: ['Food', 'Groceries', 'Office Supplies', 'Kitchen Supplies'],
           reason: 'Grocery and supplies transaction',
           priority: 4
         },
         {
-          keywords: ['amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy', 'business purchase', 'uniform', 'safety equipment', 'ppe'],
+          keywords: ['amazon', 'online', 'shopping', 'clothing', 'apparel', 'shoes', 'electronics', 'best buy', 'home depot', 'lowes', 'target', 'walmart', 'ebay', 'etsy', 'business purchase', 'uniform', 'safety equipment', 'ppe', 'computer', 'laptop', 'printer', 'paper'],
           categories: ['Shopping', 'Retail', 'Online Shopping', 'Business Supplies'],
           reason: 'Shopping and retail transaction',
           priority: 4
         },
         {
-          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance', 'commercial insurance'],
+          keywords: ['insurance', 'car insurance', 'home insurance', 'health insurance', 'life insurance', 'geico', 'state farm', 'allstate', 'progressive', 'farmers', 'business insurance', 'commercial insurance', 'liability', 'workers comp'],
           categories: ['Insurance', 'Business Insurance'],
           reason: 'Insurance related transaction',
+          priority: 4
+        },
+        // Additional common business categories
+        {
+          keywords: ['maintenance', 'repair', 'service', 'cleaning', 'janitorial', 'landscaping', 'plumbing', 'electrical', 'hvac service', 'pest control'],
+          categories: ['Maintenance', 'Repairs', 'Facility Services'],
+          reason: 'Maintenance and repair transaction',
+          priority: 4
+        },
+        {
+          keywords: ['training', 'education', 'course', 'workshop', 'seminar', 'conference', 'certification', 'professional development', 'skill development'],
+          categories: ['Training', 'Education', 'Professional Development'],
+          reason: 'Training and education transaction',
+          priority: 4
+        },
+        {
+          keywords: ['bank', 'banking', 'checking', 'savings', 'credit card', 'debit card', 'atm', 'wire transfer', 'ach', 'direct deposit'],
+          categories: ['Banking', 'Financial Services'],
+          reason: 'Banking and financial services transaction',
           priority: 4
         }
       ];
@@ -419,15 +442,18 @@ export class SuggestionService {
       let matchedKeyword = null;
       let bestPriority = 999; // Start with high number (lower is better)
       
+      console.log('🔍 Searching for keyword matches...');
+      
       for (const mapping of keywordMap) {
         const foundKeyword = mapping.keywords.find(keyword => normalizedDescription.includes(keyword));
         if (foundKeyword) {
+          console.log(`✅ Found keyword match: "${foundKeyword}" for category: ${mapping.categories[0]} (priority: ${mapping.priority})`);
           // Prioritize by priority number (lower number = higher priority)
           if (mapping.priority < bestPriority) {
             matchedCategory = mapping;
             matchedKeyword = foundKeyword;
             bestPriority = mapping.priority;
-            console.log('✅ Found keyword match for category:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
+            console.log('✅ Updated best match:', foundKeyword, 'Category:', mapping.categories[0], 'Priority:', mapping.priority);
           }
         }
       }
