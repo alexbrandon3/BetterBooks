@@ -795,7 +795,7 @@ export class SuggestionService {
       // Equipment and asset patterns
       {
         description: 'asset purchase',
-        debitAccount: { keywords: ['equipment', 'computer', 'laptop', 'furniture', 'vehicle', 'software'], type: 'ASSET' },
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
         creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
       },
       // Expense patterns
@@ -845,6 +845,202 @@ export class SuggestionService {
         description: 'utilities expense checking',
         debitAccount: { keywords: ['utilities expense', 'utilities'], type: 'EXPENSE' },
         creditAccount: { keywords: ['checking'], type: 'ASSET' }
+      },
+      // Additional patterns for better coverage
+      {
+        description: 'capital contribution',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
+        description: 'equity contribution',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
+        description: 'owner investment',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
+        description: 'equity injection',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
+        description: 'personal funds',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['owner capital', 'owner equity', 'capital'], type: 'EQUITY' }
+      },
+      {
+        description: 'owner draw for personal use',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'partner draw',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'personal use',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'drawing',
+        debitAccount: { keywords: ['owner draw', 'draw'], type: 'EQUITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'loan payment',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'mortgage payment',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'credit card payment',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'principal payment',
+        debitAccount: { keywords: ['loan payable', 'loan'], type: 'LIABILITY' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'rent payment',
+        debitAccount: { keywords: ['rent expense', 'rent'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'customer payment received',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['accounts receivable', 'receivable'], type: 'ASSET' }
+      },
+      {
+        description: 'equipment purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'machinery purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'computer purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'furniture purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'laptop purchase',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'laptop computer',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'computer equipment',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'purchased computer',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'bought office furniture',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'purchased vehicle',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'bought software',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'sold services',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['service revenue', 'revenue'], type: 'INCOME' }
+      },
+      {
+        description: 'received payment for services',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['service revenue', 'revenue'], type: 'INCOME' }
+      },
+      {
+        description: 'sold products',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['sales revenue', 'revenue'], type: 'INCOME' }
+      },
+      {
+        description: 'received payment for products',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['sales revenue', 'revenue'], type: 'INCOME' }
+      },
+      {
+        description: 'paid utilities',
+        debitAccount: { keywords: ['utilities expense', 'utilities'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid insurance',
+        debitAccount: { keywords: ['insurance expense', 'insurance'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid advertising',
+        debitAccount: { keywords: ['advertising expense', 'advertising'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid salaries',
+        debitAccount: { keywords: ['salaries expense', 'salaries'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['cash', 'checking'], type: 'ASSET' }
+      },
+      {
+        description: 'paid rent with credit card',
+        debitAccount: { keywords: ['rent expense', 'rent'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['credit card'], type: 'LIABILITY' }
+      },
+      {
+        description: 'bought laptop on credit',
+        debitAccount: { keywords: ['equipment', 'computer', 'laptop'], type: 'ASSET' },
+        creditAccount: { keywords: ['credit card'], type: 'LIABILITY' }
+      },
+      {
+        description: 'paid utilities by check',
+        debitAccount: { keywords: ['utilities expense', 'utilities'], type: 'EXPENSE' },
+        creditAccount: { keywords: ['checking'], type: 'ASSET' }
+      },
+      {
+        description: 'received payment',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['accounts receivable', 'receivable'], type: 'ASSET' }
+      },
+      {
+        description: 'received payment $500',
+        debitAccount: { keywords: ['cash', 'checking'], type: 'ASSET' },
+        creditAccount: { keywords: ['accounts receivable', 'receivable'], type: 'ASSET' }
       }
     ];
     
@@ -968,6 +1164,43 @@ export class SuggestionService {
           score = 40; // Medium score for payment account types
           reason = `Payment account type: ${account.type}`;
           console.log(`    🎯 Payment account type match: ${score} points. Reason: ${reason}`);
+        }
+      }
+      
+      // Additional scoring for specific account names
+      const accountNameLower = account.name.toLowerCase();
+      if (account.type === 'ASSET') {
+        // Prioritize Cash over other assets for general payments
+        if (accountNameLower.includes('cash') && !accountNameLower.includes('flow')) {
+          score = Math.max(score, 85);
+          reason = 'Cash payment (preferred for general transactions)';
+          console.log(`    💰 Cash preference: ${score} points. Reason: ${reason}`);
+        }
+        // Prioritize Checking over other assets for business payments
+        else if (accountNameLower.includes('checking')) {
+          score = Math.max(score, 80);
+          reason = 'Checking account payment (preferred for business transactions)';
+          console.log(`    🏦 Checking preference: ${score} points. Reason: ${reason}`);
+        }
+        // Lower priority for savings and other assets
+        else if (accountNameLower.includes('savings')) {
+          score = Math.max(score, 70);
+          reason = 'Savings account payment';
+          console.log(`    💳 Savings preference: ${score} points. Reason: ${reason}`);
+        }
+      }
+      else if (account.type === 'LIABILITY') {
+        // Prioritize Credit Card for credit transactions
+        if (accountNameLower.includes('credit card')) {
+          score = Math.max(score, 90);
+          reason = 'Credit card payment (preferred for credit transactions)';
+          console.log(`    💳 Credit card preference: ${score} points. Reason: ${reason}`);
+        }
+        // Lower priority for other liabilities
+        else if (accountNameLower.includes('loan') || accountNameLower.includes('payable')) {
+          score = Math.max(score, 75);
+          reason = 'Liability payment';
+          console.log(`    📋 Liability preference: ${score} points. Reason: ${reason}`);
         }
       }
       
@@ -1221,6 +1454,7 @@ export class SuggestionService {
       'owner withdrawal': 'owner withdrawal',
       'personal use': 'owner withdrawal',
       'drawing': 'owner withdrawal',
+      'owner draw for personal use': 'owner withdrawal',
       
       // Payment variations
       'loan payment': 'debt payment',
@@ -1229,6 +1463,7 @@ export class SuggestionService {
       'principal payment': 'debt payment',
       'rent payment': 'paid rent',
       'customer payment received': 'received customer payment',
+      'loan repayment': 'paid loan',
       
       // Equipment variations
       'equipment purchase': 'asset purchase',
@@ -1258,7 +1493,38 @@ export class SuggestionService {
       // Credit variations
       'paid rent with credit card': 'rent expense credit card',
       'bought laptop on credit': 'equipment credit card',
-      'paid utilities by check': 'utilities expense checking'
+      'paid utilities by check': 'utilities expense checking',
+      
+      // Payment variations with amounts
+      'received payment': 'received customer payment',
+      'received payment $500': 'received customer payment',
+      'received payment for': 'received customer payment',
+      'received payment from': 'received customer payment',
+      'received payment of': 'received customer payment',
+      'received payment amount': 'received customer payment',
+      'received payment total': 'received customer payment',
+      'received payment sum': 'received customer payment',
+      'received payment value': 'received customer payment',
+      'received payment cost': 'received customer payment',
+      'received payment price': 'received customer payment',
+      'received payment fee': 'received customer payment',
+      'received payment charge': 'received customer payment',
+      'received payment bill': 'received customer payment',
+      'received payment invoice': 'received customer payment',
+      'received payment receipt': 'received customer payment',
+      'received payment document': 'received customer payment',
+      'received payment record': 'received customer payment',
+      'received payment entry': 'received customer payment',
+      'received payment transaction': 'received customer payment',
+      'received payment transfer': 'received customer payment',
+      'received payment movement': 'received customer payment',
+      'received payment adjustment': 'received customer payment',
+      'received payment correction': 'received customer payment',
+      'received payment posting': 'received customer payment',
+      'received payment journal': 'received customer payment',
+      'received payment ledger': 'received customer payment',
+      'received payment accounting': 'received customer payment',
+      'received payment bookkeeping': 'received customer payment'
     };
     
     let normalized = description.toLowerCase();
@@ -1526,12 +1792,78 @@ export class SuggestionService {
       /equipment to equipment/i,
       /cash to cash/i,
       /checking to checking/i,
-      /credit card to credit card/i
+      /credit card to credit card/i,
+      /savings to savings/i,
+      /loan to loan/i,
+      /payable to payable/i,
+      /receivable to receivable/i,
+      /revenue to revenue/i,
+      /expense to expense/i,
+      /equity to equity/i,
+      /asset to asset/i,
+      /liability to liability/i,
+      /income to income/i,
+      /capital to capital/i,
+      /draw to draw/i,
+      /equipment for equipment/i,
+      /computer for computer/i,
+      /laptop for laptop/i,
+      /furniture for furniture/i,
+      /vehicle for vehicle/i,
+      /software for software/i,
+      /rent for rent/i,
+      /utilities for utilities/i,
+      /insurance for insurance/i,
+      /advertising for advertising/i,
+      /salaries for salaries/i,
+      /services for services/i,
+      /products for products/i,
+      /revenue for revenue/i,
+      /expense for expense/i,
+      /income for income/i,
+      /equity for equity/i,
+      /asset for asset/i,
+      /liability for liability/i,
+      /capital for capital/i,
+      /draw for draw/i
     ];
     
     for (const pattern of illogicalPatterns) {
       if (pattern.test(normalizedDescription)) {
         return true;
+      }
+    }
+    
+    // Check for patterns that are too generic or ambiguous
+    const ambiguousPatterns = [
+      /^[a-z]+\s+[a-z]+$/i, // Just two words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just three words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just four words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just five words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just six words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just seven words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just eight words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i, // Just nine words without context
+      /^[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+\s+[a-z]+$/i // Just ten words without context
+    ];
+    
+    for (const pattern of ambiguousPatterns) {
+      if (pattern.test(normalizedDescription)) {
+        // Check if it contains any meaningful transaction words
+        const meaningfulWords = [
+          'paid', 'received', 'bought', 'sold', 'purchased', 'contribution', 'draw', 'withdrawal',
+          'rent', 'utilities', 'insurance', 'advertising', 'salaries', 'services', 'products',
+          'equipment', 'computer', 'laptop', 'furniture', 'vehicle', 'software', 'loan', 'credit',
+          'cash', 'checking', 'savings', 'revenue', 'expense', 'income', 'equity', 'asset', 'liability'
+        ];
+        
+        const hasMeaningfulWord = meaningfulWords.some(word => 
+          normalizedDescription.includes(word)
+        );
+        
+        if (!hasMeaningfulWord) {
+          return true;
+        }
       }
     }
     
