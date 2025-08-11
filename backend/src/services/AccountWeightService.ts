@@ -818,13 +818,17 @@ export class AccountWeightService {
           keyword === "initial contribution" || keyword === "owner contribution" || keyword === "capital contribution" ||
           keyword === "business formation" || keyword === "personal funds" || keyword === "equity investment" ||
           keyword === "partner investment" || keyword === "owner draw" || keyword === "partner draw") {
-        // Look specifically for equity accounts, not just any account with these words
-        if (accountName.includes("equity") || accountName.includes("capital") || accountName.includes("owner") || 
-            accountName.includes("partner") || accountName.includes("draw") || accountName.includes("contribution") ||
-            accountName.includes("investment") || accountName.includes("member")) {
-          // Additional check to ensure it's actually an equity account, not a charitable contribution
-          if (!accountName.includes("charitable") && !accountName.includes("donation") && !accountName.includes("charity")) {
-            return account;
+        
+        // FIRST: Look for accounts that are actually EQUITY type accounts
+        if (account.type === 'EQUITY') {
+          // Look specifically for equity accounts, not just any account with these words
+          if (accountName.includes("equity") || accountName.includes("capital") || accountName.includes("owner") || 
+              accountName.includes("partner") || accountName.includes("draw") || accountName.includes("contribution") ||
+              accountName.includes("investment") || accountName.includes("member")) {
+            // Additional check to ensure it's actually an equity account, not a charitable contribution
+            if (!accountName.includes("charitable") && !accountName.includes("donation") && !accountName.includes("charity")) {
+              return account;
+            }
           }
         }
       }
