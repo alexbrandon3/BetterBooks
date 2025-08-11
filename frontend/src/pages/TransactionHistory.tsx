@@ -74,6 +74,18 @@ const TransactionHistory: React.FC = () => {
   // Bulk operations state
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+
+  // Predefined categories for bulk operations
+  const predefinedCategories = [
+    'Sales Revenue', 'Service Revenue', 'Product Sales', 'Commission Income',
+    'Rent Expense', 'Utilities Expense', 'Payroll Expense', 'Marketing Expense',
+    'Travel Expense', 'Equipment Expense', 'Insurance Expense', 'Legal Expense',
+    'Accounting Expense', 'Software Expense', 'Office Supplies', 'Maintenance Expense',
+    'Cash & Bank', 'Accounts Receivable', 'Inventory', 'Equipment Assets',
+    'Accounts Payable', 'Credit Cards', 'Loans Payable', 'Taxes Payable',
+    'Owner Equity', 'Retained Earnings', 'Common Stock', 'Additional Paid-in Capital'
+  ];
 
   // Load accounts for filter dropdown
   useEffect(() => {
@@ -86,6 +98,19 @@ const TransactionHistory: React.FC = () => {
       }
     };
     loadAccounts();
+  }, []);
+
+  // Load dynamic categories for bulk operations
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categories = await TransactionService.getUniqueCategories();
+        setDynamicCategories(categories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
   }, []);
 
   // Load transactions with current filters and pagination
@@ -277,7 +302,7 @@ const TransactionHistory: React.FC = () => {
     }
   };
 
-  const handleBulkTypeChange = async (newType: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_CONTRIBUTION' | 'EQUITY_WITHDRAWAL') => {
+  const handleBulkTypeChange = async (newType: 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'EQUITY_CONTRIBUTION' | 'ADJUSTMENT' | 'LOAN_PAYMENT' | 'ASSET_PURCHASE' | 'LIABILITY_SETTLEMENT' | 'EQUITY_WITHDRAWAL' | 'CLOSING_ENTRY') => {
     if (selectedTransactions.size === 0) return;
     
     try {
@@ -381,6 +406,9 @@ const TransactionHistory: React.FC = () => {
           {/* Bulk Operations Bar */}
           {isBulkMode && (
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="mb-2 text-xs text-blue-700">
+                💡 Bulk operations allow you to update multiple transactions at once. Select transactions using the checkboxes, then choose your action below.
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <button
@@ -389,9 +417,14 @@ const TransactionHistory: React.FC = () => {
                   >
                     {selectedTransactions.size === transactions.length ? 'Deselect All' : 'Select All'}
                   </button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 font-medium">
                     {selectedTransactions.size} of {transactions.length} selected
                   </span>
+                  {selectedTransactions.size > 0 && (
+                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      {Math.round((selectedTransactions.size / transactions.length) * 100)}% selected
+                    </span>
+                  )}
                 </div>
                 
                 {selectedTransactions.size > 0 && (
@@ -402,15 +435,55 @@ const TransactionHistory: React.FC = () => {
                       defaultValue=""
                     >
                       <option value="" disabled>Change Category</option>
-                      <option value="Sales">Sales</option>
-                      <option value="Expenses">Expenses</option>
-                      <option value="Payroll">Payroll</option>
-                      <option value="Taxes">Taxes</option>
-                      <option value="Utilities">Utilities</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Travel">Travel</option>
-                      <option value="Equipment">Equipment</option>
-                      <option value="Other">Other</option>
+                      <optgroup label="Revenue Categories">
+                        <option value="Sales Revenue">Sales Revenue</option>
+                        <option value="Service Revenue">Service Revenue</option>
+                        <option value="Product Sales">Product Sales</option>
+                        <option value="Commission Income">Commission Income</option>
+                      </optgroup>
+                      <optgroup label="Expense Categories">
+                        <option value="Rent Expense">Rent Expense</option>
+                        <option value="Utilities Expense">Utilities Expense</option>
+                        <option value="Payroll Expense">Payroll Expense</option>
+                        <option value="Marketing Expense">Marketing Expense</option>
+                        <option value="Travel Expense">Travel Expense</option>
+                        <option value="Equipment Expense">Equipment Expense</option>
+                        <option value="Insurance Expense">Insurance Expense</option>
+                        <option value="Legal Expense">Legal Expense</option>
+                        <option value="Accounting Expense">Accounting Expense</option>
+                        <option value="Software Expense">Software Expense</option>
+                        <option value="Office Supplies">Office Supplies</option>
+                        <option value="Maintenance Expense">Maintenance Expense</option>
+                      </optgroup>
+                      <optgroup label="Asset Categories">
+                        <option value="Cash & Bank">Cash & Bank</option>
+                        <option value="Accounts Receivable">Accounts Receivable</option>
+                        <option value="Inventory">Inventory</option>
+                        <option value="Equipment Assets">Equipment Assets</option>
+                      </optgroup>
+                      <optgroup label="Liability Categories">
+                        <option value="Accounts Payable">Accounts Payable</option>
+                        <option value="Credit Cards">Credit Cards</option>
+                        <option value="Loans Payable">Loans Payable</option>
+                        <option value="Taxes Payable">Taxes Payable</option>
+                      </optgroup>
+                      <optgroup label="Equity Categories">
+                        <option value="Owner Equity">Owner Equity</option>
+                        <option value="Retained Earnings">Retained Earnings</option>
+                        <option value="Common Stock">Common Stock</option>
+                        <option value="Additional Paid-in Capital">Additional Paid-in Capital</option>
+                      </optgroup>
+                      {dynamicCategories.length > 0 && (
+                        <optgroup label="Custom Categories">
+                          {dynamicCategories
+                            .filter(cat => !predefinedCategories.includes(cat))
+                            .slice(0, 10) // Limit to top 10 custom categories
+                            .map(category => (
+                              <option key={category} value={category}>{category}</option>
+                            ))
+                          }
+                        </optgroup>
+                      )}
                     </select>
                     
                     <select
@@ -422,7 +495,13 @@ const TransactionHistory: React.FC = () => {
                       <option value="INCOME">Income</option>
                       <option value="EXPENSE">Expense</option>
                       <option value="TRANSFER">Transfer</option>
+                      <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
                       <option value="ADJUSTMENT">Adjustment</option>
+                      <option value="LOAN_PAYMENT">Loan Payment</option>
+                      <option value="ASSET_PURCHASE">Asset Purchase</option>
+                      <option value="LIABILITY_SETTLEMENT">Liability Settlement</option>
+                      <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
+                      <option value="CLOSING_ENTRY">Closing Entry</option>
                     </select>
                     
                     <button

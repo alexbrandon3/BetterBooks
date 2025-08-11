@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Resolver } from 'react-hook-form';
 import { Transaction } from '../types/transaction';
 import { Account } from '../types/account';
+import * as TransactionService from '../services/TransactionService';
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null;
@@ -36,6 +37,107 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Category dropdown state
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [recentCategories, setRecentCategories] = useState<string[]>([]);
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Predefined categories for the dropdown
+  const predefinedCategories = [
+    'Sales Revenue', 'Service Revenue', 'Product Sales', 'Commission Income',
+    'Rent Expense', 'Utilities Expense', 'Payroll Expense', 'Marketing Expense',
+    'Travel Expense', 'Equipment Expense', 'Insurance Expense', 'Legal Expense',
+    'Accounting Expense', 'Software Expense', 'Office Supplies', 'Maintenance Expense',
+    'Cash & Bank', 'Accounts Receivable', 'Inventory', 'Equipment Assets',
+    'Accounts Payable', 'Credit Cards', 'Loans Payable', 'Taxes Payable',
+    'Owner Equity', 'Retained Earnings', 'Common Stock', 'Additional Paid-in Capital'
+  ];
+
+  // Load dynamic categories from backend
+  useEffect(() => {
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const categories = await TransactionService.getUniqueCategories();
+        setDynamicCategories(categories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setDynamicCategories([]);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    if (isOpen) {
+      loadCategories();
+    }
+  }, [isOpen]);
+
+  // Load recent categories from existing transactions
+  useEffect(() => {
+    const loadRecentCategories = async () => {
+      try {
+        const response = await TransactionService.fetchTransactionsWithFilters(new URLSearchParams({ limit: '100' }));
+        const categories = response.transactions
+          .map(t => t.category)
+          .filter(cat => cat && cat.trim() !== '')
+          .reverse(); // Most recent first
+        
+        // Get unique categories, preserving order (most recent first)
+        const uniqueCategories = categories.filter((cat, index, arr) => arr.indexOf(cat) === index);
+        setRecentCategories(uniqueCategories.slice(0, 5)); // Top 5 most recent
+      } catch (error) {
+        console.error('Error loading recent categories:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadRecentCategories();
+    }
+  }, [isOpen]);
+
+  // Handle clicks outside of category dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter categories based on search term
+  const filteredCategories = predefinedCategories.filter(category =>
+    category.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  const handleCategorySelect = (category: string) => {
+    setValue('category', category);
+    setCategorySearchTerm('');
+    setShowCategoryDropdown(false);
+  };
+
+  const handleCategoryInputChange = (value: string) => {
+    setValue('category', value);
+    setCategorySearchTerm(value);
+    setShowCategoryDropdown(true);
+  };
+
+  const handleCategoryKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowCategoryDropdown(false);
+    } else if (e.key === 'Enter' && filteredCategories.length > 0) {
+      handleCategorySelect(filteredCategories[0]);
+    }
+  };
 
   const {
     register,
@@ -198,12 +300,13 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                     <option value="INCOME">Income</option>
                     <option value="EXPENSE">Expense</option>
                     <option value="TRANSFER">Transfer</option>
+                    <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
                     <option value="ADJUSTMENT">Adjustment</option>
                     <option value="LOAN_PAYMENT">Loan Payment</option>
                     <option value="ASSET_PURCHASE">Asset Purchase</option>
                     <option value="LIABILITY_SETTLEMENT">Liability Settlement</option>
-                    <option value="EQUITY_CONTRIBUTION">Equity Contribution</option>
                     <option value="EQUITY_WITHDRAWAL">Equity Withdrawal</option>
+                    <option value="CLOSING_ENTRY">Closing Entry</option>
                   </select>
                   {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>}
                 </div>
@@ -222,11 +325,100 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <input
-                    type="text"
-                    {...register("category")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
+                  <div className="relative" ref={categoryDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        {...register("category")}
+                        value={watch("category") || ""}
+                        onChange={(e) => handleCategoryInputChange(e.target.value)}
+                        onFocus={() => setShowCategoryDropdown(true)}
+                        onKeyDown={handleCategoryKeyDown}
+                        placeholder="Search or type a category..."
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-10"
+                      />
+                      {/* Dropdown indicator */}
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className={`w-4 h-4 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`}>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {showCategoryDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        <div className="p-2 border-b border-gray-100">
+                          <input 
+                            type="text" 
+                            placeholder="Search categories..." 
+                            value={categorySearchTerm} 
+                            onChange={(e) => setCategorySearchTerm(e.target.value)} 
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                            autoFocus 
+                          />
+                        </div>
+                        <div className="max-h-48 overflow-y-auto">
+                          {recentCategories.length > 0 && categorySearchTerm === '' && (
+                            <div className="border-b border-gray-200">
+                              <div className="px-3 py-1 bg-gray-50 text-xs font-medium text-gray-600 uppercase tracking-wide">Recent Categories</div>
+                              {recentCategories.map((category, index) => (
+                                <button 
+                                  key={`recent-${index}`} 
+                                  type="button" 
+                                  onClick={() => handleCategorySelect(category)} 
+                                  className="w-full px-3 py-2 text-left hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="font-medium text-gray-900">{category}</div>
+                                  <div className="text-xs text-gray-500 mt-1">🕒 Recently used</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {filteredCategories.length > 0 ? (
+                            <>
+                              {recentCategories.length > 0 && categorySearchTerm === '' && (
+                                <div className="px-3 py-1 bg-gray-50 text-xs font-medium text-gray-600 uppercase tracking-wide border-b border-gray-200">All Categories</div>
+                              )}
+                              {filteredCategories.map((category, index) => (
+                                <button 
+                                  key={`predefined-${index}`} 
+                                  type="button" 
+                                  onClick={() => handleCategorySelect(category)} 
+                                  className="w-full px-3 py-2 text-left hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="font-medium text-gray-900">{category}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {category.includes('Revenue') ? '💰 Revenue' : category.includes('Expense') ? '💸 Expense' : category.includes('Asset') ? '🏦 Asset' : category.includes('Liability') ? '📋 Liability' : category.includes('Equity') ? '📊 Equity' : '📁 Category'}
+                                  </div>
+                                </button>
+                              ))}
+                            </>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                              <div className="mb-2">No predefined categories found.</div>
+                              {categorySearchTerm.trim() && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleCategorySelect(categorySearchTerm)} 
+                                  className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                >
+                                  Create "{categorySearchTerm}"
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-2 border-t border-gray-100 bg-gray-50">
+                          <div className="text-xs text-gray-600">
+                            💡 Choose from predefined categories or type to create custom ones.
+                            {filteredCategories.length > 0 && (<span className="block mt-1">Showing {filteredCategories.length} of {predefinedCategories.length} categories</span>)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
