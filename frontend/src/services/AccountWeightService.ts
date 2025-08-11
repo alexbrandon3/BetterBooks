@@ -50,4 +50,20 @@ export class AccountWeightService {
       throw error;
     }
   }
+
+  static async cleanupUnderscoreKeywords(): Promise<void> {
+    try {
+      await api.post('/suggestions/weights/cleanup-underscores');
+    } catch (error) {
+      console.error('Error cleaning up underscore keywords:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a human-friendly display version of a keyword
+   */
+  static getHumanFriendlyKeyword(keyword: string): string {
+    return keyword.replace(/_/g, ' ');
+  }
 } 

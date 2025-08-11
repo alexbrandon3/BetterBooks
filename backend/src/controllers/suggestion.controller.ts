@@ -102,6 +102,18 @@ export class SuggestionController extends BaseController {
     }
   }
 
+  async cleanupUnderscoreKeywords(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user.userId;
+      
+      await this.accountWeightService.cleanupUnderscoreKeywords(userId);
+      
+      this.sendResponse(res, 200, { message: 'Underscore keywords cleaned up successfully' });
+    } catch (error) {
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
   async suggestDualSides(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { description } = req.body;

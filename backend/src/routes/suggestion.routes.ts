@@ -40,6 +40,7 @@ router.get('/weights', authenticate, suggestionController.getUserWeights.bind(su
 router.post('/weights', authenticate, suggestionController.createOrUpdateWeight.bind(suggestionController));
 router.delete('/weights/:id', authenticate, suggestionController.deleteWeight.bind(suggestionController));
 router.post('/weights/initialize-defaults', authenticate, suggestionController.initializeDefaultWeights.bind(suggestionController));
+router.post('/weights/cleanup-underscores', authenticate, suggestionController.cleanupUnderscoreKeywords.bind(suggestionController));
 
 // Add test backend route
 router.get('/test-backend', authenticate, suggestionController.testBackend.bind(suggestionController));

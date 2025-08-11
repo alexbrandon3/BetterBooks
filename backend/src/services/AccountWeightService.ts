@@ -812,13 +812,20 @@ export class AccountWeightService {
         }
       }
       
-      // For equity keywords, look for equity accounts
+      // For equity keywords, look for equity accounts (more specific matching)
       if (keyword === "contribution" || keyword === "investment" || keyword === "equity" || keyword === "capital" || 
           keyword === "owner" || keyword === "partner" || keyword === "draw" || keyword === "withdrawal" ||
-          keyword.includes("contribution") || keyword.includes("investment") || keyword.includes("draw")) {
+          keyword === "initial contribution" || keyword === "owner contribution" || keyword === "capital contribution" ||
+          keyword === "business formation" || keyword === "personal funds" || keyword === "equity investment" ||
+          keyword === "partner investment" || keyword === "owner draw" || keyword === "partner draw") {
+        // Look specifically for equity accounts, not just any account with these words
         if (accountName.includes("equity") || accountName.includes("capital") || accountName.includes("owner") || 
-            accountName.includes("partner") || accountName.includes("draw") || accountName.includes("contribution")) {
-          return account;
+            accountName.includes("partner") || accountName.includes("draw") || accountName.includes("contribution") ||
+            accountName.includes("investment") || accountName.includes("member")) {
+          // Additional check to ensure it's actually an equity account, not a charitable contribution
+          if (!accountName.includes("charitable") && !accountName.includes("donation") && !accountName.includes("charity")) {
+            return account;
+          }
         }
       }
 
@@ -850,5 +857,34 @@ export class AccountWeightService {
     } catch (error) {
       logError(`Failed to increment usage count: ${error instanceof Error ? error.message : 'Unknown error'}`, 'AccountWeightService');
     }
+  }
+
+  /**
+   * Clean up existing underscore keywords in the database and convert them to human-friendly format
+   */
+  async cleanupUnderscoreKeywords(userId: number): Promise<void> {
+    try {
+      const weights = await this.getUserWeights(userId);
+      
+      for (const weight of weights) {
+        if (weight.keyword.includes('_')) {
+          const cleanKeyword = weight.keyword.replace(/_/g, ' ');
+          
+          // Update the keyword to the clean format
+          await this.accountWeightRepo.update(weight.id, { keyword: cleanKeyword });
+          
+          console.log(`Cleaned up keyword: "${weight.keyword}" → "${cleanKeyword}"`);
+        }
+      }
+    } catch (error) {
+      logError(`Failed to cleanup underscore keywords: ${error instanceof Error ? error.message : 'Unknown error'}`, 'AccountWeightService');
+    }
+  }
+
+  /**
+   * Get a human-friendly display version of a keyword
+   */
+  getHumanFriendlyKeyword(keyword: string): string {
+    return keyword.replace(/_/g, ' ');
   }
 } 
