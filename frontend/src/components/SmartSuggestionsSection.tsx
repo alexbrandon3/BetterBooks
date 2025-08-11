@@ -213,7 +213,7 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
           <div className="mt-4 p-3 bg-blue-50 rounded-lg max-w-md mx-auto">
             <p className="text-xs text-blue-700">
               💡 <strong>Keyword mappings</strong> help the system suggest accounts when you type descriptions. 
-              For example, typing "rent" will suggest "Rent Expense" account.
+              For example, typing "rent" will suggest "Rent Expense" account, or "sold products" will suggest "Sales Revenue".
             </p>
           </div>
         </div>
