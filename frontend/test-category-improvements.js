@@ -3,6 +3,9 @@
 
 console.log('🧪 Testing Category Suggestion Improvements...');
 
+// Use the correct production API URL
+const API_BASE_URL = 'https://betterbooks.onrender.com/api';
+
 // Test cases specifically targeting the improvements we made
 const improvementTestCases = [
   // FUEL/TRANSPORTATION FIXES (were incorrectly categorized as "Supplies" or "Food")
@@ -49,6 +52,7 @@ const improvementTestCases = [
 async function testImprovements() {
   console.log('🔍 Testing Our Specific Improvements...');
   console.log('📝 Total test cases:', improvementTestCases.length);
+  console.log('🌐 Using API URL:', API_BASE_URL);
   
   let correctCount = 0;
   let incorrectCount = 0;
@@ -61,7 +65,7 @@ async function testImprovements() {
     console.log(`Expected: ${testCase.expected} (Priority: ${testCase.priority})`);
     
     try {
-      const response = await fetch('/api/suggestions/suggest-category', {
+      const response = await fetch(`${API_BASE_URL}/suggestions/suggest-category`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
