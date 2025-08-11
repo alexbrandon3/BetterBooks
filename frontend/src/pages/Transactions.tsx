@@ -83,7 +83,9 @@ const TransactionTypeCards: React.FC<{
   selectedType: string;
   onTypeSelect: (type: string) => void;
 }> = ({ selectedType, onTypeSelect }) => {
-  const transactionTypes = [
+  const [showAdvancedTypes, setShowAdvancedTypes] = useState(false);
+  
+  const mainTransactionTypes = [
     {
       value: 'EXPENSE',
       label: 'Expense',
@@ -114,11 +116,58 @@ const TransactionTypeCards: React.FC<{
     }
   ];
 
+  const advancedTransactionTypes = [
+    {
+      value: 'ADJUSTMENT',
+      label: 'Adjustment',
+      icon: Settings,
+      color: 'bg-gray-500',
+      description: 'Balance adjustments'
+    },
+    {
+      value: 'LOAN_PAYMENT',
+      label: 'Loan Payment',
+      icon: FileText,
+      color: 'bg-orange-500',
+      description: 'Loan principal/interest'
+    },
+    {
+      value: 'ASSET_PURCHASE',
+      label: 'Asset Purchase',
+      icon: Car,
+      color: 'bg-indigo-500',
+      description: 'Buy equipment/assets'
+    },
+    {
+      value: 'LIABILITY_SETTLEMENT',
+      label: 'Liability Settlement',
+      icon: AlertCircle,
+      color: 'bg-yellow-500',
+      description: 'Settle debts'
+    },
+    {
+      value: 'EQUITY_WITHDRAWAL',
+      label: 'Equity Withdrawal',
+      icon: Users,
+      color: 'bg-pink-500',
+      description: 'Owner withdrawals'
+    },
+    {
+      value: 'CLOSING_ENTRY',
+      label: 'Closing Entry',
+      icon: RefreshCw,
+      color: 'bg-teal-500',
+      description: 'Period-end entries'
+    }
+  ];
+
   return (
     <div className="mb-6">
       <label className="block text-sm font-medium text-gray-700 mb-3">Transaction Type</label>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {transactionTypes.map((type) => {
+      
+      {/* Main Transaction Types */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {mainTransactionTypes.map((type) => {
           const Icon = type.icon;
           const isSelected = selectedType === type.value;
           return (
@@ -141,6 +190,52 @@ const TransactionTypeCards: React.FC<{
           );
         })}
       </div>
+
+      {/* More Options Button */}
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => setShowAdvancedTypes(!showAdvancedTypes)}
+          className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          {showAdvancedTypes ? 'Hide Advanced Types' : 'Show More Options'}
+          <Settings className={`w-4 h-4 ml-2 transition-transform ${showAdvancedTypes ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      {/* Advanced Transaction Types */}
+      {showAdvancedTypes && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Advanced Transaction Types</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {advancedTransactionTypes.map((type) => {
+              const Icon = type.icon;
+              const isSelected = selectedType === type.value;
+              return (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => onTypeSelect(type.value)}
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                    isSelected 
+                      ? `${type.color} border-transparent text-white shadow-lg` 
+                      : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <Icon className="w-5 h-5 mb-1" />
+                    <div className="font-medium text-xs">{type.label}</div>
+                    <div className="text-xs opacity-75">{type.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-xs text-gray-500 text-center">
+            Advanced types are typically used for specialized accounting entries and period-end adjustments.
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -360,8 +455,83 @@ const Transactions = () => {
   const [pendingTransaction, setPendingTransaction] = useState<TransactionForm | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TransactionTemplate | null>(null);
   const [smartSuggestionsEnabled, setSmartSuggestionsEnabled] = useState(true);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [recentCategories, setRecentCategories] = useState<string[]>([]);
   
   const descriptionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Comprehensive list of predefined categories based on seed data
+  const predefinedCategories = [
+    // Operating Revenue
+    'Sales Revenue', 'Service Income', 'Consulting Income', 'Product Sales',
+    
+    // Non-Operating Revenue  
+    'Interest Income', 'Affiliate Income', 'Miscellaneous Income', 'Refund Income',
+    
+    // Operating Expenses
+    'Cost of Goods Sold', 'Supplies Expense', 'Software Subscriptions', 'Rent Expense',
+    'Utilities Expense', 'Payroll Expense', 'Payroll Taxes', 'Marketing Expense',
+    'Insurance Expense', 'Professional Services', 'Technology Expense', 'Travel Expense',
+    'Meals & Entertainment', 'Postage & Delivery', 'Bank Fees', 'Depreciation Expense',
+    
+    // Non-Operating Expenses
+    'Interest Expense', 'Income Taxes', 'Charitable Contributions', 'Other Operating Expenses',
+    
+    // Asset Categories
+    'Cash & Bank', 'Accounts Receivable', 'Inventory', 'Prepaid Expenses',
+    'Equipment', 'Fixed Assets', 'Security Deposits',
+    
+    // Liability Categories
+    'Accounts Payable', 'Loans & Credit', 'Credit Cards', 'Mortgages',
+    
+    // Equity Categories
+    'Owner Investment', 'Owner Withdrawals', 'Retained Earnings',
+    
+    // Common Business Categories
+    'Office Supplies', 'Advertising', 'Legal & Accounting', 'Maintenance',
+    'Transportation', 'Food & Dining', 'Groceries', 'Restaurants',
+    'Coffee & Snacks', 'Healthcare', 'Education', 'Entertainment',
+    'Gifts', 'Donations', 'Taxes', 'Fees', 'Commissions',
+    
+    // Industry-Specific Categories
+    'Manufacturing', 'Retail', 'Services', 'Technology', 'Healthcare',
+    'Construction', 'Real Estate', 'Finance', 'Education', 'Hospitality'
+  ];
+
+  // Filter categories based on search term
+  const filteredCategories = predefinedCategories.filter(category =>
+    category.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  // Handle category selection
+  const handleCategorySelect = (category: string) => {
+    setValue("category", category);
+    setCategorySearchTerm(category);
+    setShowCategoryDropdown(false);
+    
+    // Add to recent categories
+    setRecentCategories(prev => {
+      const filtered = prev.filter(c => c !== category);
+      return [category, ...filtered].slice(0, 5); // Keep only 5 most recent
+    });
+  };
+
+  // Handle category input change
+  const handleCategoryInputChange = (value: string) => {
+    setValue("category", value);
+    setCategorySearchTerm(value);
+    setShowCategoryDropdown(true);
+  };
+
+  // Handle keyboard navigation for category dropdown
+  const handleCategoryKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowCategoryDropdown(false);
+    } else if (e.key === 'Enter' && filteredCategories.length > 0) {
+      handleCategorySelect(filteredCategories[0]);
+    }
+  };
 
   const {
     register,
@@ -611,6 +781,9 @@ const Transactions = () => {
     setCurrentCategorySuggestion(null);
     setSuggestionAccepted(false);
     setSuggestionRejected(false);
+    setCategorySearchTerm('');
+    setShowCategoryDropdown(false);
+    // Note: We preserve recentCategories to maintain user experience
   };
 
   // Simplified form submission
@@ -795,6 +968,37 @@ const Transactions = () => {
       setSuggestionRejected(false);
     }
   }, [smartSuggestionsEnabled]);
+
+  // Effect to handle clicking outside category dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.category-dropdown-container')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCategoryDropdown]);
+
+  // Effect to load recent categories from existing transactions
+  useEffect(() => {
+    if (transactions.length > 0) {
+      const categories = transactions
+        .map(t => t.category)
+        .filter(Boolean)
+        .filter((category, index, arr) => arr.indexOf(category) === index) // Remove duplicates
+        .slice(0, 5);
+      
+      setRecentCategories(categories);
+    }
+  }, [transactions]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1011,26 +1215,137 @@ const Transactions = () => {
             
             <FormField label="Category" error={errors.category?.message}>
               <div className="relative">
-                <input
-                  type="text"
-                  {...register("category")}
-                  placeholder="e.g., Food, Transportation, Utilities, Marketing, Rent"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                />
-                {/* Help text */}
-                <div className="mt-1 text-xs text-gray-500">
-                  Categories help organize transactions for reporting and analysis. 
-                  Smart suggestions will auto-fill based on your description.
+                <div className="category-dropdown-container relative">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      {...register("category")}
+                      value={watch("category") || ""}
+                      onChange={(e) => {
+                        handleCategoryInputChange(e.target.value);
+                      }}
+                      onFocus={() => setShowCategoryDropdown(true)}
+                      onKeyDown={handleCategoryKeyDown}
+                      placeholder="Search or type a category..."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all pr-10"
+                    />
+                    
+                    {/* Dropdown indicator */}
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className={`w-5 h-5 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`}>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                                      {/* Visual indicator when category is suggested */}
+                    {watch("category") && currentCategorySuggestion && (
+                      <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs text-green-600 font-medium">Suggested</span>
+                        </div>
+                      </div>
+                    )}
                 </div>
-                {/* Visual indicator when category is suggested */}
-                {watch("category") && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-600 font-medium">Suggested</span>
+
+                {/* Category Dropdown */}
+                {showCategoryDropdown && (
+                  <div className="category-dropdown-container absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <div className="p-3 border-b border-gray-100">
+                      <input
+                        type="text"
+                        placeholder="Search categories..."
+                        value={categorySearchTerm}
+                        onChange={(e) => setCategorySearchTerm(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    <div className="max-h-48 overflow-y-auto">
+                      {/* Recent Categories */}
+                      {recentCategories.length > 0 && categorySearchTerm === '' && (
+                        <div className="border-b border-gray-200">
+                          <div className="px-4 py-2 bg-gray-50 text-xs font-medium text-gray-600 uppercase tracking-wide">
+                            Recent Categories
+                          </div>
+                          {recentCategories.map((category, index) => (
+                            <button
+                              key={`recent-${index}`}
+                              type="button"
+                              onClick={() => handleCategorySelect(category)}
+                              className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-gray-900">{category}</div>
+                              <div className="text-xs text-gray-500 mt-1">🕒 Recently used</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Predefined Categories */}
+                      {filteredCategories.length > 0 ? (
+                        <>
+                          {recentCategories.length > 0 && categorySearchTerm === '' && (
+                            <div className="px-4 py-2 bg-gray-50 text-xs font-medium text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                              All Categories
+                            </div>
+                          )}
+                          {filteredCategories.map((category, index) => (
+                            <button
+                              key={`predefined-${index}`}
+                              type="button"
+                              onClick={() => handleCategorySelect(category)}
+                              className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-gray-900">{category}</div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {category.includes('Revenue') ? '💰 Revenue' : 
+                                 category.includes('Expense') ? '💸 Expense' :
+                                 category.includes('Asset') ? '🏦 Asset' :
+                                 category.includes('Liability') ? '📋 Liability' :
+                                 category.includes('Equity') ? '📊 Equity' : '📁 Category'}
+                              </div>
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                          <div className="mb-2">No predefined categories found.</div>
+                          {categorySearchTerm.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => handleCategorySelect(categorySearchTerm)}
+                              className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              Create "{categorySearchTerm}"
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-3 border-t border-gray-100 bg-gray-50">
+                      <div className="text-xs text-gray-600">
+                        💡 Smart suggestions will auto-fill based on your description.
+                        {filteredCategories.length > 0 && (
+                          <span className="block mt-1">
+                            Showing {filteredCategories.length} of {predefinedCategories.length} categories
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
+
+                {/* Help text */}
+                <div className="mt-1 text-xs text-gray-500">
+                  Categories help organize transactions for reporting and analysis. 
+                  Choose from predefined categories or type to create custom ones.
+                </div>
               </div>
             </FormField>
           </div>
