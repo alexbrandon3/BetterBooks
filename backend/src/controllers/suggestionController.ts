@@ -432,15 +432,24 @@ export class SuggestionController extends BaseController {
 
   async initializeDefaultWeights(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      console.log('⚖️ Initializing default weights for userId:', req.user.userId);
+      const userId = req.user.userId;
       
-      await this.accountWeightService.initializeDefaultWeights(req.user.userId);
-      
-      console.log('✅ Default weights initialized successfully');
+      await this.accountWeightService.initializeDefaultWeights(userId);
       
       this.sendResponse(res, 200, { message: 'Default weights initialized successfully' });
     } catch (error) {
-      console.error('❌ Error initializing default weights:', error);
+      this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
+    }
+  }
+
+  async cleanupUnderscoreKeywords(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user.userId;
+      
+      await this.accountWeightService.cleanupUnderscoreKeywords(userId);
+      
+      this.sendResponse(res, 200, { message: 'Underscore keywords cleaned up successfully' });
+    } catch (error) {
       this.sendError(res, 500, error instanceof Error ? error.message : "Unknown error");
     }
   }
