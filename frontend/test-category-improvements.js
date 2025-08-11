@@ -1,44 +1,64 @@
-// Category Suggestion Test Script - Updated for Improved Logic
+// Category Suggestion Test Script - Testing Our Specific Improvements
 // Run this in your browser's developer console on the BetterBooks app
 
-console.log('🧪 Starting Category Suggestion Tests - Improved Logic...');
+console.log('🧪 Testing Category Suggestion Improvements...');
 
-// Test cases that were problematic in previous runs
-const categoryTestCases = [
-  // Problematic cases from previous test
-  { description: 'Gas station fuel purchase', expected: 'Transportation' },
-  { description: 'Printer paper and ink', expected: 'Supplies' },
-  { description: 'Insurance premium payment', expected: 'Insurance' },
-  { description: 'Print advertising in local paper', expected: 'Marketing' },
+// Test cases specifically targeting the improvements we made
+const improvementTestCases = [
+  // FUEL/TRANSPORTATION FIXES (were incorrectly categorized as "Supplies" or "Food")
+  { description: 'Gas station fuel purchase', expected: 'Transportation', priority: 'HIGH' },
+  { description: 'Exxon fuel for delivery truck', expected: 'Transportation', priority: 'HIGH' },
+  { description: 'Shell gasoline purchase', expected: 'Transportation', priority: 'HIGH' },
+  { description: 'BP fuel purchase', expected: 'Transportation', priority: 'HIGH' },
+  { description: 'Chevron gasoline', expected: 'Transportation', priority: 'HIGH' },
+  { description: 'Fuel for company vehicle', expected: 'Transportation', priority: 'HIGH' },
   
-  // Additional test cases
-  { description: 'Gas station fuel', expected: 'Transportation' },
-  { description: 'Fuel purchase', expected: 'Transportation' },
-  { description: 'Office supplies from Staples', expected: 'Supplies' },
-  { description: 'Printer toner', expected: 'Supplies' },
-  { description: 'Insurance policy', expected: 'Insurance' },
-  { description: 'Google Ads campaign', expected: 'Marketing' },
-  { description: 'Facebook advertising', expected: 'Marketing' },
-  { description: 'Business lunch at Chipotle', expected: 'Food' },
-  { description: 'Office rent payment', expected: 'Rent' },
-  { description: 'Electricity bill for office', expected: 'Utilities' },
-  { description: 'Employee payroll payment', expected: 'Payroll' },
-  { description: 'Quarterly tax payment to IRS', expected: 'Taxes' }
+  // PRINTER/OFFICE SUPPLIES FIXES (were incorrectly categorized as "Food")
+  { description: 'Printer paper and ink from Staples', expected: 'Supplies', priority: 'HIGH' },
+  { description: 'Office depot toner cartridge', expected: 'Supplies', priority: 'HIGH' },
+  { description: 'Photocopy paper purchase', expected: 'Supplies', priority: 'HIGH' },
+  { description: 'Printer toner from Amazon', expected: 'Supplies', priority: 'HIGH' },
+  { description: 'Office supplies from Staples', expected: 'Supplies', priority: 'HIGH' },
+  { description: 'Computer paper and ink', expected: 'Supplies', priority: 'HIGH' },
+  
+  // INSURANCE FIXES (were incorrectly categorized as "Rent")
+  { description: 'Insurance premium payment', expected: 'Insurance', priority: 'HIGH' },
+  { description: 'Business liability insurance', expected: 'Insurance', priority: 'HIGH' },
+  { description: 'Property insurance policy', expected: 'Insurance', priority: 'HIGH' },
+  { description: 'Vehicle insurance premium', expected: 'Insurance', priority: 'HIGH' },
+  { description: 'Workers comp insurance', expected: 'Insurance', priority: 'HIGH' },
+  
+  // MARKETING FIXES (were incorrectly categorized due to "pr" keyword)
+  { description: 'Print advertising in local paper', expected: 'Marketing', priority: 'MEDIUM' },
+  { description: 'Print marketing materials', expected: 'Marketing', priority: 'MEDIUM' },
+  { description: 'Print brochures for business', expected: 'Marketing', priority: 'MEDIUM' },
+  
+  // OTHER COMMON BUSINESS TRANSACTIONS (control group)
+  { description: 'Pizza delivery for office lunch', expected: 'Food', priority: 'LOW' },
+  { description: 'Client dinner at restaurant', expected: 'Sales', priority: 'LOW' },
+  { description: 'Employee payroll payment', expected: 'Payroll', priority: 'LOW' },
+  { description: 'Google Ads campaign', expected: 'Marketing', priority: 'LOW' },
+  { description: 'Legal consultation fee', expected: 'Legal', priority: 'LOW' },
+  { description: 'Office rent payment', expected: 'Rent', priority: 'LOW' },
+  { description: 'Electricity bill for office', expected: 'Utilities', priority: 'LOW' },
+  { description: 'Client payment received', expected: 'Sales', priority: 'LOW' },
+  { description: 'Quarterly tax payment to IRS', expected: 'Taxes', priority: 'LOW' }
 ];
 
-// Function to test specific category suggestions
-async function runCategoryTests() {
-  console.log('🔍 Testing Category Suggestions - Improved Logic...');
-  console.log('📝 Total test cases:', categoryTestCases.length);
+// Function to test our specific improvements
+async function testImprovements() {
+  console.log('🔍 Testing Our Specific Improvements...');
+  console.log('📝 Total test cases:', improvementTestCases.length);
   
   let correctCount = 0;
   let incorrectCount = 0;
   const results = [];
+  const priorityResults = { HIGH: { correct: 0, total: 0 }, MEDIUM: { correct: 0, total: 0 }, LOW: { correct: 0, total: 0 } };
 
-  for (let i = 0; i < categoryTestCases.length; i++) {
-    const testCase = categoryTestCases[i];
-    console.log(`\n${i + 1}/${categoryTestCases.length}: Testing "${testCase.description}"`);
-    console.log(`Expected: ${testCase.expected}`);
+  for (let i = 0; i < improvementTestCases.length; i++) {
+    const testCase = improvementTestCases[i];
+    console.log(`\n${i + 1}/${improvementTestCases.length}: Testing "${testCase.description}"`);
+    console.log(`Expected: ${testCase.expected} (Priority: ${testCase.priority})`);
     
     try {
       const response = await fetch('/api/suggestions/suggest-category', {
@@ -61,9 +81,11 @@ async function runCategoryTests() {
           
           if (isCorrect) {
             correctCount++;
+            priorityResults[testCase.priority].correct++;
           } else {
             incorrectCount++;
           }
+          priorityResults[testCase.priority].total++;
           
           results.push({
             description: testCase.description,
@@ -71,41 +93,48 @@ async function runCategoryTests() {
             actual: data.suggestedCategory,
             confidence: data.confidence,
             reason: data.reason,
+            priority: testCase.priority,
             isCorrect
           });
         } else {
           console.log('❌ No suggestion returned');
           incorrectCount++;
+          priorityResults[testCase.priority].total++;
           results.push({
             description: testCase.description,
             expected: testCase.expected,
             actual: null,
             confidence: 0,
             reason: 'No suggestion',
+            priority: testCase.priority,
             isCorrect: false
           });
         }
       } else {
         console.log(`❌ API Error: HTTP ${response.status}`);
         incorrectCount++;
+        priorityResults[testCase.priority].total++;
         results.push({
           description: testCase.description,
           expected: testCase.expected,
           actual: null,
           confidence: 0,
           reason: `HTTP ${response.status} error`,
+          priority: testCase.priority,
           isCorrect: false
         });
       }
     } catch (error) {
       console.log(`❌ Network Error: ${error.message}`);
       incorrectCount++;
+      priorityResults[testCase.priority].total++;
       results.push({
         description: testCase.description,
         expected: testCase.expected,
         actual: null,
         confidence: 0,
         reason: error.message,
+        priority: testCase.priority,
         isCorrect: false
       });
     }
@@ -115,46 +144,69 @@ async function runCategoryTests() {
   }
 
   // Summary
-  console.log('\n📊 TEST SUMMARY:');
+  console.log('\n📊 IMPROVEMENT TEST SUMMARY:');
   console.log(`✅ Correct suggestions: ${correctCount}`);
   console.log(`❌ Incorrect suggestions: ${incorrectCount}`);
-  console.log(`📈 Accuracy: ${((correctCount / categoryTestCases.length) * 100).toFixed(1)}%`);
-
-  // Detailed results
-  console.log('\n📋 DETAILED RESULTS:');
-  results.forEach((result, index) => {
-    const status = result.isCorrect ? '✅' : '❌';
-    console.log(`${status} ${index + 1}. "${result.description}"`);
-    console.log(`   Expected: ${result.expected}`);
-    console.log(`   Actual: ${result.actual || 'No suggestion'}`);
-    if (result.confidence > 0) {
-      console.log(`   Confidence: ${result.confidence}%`);
-      console.log(`   Reason: ${result.reason}`);
+  console.log(`📈 Overall Accuracy: ${((correctCount / improvementTestCases.length) * 100).toFixed(1)}%`);
+  
+  // Priority-based results
+  console.log('\n🎯 PRIORITY-BASED RESULTS:');
+  Object.entries(priorityResults).forEach(([priority, stats]) => {
+    if (stats.total > 0) {
+      const accuracy = ((stats.correct / stats.total) * 100).toFixed(1);
+      console.log(`${priority} Priority: ${stats.correct}/${stats.total} correct (${accuracy}%)`);
     }
   });
+
+  // Show incorrect cases grouped by priority
+  const incorrectCases = results.filter(r => !r.isCorrect);
+  if (incorrectCases.length > 0) {
+    console.log('\n❌ INCORRECT CASES BY PRIORITY:');
+    ['HIGH', 'MEDIUM', 'LOW'].forEach(priority => {
+      const priorityIncorrect = incorrectCases.filter(r => r.priority === priority);
+      if (priorityIncorrect.length > 0) {
+        console.log(`\n${priority} Priority Issues:`);
+        priorityIncorrect.forEach((result, index) => {
+          console.log(`  ${index + 1}. "${result.description}"`);
+          console.log(`     Expected: ${result.expected}`);
+          console.log(`     Actual: ${result.actual || 'No suggestion'}`);
+          console.log(`     Reason: ${result.reason}`);
+        });
+      }
+    });
+  }
 
   return results;
 }
 
-// Function to test the frontend category field
-function testCategoryField() {
-  console.log('🔍 Testing Frontend Category Field...');
+// Function to test the frontend category field integration
+function testCategoryFieldIntegration() {
+  console.log('🔍 Testing Frontend Category Field Integration...');
   
   // Check if we're on the transactions page
   const categoryField = document.querySelector('input[placeholder*="Food, Transportation"]');
   if (!categoryField) {
     console.log('❌ Category field not found. Make sure you\'re on the Transactions page.');
-    return;
+    return false;
   }
   
   console.log('✅ Category field found');
   
-  // Test setting a description and checking if category populates
+  // Check for the help text
+  const helpText = document.querySelector('.text-xs.text-gray-500');
+  if (helpText) {
+    console.log('✅ Help text found');
+    console.log(`Help text: "${helpText.textContent}"`);
+  } else {
+    console.log('❌ Help text not found');
+  }
+  
+  // Test with a description that should trigger category suggestion
   const descriptionField = document.querySelector('input[placeholder*="Enter transaction description"]');
   if (descriptionField) {
     console.log('✅ Description field found');
     
-    // Test with a specific description
+    // Test with a specific description that was problematic
     const testDescription = 'Gas station fuel purchase';
     console.log(`📝 Testing with description: "${testDescription}"`);
     
@@ -168,104 +220,86 @@ function testCategoryField() {
       const categoryValue = categoryField.value;
       if (categoryValue) {
         console.log(`✅ Category field populated: "${categoryValue}"`);
+        return true;
       } else {
         console.log(`❌ Category field not populated`);
+        return false;
       }
-    }, 2000);
+    }, 3000);
   } else {
     console.log('❌ Description field not found');
+    return false;
   }
 }
 
-// Function to test UI improvements
-function testCategoryUI() {
-  console.log('🔍 Testing Category Field UI Improvements...');
-  
-  // Check for placeholder text
-  const categoryField = document.querySelector('input[placeholder*="Food, Transportation"]');
-  if (categoryField) {
-    console.log('✅ Category field with improved placeholder found');
-    console.log(`Placeholder: "${categoryField.placeholder}"`);
-  } else {
-    console.log('❌ Category field not found');
-  }
-  
-  // Check for help text
-  const helpText = document.querySelector('text[class*="text-sm text-gray-500"]');
-  if (helpText) {
-    console.log('✅ Help text found');
-    console.log(`Help text: "${helpText.textContent}"`);
-  } else {
-    console.log('❌ Help text not found');
-  }
-  
-  // Check for suggestion card
-  const suggestionCard = document.querySelector('[data-testid="category-suggestion"]');
-  if (suggestionCard) {
-    console.log('✅ Category suggestion card found');
-  } else {
-    console.log('❌ Category suggestion card not found');
-  }
-}
-
-// Function to test complete user flow
-function testCategoryFlow() {
+// Function to test the complete user flow
+async function testCompleteFlow() {
   console.log('🔍 Testing Complete Category Flow...');
   
-  // Simulate user entering a description
-  const descriptionField = document.querySelector('input[placeholder*="Enter transaction description"]');
-  const categoryField = document.querySelector('input[placeholder*="Food, Transportation"]');
-  
-  if (!descriptionField || !categoryField) {
-    console.log('❌ Required fields not found');
+  // Step 1: Navigate to transactions page (if not already there)
+  if (!document.querySelector('input[placeholder*="Food, Transportation"]')) {
+    console.log('❌ Not on transactions page. Please navigate to the Transactions page first.');
     return;
   }
+  console.log('✅ On transactions page');
   
-  console.log('✅ All required fields found');
+  // Step 2: Find the description field
+  const descriptionField = document.querySelector('input[placeholder*="Enter transaction description"]');
+  if (!descriptionField) {
+    console.log('❌ Description field not found');
+    return;
+  }
+  console.log('✅ Description field found');
   
-  // Test flow with a specific description
-  const testDescription = 'Insurance premium payment';
-  console.log(`📝 Testing flow with: "${testDescription}"`);
+  // Step 3: Test with a description that was problematic
+  const testDescription = 'Gas station fuel purchase';
+  console.log(`📝 Typing: "${testDescription}"`);
   
-  // Clear fields first
+  // Clear the field first
   descriptionField.value = '';
-  categoryField.value = '';
+  descriptionField.dispatchEvent(new Event('input', { bubbles: true }));
   
-  // Simulate typing
+  // Type the description
   descriptionField.value = testDescription;
   descriptionField.dispatchEvent(new Event('input', { bubbles: true }));
   descriptionField.dispatchEvent(new Event('change', { bubbles: true }));
   
-  // Check results after delay
+  console.log('⏳ Waiting for category suggestion...');
+  
+  // Step 4: Check if category field gets populated
   setTimeout(() => {
-    const categoryValue = categoryField.value;
-    console.log(`📊 Flow test result:`);
-    console.log(`   Description: "${testDescription}"`);
-    console.log(`   Category: "${categoryValue || 'Not populated'}"`);
+    const categoryField = document.querySelector('input[placeholder*="Food, Transportation"]');
+    const categoryValue = categoryField?.value;
     
     if (categoryValue) {
-      console.log('✅ Category field was populated by suggestion');
+      console.log(`✅ SUCCESS: Category field populated with "${categoryValue}"`);
+      
+      // Step 5: Check if suggestion card appears
+      const suggestionCards = document.querySelectorAll('.bg-blue-50, .bg-green-50, .bg-yellow-50');
+      if (suggestionCards.length > 0) {
+        console.log(`✅ Suggestion cards appeared: ${suggestionCards.length} cards`);
+      } else {
+        console.log('❌ No suggestion cards appeared');
+      }
     } else {
-      console.log('❌ Category field was not populated');
+      console.log('❌ FAILURE: Category field not populated');
     }
   }, 3000);
 }
 
 // Export functions for manual testing
-window.runCategoryTests = runCategoryTests;
-window.testCategoryField = testCategoryField;
-window.testCategoryUI = testCategoryUI;
-window.testCategoryFlow = testCategoryFlow;
+window.testImprovements = testImprovements;
+window.testCategoryFieldIntegration = testCategoryFieldIntegration;
+window.testCompleteFlow = testCompleteFlow;
 
-console.log('🚀 Test functions available:');
-console.log(' - runCategoryTests() - Test specific problematic cases');
-console.log(' - testCategoryField() - Test frontend category field');
-console.log(' - testCategoryUI() - Test UI improvements');
-console.log(' - testCategoryFlow() - Test complete user flow');
+console.log('🚀 Improvement test functions available:');
+console.log(' - testImprovements() - Test our specific fixes');
+console.log(' - testCategoryFieldIntegration() - Test frontend integration');
+console.log(' - testCompleteFlow() - Test complete user flow');
 
-// Auto-run the category tests
-console.log('\n🎯 Auto-running category tests...');
-runCategoryTests().then(results => {
-  console.log('\n🎉 Category tests completed!');
+// Auto-run the improvement tests
+console.log('\n🎯 Auto-running improvement tests...');
+testImprovements().then(results => {
+  console.log('\n🎉 Improvement tests completed!');
   console.log('💡 Use the exported functions to run additional tests.');
 });
