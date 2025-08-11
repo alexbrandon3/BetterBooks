@@ -303,7 +303,7 @@ export class SuggestionService {
           priority: 1
         },
         {
-          keywords: ['buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'materials', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
+          keywords: ['buy', 'bought', 'buying', 'procurement', 'inventory', 'stock', 'supplies', 'equipment', 'vendor', 'supplier', 'cost of goods', 'cogs', 'inventory purchase', 'raw materials', 'component', 'part', 'tool', 'machinery'],
           categories: ['Supplies', 'Equipment', 'Inventory', 'Cost of Goods Sold', 'Materials'],
           reason: 'Business purchase transaction',
           priority: 1
@@ -328,7 +328,7 @@ export class SuggestionService {
         },
         // PRIORITY 2: Business Operations & Professional Services
         {
-          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'print marketing', 'print materials', 'print brochures', 'print ads'],
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'print marketing', 'print materials', 'print brochures', 'print ads', 'marketing materials', 'promotional materials', 'advertising materials', 'brand materials'],
           categories: ['Marketing', 'Marketing Expense', 'Advertising', 'Promotion'],
           reason: 'Marketing and advertising transaction',
           priority: 1  // Higher priority to override generic keywords like "paper"
