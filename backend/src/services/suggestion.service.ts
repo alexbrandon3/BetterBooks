@@ -328,7 +328,7 @@ export class SuggestionService {
         },
         // PRIORITY 2: Business Operations & Professional Services
         {
-          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'print', 'print marketing', 'print materials', 'print brochures', 'print ads'],
+          keywords: ['marketing', 'advertising', 'promotion', 'campaign', 'social media', 'google ads', 'facebook ads', 'seo', 'branding', 'website', 'digital marketing', 'print advertising', 'trade show', 'exhibition', 'sponsorship', 'public relations', 'print marketing', 'print materials', 'print brochures', 'print ads'],
           categories: ['Marketing', 'Marketing Expense', 'Advertising', 'Promotion'],
           reason: 'Marketing and advertising transaction',
           priority: 1  // Higher priority to override generic keywords like "paper"
@@ -366,10 +366,16 @@ export class SuggestionService {
         },
         // PRIORITY 4: Business-Specific Expenses
         {
-          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'business meal', 'client dinner', 'business lunch', 'catering', 'office lunch', 'takeout', 'fast food', 'subway', 'mcdonalds', 'starbucks', 'chipotle'],
+          keywords: ['client dinner', 'client lunch', 'client meal', 'business dinner', 'business lunch', 'business meal', 'client entertainment', 'business entertainment'],
+          categories: ['Sales', 'Client Relations', 'Business Development', 'Entertainment'],
+          reason: 'Business meals and entertainment with clients',
+          priority: 1  // Highest priority for client-related expenses
+        },
+        {
+          keywords: ['food', 'restaurant', 'dining', 'meal', 'lunch', 'dinner', 'breakfast', 'cafe', 'pizza', 'burger', 'sushi', 'coffee', 'catering', 'office lunch', 'takeout', 'fast food', 'subway', 'mcdonalds', 'starbucks', 'chipotle'],
           categories: ['Food', 'Dining', 'Meals & Entertainment', 'Business Meals'],
           reason: 'Food and dining related transaction',
-          priority: 1  // Higher priority to override generic "delivery" keyword
+          priority: 2  // Lower priority than client-related meals
         },
         {
           keywords: ['gas', 'fuel', 'petrol', 'exxon', 'shell', 'bp', 'chevron', 'mobil', 'costco gas', 'business fuel', 'delivery vehicle', 'company car', 'fleet', 'truck', 'van', 'gasoline', 'diesel', 'gas station', 'fuel purchase', 'gasoline purchase', 'gas station fuel', 'exxon fuel', 'shell gasoline', 'gas station fuel purchase'],
