@@ -133,6 +133,7 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
   };
 
   const startEdit = (weight: AccountWeightWithAccount) => {
+    console.log('Starting edit for weight:', weight); // Debug log
     setEditingWeight(weight);
     setFormData({
       keyword: weight.keyword,
@@ -141,6 +142,8 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
       transactionType: weight.transactionType,
       isDefault: weight.isDefault
     });
+    console.log('Form data set to:', formData); // Debug log
+    console.log('editingWeight state:', editingWeight); // Debug log
   };
 
   const cancelEdit = () => {
@@ -273,27 +276,36 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
 
           {/* Simplified Add/Edit Form */}
           {(showAddForm || editingWeight) && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-3">
-                {editingWeight ? 'Edit Keyword Mapping' : 'Add New Keyword Mapping'}
+            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg shadow-lg">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                {editingWeight ? (
+                  <>
+                    ✏️ Edit Keyword Mapping
+                    <span className="text-sm text-blue-600 font-normal">
+                      (Editing: "{getDisplayKeyword(editingWeight.keyword)}")
+                    </span>
+                  </>
+                ) : (
+                  '➕ Add New Keyword Mapping'
+                )}
               </h3>
-              <div className="flex gap-3 items-end">
-                <div className="flex-1">
+              <div className="flex gap-3 items-end flex-wrap">
+                <div className="flex-1 min-w-48">
                   <label className="block text-xs text-gray-600 mb-1">When I type...</label>
                   <input
                     type="text"
                     value={formData.keyword}
                     onChange={(e) => setFormData({ ...formData, keyword: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., rent, sold, bought"
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-48">
                   <label className="block text-xs text-gray-600 mb-1">Suggest this account</label>
                   <select
                     value={formData.accountId}
                     onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={0}>Select an account</option>
                     {accounts.map(account => (
@@ -315,18 +327,20 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
                   />
                   <div className="text-xs text-gray-500 mt-1 text-center">{formData.weight}%</div>
                 </div>
-                <button
-                  onClick={editingWeight ? handleEditWeight : handleAddWeight}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  {editingWeight ? 'Update' : 'Add'}
-                </button>
-                <button
-                  onClick={editingWeight ? cancelEdit : () => setShowAddForm(false)}
-                  className="px-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={editingWeight ? handleEditWeight : handleAddWeight}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    {editingWeight ? '💾 Update' : '➕ Add'}
+                  </button>
+                  <button
+                    onClick={editingWeight ? cancelEdit : () => setShowAddForm(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  >
+                    ❌ Cancel
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -355,9 +369,9 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
                           <div className="flex gap-1">
                             <button 
                               onClick={() => startEdit(mapping)}
-                              className="text-xs text-blue-600 hover:text-blue-700"
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
                             >
-                              Edit
+                              ✏️ Edit
                             </button>
                             {!mapping.isDefault && (
                               <button 
@@ -424,9 +438,9 @@ const SmartSuggestionsSection: React.FC<SmartSuggestionsSectionProps> = ({ class
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => startEdit(weight)}
-                                  className="text-xs text-indigo-600 hover:text-indigo-700"
+                                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
                                 >
-                                  Edit
+                                  ✏️ Edit
                                 </button>
                                 {!weight.isDefault && (
                                   <button
