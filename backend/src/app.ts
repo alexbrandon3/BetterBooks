@@ -11,6 +11,7 @@ import goalRoutes from './routes/routes';
 import suggestionRoutes from './routes/suggestion.routes';
 import reportRoutes from './routes/report.routes';
 import booksRoutes from './routes/books.routes';
+import industryPackRoutes from './routes/industryPack.routes';
 
 const app = express();
 
@@ -97,6 +98,7 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/books', booksRoutes);
+app.use('/api/industry-packs', industryPackRoutes);
 
 // 404 handler for unmatched routes
 app.use('*', (req, res) => {

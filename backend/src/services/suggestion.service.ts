@@ -4,6 +4,53 @@ import { Account } from "../entities/Account";
 import { UserSuggestionPreference } from "../entities/UserSuggestionPreference";
 import { logError } from '../utils/logger';
 
+// Industry Packs System - Type Definitions
+interface IndustryPackRule {
+  keywords: string[];
+  debitAccount: {
+    accountTypes: string[];
+    accountNames: string[];
+    confidence: number;
+    reason: string;
+  };
+  creditAccount: {
+    accountTypes: string[];
+    accountNames: string[];
+    confidence: number;
+    reason: string;
+  };
+  transactionType: string;
+  priority: number;
+  category: string;
+  direction: 'incoming' | 'outgoing' | 'neutral';
+  validationRules: {
+    requireWordBoundaries: boolean;
+    minConfidence: number;
+    pairCompatibility: boolean;
+  };
+}
+
+interface IndustryPack {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  enabled: boolean;
+  rules: IndustryPackRule[];
+  metadata: {
+    coverage: string[];
+    targetIndustries: string[];
+    confidenceThreshold: number;
+  };
+}
+
+interface IndustryPackSettings {
+  industryPacksEnabled: boolean;
+  selectedPacks: string[];
+  shadowMode: boolean;
+  loggingEnabled: boolean;
+}
+
 // Type definitions for dual-side suggestions
 interface DualSideSuggestion {
   debitSide: {
@@ -23,6 +70,8 @@ interface DualSideSuggestion {
   overallConfidence: number;
   transactionType: string;
   rationale: string;
+  industryPack?: string;
+  packRule?: string;
 }
 
 type TransactionContext = {
@@ -32,10 +81,351 @@ type TransactionContext = {
   alignment: number;
 };
 
+// Industry Pack Definitions
+const INDUSTRY_PACKS: IndustryPack[] = [
+  {
+    id: 'financial-services-banking',
+    name: 'Financial Services & Banking',
+    description: 'Comprehensive coverage for banking, merchant services, and financial transactions',
+    version: '1.0.0',
+    enabled: true,
+    rules: [
+      // Merchant Processing & Fees
+      {
+        keywords: ['merchant fee', 'processing fee', 'credit card fee', 'payment processing', 'stripe fee', 'paypal fee', 'square fee', 'merchant account fee', 'transaction fee', 'card processing'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Banking'],
+          accountNames: ['Merchant Fees', 'Payment Processing Fees', 'Credit Card Fees', 'Banking Fees'],
+          confidence: 95,
+          reason: 'Merchant processing fee expense'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 95,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 1,
+        category: 'Banking Fees',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      },
+      // Banking Fees & Charges
+      {
+        keywords: ['monthly fee', 'maintenance fee', 'service charge', 'overdraft fee', 'nsf fee', 'wire fee', 'ach fee', 'bank fee', 'account fee', 'minimum balance fee'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Banking'],
+          accountNames: ['Bank Fees', 'Banking Charges', 'Service Charges', 'Account Fees'],
+          confidence: 90,
+          reason: 'Bank account service fee'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Fee deducted from bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 1,
+        category: 'Banking Fees',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 80,
+          pairCompatibility: true
+        }
+      },
+      // Credit Card Payments & Payoffs
+      {
+        keywords: ['credit card payment', 'cc payment', 'card payment', 'credit card payoff', 'card payoff', 'credit payment', 'card balance payment', 'credit card bill payment'],
+        debitAccount: {
+          accountTypes: ['Liability', 'Credit Card'],
+          accountNames: ['Credit Card', 'Business Credit Card', 'Credit Card Payable'],
+          confidence: 95,
+          reason: 'Payment to reduce credit card balance'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 95,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'PAYMENT',
+        priority: 1,
+        category: 'Credit Card',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 90,
+          pairCompatibility: true
+        }
+      },
+      // Refunds & Chargebacks
+      {
+        keywords: ['refund', 'chargeback', 'credit refund', 'payment refund', 'customer refund', 'refund issued', 'refund processed', 'chargeback received'],
+        debitAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Refund received to bank account'
+        },
+        creditAccount: {
+          accountTypes: ['Revenue', 'Sales'],
+          accountNames: ['Sales', 'Revenue', 'Service Income', 'Product Sales'],
+          confidence: 90,
+          reason: 'Refund reduces previous revenue'
+        },
+        transactionType: 'REFUND',
+        priority: 1,
+        category: 'Refunds',
+        direction: 'incoming',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      },
+      // Foreign Exchange
+      {
+        keywords: ['foreign exchange', 'fx', 'currency exchange', 'forex', 'exchange rate', 'currency conversion', 'foreign currency', 'fx gain', 'fx loss', 'exchange gain', 'exchange loss'],
+        debitAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 85,
+          reason: 'FX transaction affecting bank account'
+        },
+        creditAccount: {
+          accountTypes: ['Revenue', 'Expense'],
+          accountNames: ['Foreign Exchange Gain', 'Foreign Exchange Loss', 'FX Gain/Loss'],
+          confidence: 85,
+          reason: 'FX gain or loss recognition'
+        },
+        transactionType: 'ADJUSTMENT',
+        priority: 2,
+        category: 'Foreign Exchange',
+        direction: 'neutral',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 80,
+          pairCompatibility: true
+        }
+      },
+      // Interest Income & Charges
+      {
+        keywords: ['interest earned', 'interest income', 'interest received', 'interest payment', 'interest charge', 'interest expense', 'interest paid', 'interest due'],
+        debitAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Interest affecting bank account balance'
+        },
+        creditAccount: {
+          accountTypes: ['Revenue', 'Expense'],
+          accountNames: ['Interest Income', 'Interest Expense', 'Interest Earned', 'Interest Paid'],
+          confidence: 90,
+          reason: 'Interest income or expense recognition'
+        },
+        transactionType: 'ADJUSTMENT',
+        priority: 2,
+        category: 'Interest',
+        direction: 'neutral',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      }
+    ],
+    metadata: {
+      coverage: ['Merchant Fees', 'Banking Fees', 'Credit Card Payments', 'Refunds', 'Foreign Exchange', 'Interest'],
+      targetIndustries: ['All Businesses', 'E-commerce', 'Retail', 'Services'],
+      confidenceThreshold: 80
+    }
+  },
+  {
+    id: 'construction-trades',
+    name: 'Construction & Trades',
+    description: 'Specialized coverage for construction, contracting, and trade businesses',
+    version: '1.0.0',
+    enabled: true,
+    rules: [
+      // Contractor & Subcontractor Payments
+      {
+        keywords: ['contractor payment', 'subcontractor', 'sub payment', 'contractor invoice', 'sub invoice', 'contractor work', 'sub work', 'contractor services', 'sub services'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Cost of Goods Sold'],
+          accountNames: ['Contractor Expenses', 'Subcontractor Costs', 'Direct Labor', 'Contractor Services'],
+          confidence: 95,
+          reason: 'Payment to contractor or subcontractor'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 95,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 1,
+        category: 'Contractor Expenses',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 90,
+          pairCompatibility: true
+        }
+      },
+      // Materials & Supplies
+      {
+        keywords: ['construction materials', 'building materials', 'lumber', 'concrete', 'steel', 'electrical supplies', 'plumbing supplies', 'hvac supplies', 'tools', 'equipment rental', 'tool rental'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Cost of Goods Sold'],
+          accountNames: ['Construction Materials', 'Building Supplies', 'Direct Materials', 'Tools & Equipment'],
+          confidence: 90,
+          reason: 'Construction materials and supplies purchase'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 1,
+        category: 'Construction Materials',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      },
+      // Permits & Licenses
+      {
+        keywords: ['building permit', 'construction permit', 'electrical permit', 'plumbing permit', 'hvac permit', 'building license', 'contractor license', 'trade license', 'permit fee', 'license fee'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Professional Services'],
+          accountNames: ['Permits & Licenses', 'Regulatory Fees', 'Professional Services', 'Compliance Costs'],
+          confidence: 95,
+          reason: 'Building or trade permit/license fee'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 95,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 1,
+        category: 'Permits & Licenses',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 90,
+          pairCompatibility: true
+        }
+      },
+      // Equipment & Machinery
+      {
+        keywords: ['excavator', 'bulldozer', 'crane', 'forklift', 'backhoe', 'skid steer', 'concrete mixer', 'power tools', 'heavy equipment', 'construction equipment', 'trade equipment'],
+        debitAccount: {
+          accountTypes: ['Asset', 'Equipment'],
+          accountNames: ['Equipment', 'Construction Equipment', 'Tools & Equipment', 'Fixed Assets'],
+          confidence: 90,
+          reason: 'Construction or trade equipment purchase'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'PURCHASE',
+        priority: 1,
+        category: 'Equipment',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      },
+      // Project Revenue
+      {
+        keywords: ['project payment', 'construction payment', 'contract payment', 'project invoice', 'construction invoice', 'contract invoice', 'project completion', 'construction completion'],
+        debitAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 95,
+          reason: 'Payment received for construction project'
+        },
+        creditAccount: {
+          accountTypes: ['Revenue', 'Sales'],
+          accountNames: ['Construction Revenue', 'Project Revenue', 'Contract Revenue', 'Service Income'],
+          confidence: 95,
+          reason: 'Revenue from construction project'
+        },
+        transactionType: 'REVENUE',
+        priority: 1,
+        category: 'Construction Revenue',
+        direction: 'incoming',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 90,
+          pairCompatibility: true
+        }
+      },
+      // Safety & Compliance
+      {
+        keywords: ['safety equipment', 'ppe', 'hard hat', 'safety vest', 'safety glasses', 'work boots', 'safety training', 'osha compliance', 'safety certification', 'safety inspection'],
+        debitAccount: {
+          accountTypes: ['Expense', 'Professional Services'],
+          accountNames: ['Safety Equipment', 'PPE', 'Safety & Compliance', 'Professional Services'],
+          confidence: 90,
+          reason: 'Safety equipment and compliance costs'
+        },
+        creditAccount: {
+          accountTypes: ['Asset', 'Banking'],
+          accountNames: ['Checking Account', 'Business Bank Account', 'Operating Account'],
+          confidence: 90,
+          reason: 'Payment from business bank account'
+        },
+        transactionType: 'EXPENSE',
+        priority: 2,
+        category: 'Safety & Compliance',
+        direction: 'outgoing',
+        validationRules: {
+          requireWordBoundaries: true,
+          minConfidence: 85,
+          pairCompatibility: true
+        }
+      }
+    ],
+    metadata: {
+      coverage: ['Contractor Payments', 'Materials', 'Permits', 'Equipment', 'Project Revenue', 'Safety'],
+      targetIndustries: ['Construction', 'Contracting', 'Trades', 'Renovation'],
+      confidenceThreshold: 85
+    }
+  }
+];
+
+// Default Industry Pack Settings
+const DEFAULT_INDUSTRY_PACK_SETTINGS: IndustryPackSettings = {
+  industryPacksEnabled: true,
+  selectedPacks: ['financial-services-banking', 'construction-trades'],
+  shadowMode: true,
+  loggingEnabled: true
+};
+
 export class SuggestionService {
   private suggestionRepo = AppDataSource.getRepository(Suggestion);
   private accountRepo = AppDataSource.getRepository(Account);
   private userPreferenceRepo = AppDataSource.getRepository(UserSuggestionPreference);
+  private industryPackSettings: IndustryPackSettings = DEFAULT_INDUSTRY_PACK_SETTINGS;
 
   async getSuggestions(userId: number): Promise<Suggestion[]> {
     try {
@@ -432,6 +822,67 @@ export class SuggestionService {
           categories: ['Insurance', 'Business Insurance', 'Professional Services'],
           reason: 'Insurance related transaction',
           priority: 1  // Highest priority to override generic keywords
+        },
+        // 🚀 CROSS-INDUSTRY BASELINE IMPROVEMENTS
+        {
+          keywords: ['merchant fee', 'processing fee', 'credit card fee', 'payment processing', 'stripe fee', 'paypal fee', 'square fee', 'merchant account fee', 'transaction fee', 'card processing', 'payment gateway fee'],
+          categories: ['Banking Fees', 'Payment Processing', 'Financial Services'],
+          reason: 'Payment processing and merchant fees',
+          priority: 1
+        },
+        {
+          keywords: ['monthly fee', 'maintenance fee', 'service charge', 'overdraft fee', 'nsf fee', 'wire fee', 'ach fee', 'bank fee', 'account fee', 'minimum balance fee', 'atm fee', 'foreign transaction fee'],
+          categories: ['Banking Fees', 'Service Charges', 'Financial Services'],
+          reason: 'Bank account service fees and charges',
+          priority: 1
+        },
+        {
+          keywords: ['refund', 'chargeback', 'credit refund', 'payment refund', 'customer refund', 'refund issued', 'refund processed', 'chargeback received', 'return refund', 'dispute refund'],
+          categories: ['Refunds', 'Customer Service', 'Adjustments'],
+          reason: 'Refund or chargeback transaction',
+          priority: 1
+        },
+        {
+          keywords: ['credit card payment', 'cc payment', 'card payment', 'credit card payoff', 'card payoff', 'credit payment', 'card balance payment', 'credit card bill payment', 'credit card statement payment'],
+          categories: ['Credit Card', 'Credit Card Payable', 'Liability'],
+          reason: 'Credit card payment or payoff',
+          priority: 1
+        },
+        {
+          keywords: ['foreign exchange', 'fx', 'currency exchange', 'forex', 'exchange rate', 'currency conversion', 'foreign currency', 'fx gain', 'fx loss', 'exchange gain', 'exchange loss', 'currency fluctuation'],
+          categories: ['Foreign Exchange', 'FX Gain/Loss', 'Currency'],
+          reason: 'Foreign exchange transaction or adjustment',
+          priority: 2
+        },
+        {
+          keywords: ['interest earned', 'interest income', 'interest received', 'interest payment', 'interest charge', 'interest expense', 'interest paid', 'interest due', 'interest on loan', 'loan interest'],
+          categories: ['Interest', 'Interest Income', 'Interest Expense'],
+          reason: 'Interest income or expense',
+          priority: 2
+        },
+        {
+          keywords: ['license', 'permit', 'certification', 'compliance', 'regulatory', 'government fee', 'filing fee', 'registration fee', 'business license', 'professional license', 'industry certification'],
+          categories: ['Regulatory', 'Compliance', 'Professional Services'],
+          reason: 'Regulatory and compliance costs',
+          priority: 2
+        },
+        {
+          keywords: ['contractor', 'subcontractor', 'sub payment', 'contractor invoice', 'sub invoice', 'contractor work', 'sub work', 'contractor services', 'sub services', 'freelancer', 'consultant payment'],
+          categories: ['Contractor Expenses', 'Subcontractor Costs', 'Direct Labor'],
+          reason: 'Contractor or subcontractor payment',
+          priority: 2
+        },
+        {
+          keywords: ['construction materials', 'building materials', 'lumber', 'concrete', 'steel', 'electrical supplies', 'plumbing supplies', 'hvac supplies', 'tools', 'equipment rental', 'tool rental', 'building supplies'],
+          categories: ['Construction Materials', 'Building Supplies', 'Direct Materials'],
+          reason: 'Construction materials and supplies',
+          priority: 2
+        },
+        {
+          keywords: ['building permit', 'construction permit', 'electrical permit', 'plumbing permit', 'hvac permit', 'building license', 'contractor license', 'trade license', 'permit fee', 'license fee', 'inspection fee'],
+          categories: ['Permits & Licenses', 'Regulatory Fees', 'Compliance'],
+          reason: 'Building or trade permit/license',
+          priority: 2
         }
       ];
 
@@ -694,6 +1145,26 @@ export class SuggestionService {
       order: { updatedAt: 'DESC' }
     });
     console.log(`📋 Total accounts available: ${accounts.length}`);
+    
+    // 🚀 INDUSTRY PACKS INTEGRATION - Try Industry Pack rules first
+    console.log(`🏭 Checking Industry Pack rules...`);
+    const industryPackSuggestion = await this.applyIndustryPackRules(description, userId, accounts);
+    if (industryPackSuggestion) {
+      console.log(`✅ Industry Pack rule matched: ${industryPackSuggestion.industryPack} - ${industryPackSuggestion.packRule}`);
+      console.log(`   Debit: ${industryPackSuggestion.debitSide?.suggestedAccountName} (${industryPackSuggestion.debitSide?.confidence}%)`);
+      console.log(`   Credit: ${industryPackSuggestion.creditSide?.suggestedAccountName} (${industryPackSuggestion.creditSide?.confidence}%)`);
+      console.log(`   Overall: ${industryPackSuggestion.overallConfidence}%`);
+      return industryPackSuggestion;
+    }
+    
+    // Log missing Industry Pack match for shadow mode
+    const enabledPacks = await this.getEnabledIndustryPacks();
+    if (enabledPacks.length > 0) {
+      await this.logMissingIndustryPackMatch(description, userId, enabledPacks.map(p => p.id));
+    }
+    
+    // Fall back to traditional suggestion logic
+    console.log(`🔄 No Industry Pack rule matched, falling back to traditional logic...`);
     
     // Find matching accounts for both sides using different strategies
     const debitAccount = this.findMatchingAccount(accounts, [normalizedDescription], 'debit', context);
@@ -1742,5 +2213,226 @@ export class SuggestionService {
     }
     
     return { direction, verbs: [...outgoingWords, ...incomingWords], context, alignment };
+  }
+
+  // Industry Pack Management Methods
+  async getIndustryPacks(): Promise<IndustryPack[]> {
+    return INDUSTRY_PACKS.filter(pack => pack.enabled);
+  }
+
+  async getIndustryPackSettings(): Promise<IndustryPackSettings> {
+    return this.industryPackSettings;
+  }
+
+  async updateIndustryPackSettings(settings: Partial<IndustryPackSettings>): Promise<void> {
+    this.industryPackSettings = { ...this.industryPackSettings, ...settings };
+  }
+
+  async getEnabledIndustryPacks(): Promise<IndustryPack[]> {
+    if (!this.industryPackSettings.industryPacksEnabled) {
+      return [];
+    }
+    return INDUSTRY_PACKS.filter(pack => 
+      pack.enabled && this.industryPackSettings.selectedPacks.includes(pack.id)
+    );
+  }
+
+  // Industry Pack Rule Application
+  private async applyIndustryPackRules(
+    description: string, 
+    _userId: number,
+    accounts: Account[]
+  ): Promise<DualSideSuggestion | null> {
+    if (!this.industryPackSettings.industryPacksEnabled) {
+      return null;
+    }
+
+    const enabledPacks = await this.getEnabledIndustryPacks();
+    if (enabledPacks.length === 0) {
+      return null;
+    }
+
+    const normalizedDescription = this.normalizeDescription(description);
+    let bestMatch: { pack: IndustryPack; rule: IndustryPackRule; keyword: string; score: number } | null = null;
+
+    // Find the best matching rule across all enabled packs
+    for (const pack of enabledPacks) {
+      for (const rule of pack.rules) {
+        const foundKeyword = rule.keywords.find(keyword => {
+          if (rule.validationRules.requireWordBoundaries) {
+            const wordBoundaryRegex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            return wordBoundaryRegex.test(normalizedDescription);
+          } else {
+            return normalizedDescription.includes(keyword.toLowerCase());
+          }
+        });
+
+        if (foundKeyword) {
+          const score = this.calculateIndustryPackRuleScore(rule, foundKeyword, normalizedDescription);
+          if (!bestMatch || score > bestMatch.score) {
+            bestMatch = { pack, rule, keyword: foundKeyword, score };
+          }
+        }
+      }
+    }
+
+    if (!bestMatch || bestMatch.score < bestMatch.rule.validationRules.minConfidence) {
+      return null;
+    }
+
+    // Apply the rule to find matching accounts
+    const debitAccount = await this.findAccountByIndustryPackRule(
+      accounts, 
+      bestMatch.rule.debitAccount, 
+      'debit'
+    );
+    const creditAccount = await this.findAccountByIndustryPackRule(
+      accounts, 
+      bestMatch.rule.creditAccount, 
+      'credit'
+    );
+
+    if (!debitAccount || !creditAccount) {
+      return null;
+    }
+
+    // Validate account pair compatibility
+    const pairValidation = this.validateAccountPair(debitAccount, creditAccount);
+    if (!pairValidation.isValid) {
+      return null;
+    }
+
+    const overallConfidence = Math.min(
+      bestMatch.score,
+      debitAccount.confidence,
+      creditAccount.confidence,
+      pairValidation.score
+    );
+
+    return {
+      debitSide: {
+        suggestedAccountId: debitAccount.id,
+        suggestedAccountName: debitAccount.name,
+        reason: `${bestMatch.rule.debitAccount.reason} (${bestMatch.pack.name})`,
+        accountType: debitAccount.type,
+        confidence: debitAccount.confidence
+      },
+      creditSide: {
+        suggestedAccountId: creditAccount.id,
+        suggestedAccountName: creditAccount.name,
+        reason: `${bestMatch.rule.creditAccount.reason} (${bestMatch.pack.name})`,
+        accountType: creditAccount.type,
+        confidence: creditAccount.confidence
+      },
+      overallConfidence,
+      transactionType: bestMatch.rule.transactionType,
+      rationale: `Industry Pack Rule: ${bestMatch.rule.category} - ${bestMatch.rule.debitAccount.reason} and ${bestMatch.rule.creditAccount.reason}`,
+      industryPack: bestMatch.pack.id,
+      packRule: bestMatch.rule.category
+    };
+  }
+
+  private calculateIndustryPackRuleScore(
+    rule: IndustryPackRule, 
+    keyword: string, 
+    description: string
+  ): number {
+    let score = rule.debitAccount.confidence;
+
+    // Boost score for longer, more specific keywords
+    const keywordSpecificity = Math.min(100, keyword.length * 5);
+    score = Math.min(100, score + (keywordSpecificity * 0.1));
+
+    // Boost score for higher priority rules
+    const priorityBoost = (6 - rule.priority) * 5; // Priority 1 gets +25, Priority 5 gets +5
+    score = Math.min(100, score + priorityBoost);
+
+    // Direction alignment bonus
+    const context = this.parseTransactionContext(description);
+    if (rule.direction === context.direction || rule.direction === 'neutral') {
+      score = Math.min(100, score + 10);
+    }
+
+    return Math.round(score);
+  }
+
+  private async findAccountByIndustryPackRule(
+    accounts: Account[],
+    ruleAccount: { accountTypes: string[]; accountNames: string[] },
+    _side: 'debit' | 'credit'
+  ): Promise<{ id: number; name: string; type: string; confidence: number } | null> {
+    // First try to find by exact account name match
+    for (const accountName of ruleAccount.accountNames) {
+      const exactMatch = accounts.find(acc => 
+        acc.name.toLowerCase() === accountName.toLowerCase()
+      );
+      if (exactMatch) {
+        return {
+          id: exactMatch.id,
+          name: exactMatch.name,
+          type: exactMatch.type,
+          confidence: 95
+        };
+      }
+    }
+
+    // Then try to find by account type match
+    for (const accountType of ruleAccount.accountTypes) {
+      const typeMatch = accounts.find(acc => 
+        acc.type.toLowerCase() === accountType.toLowerCase()
+      );
+      if (typeMatch) {
+        return {
+          id: typeMatch.id,
+          name: typeMatch.name,
+          type: typeMatch.type,
+          confidence: 85
+        };
+      }
+    }
+
+    // Finally, try partial name matching
+    for (const accountName of ruleAccount.accountNames) {
+      const partialMatch = accounts.find(acc => 
+        acc.name.toLowerCase().includes(accountName.toLowerCase()) ||
+        accountName.toLowerCase().includes(acc.name.toLowerCase())
+      );
+      if (partialMatch) {
+        return {
+          id: partialMatch.id,
+          name: partialMatch.name,
+          type: partialMatch.type,
+          confidence: 75
+        };
+      }
+    }
+
+    return null;
+  }
+
+  // Shadow Mode Logging
+  private async logMissingIndustryPackMatch(
+    description: string, 
+    _userId: number,
+    enabledPacks: string[]
+  ): Promise<void> {
+    if (!this.industryPackSettings.shadowMode || !this.industryPackSettings.loggingEnabled) {
+      return;
+    }
+
+    // In a real implementation, this would log to a database or analytics service
+    console.log(`🔍 Industry Pack Shadow Mode - No match found for: "${description}"`);
+    console.log(`   User: ${_userId}, Enabled Packs: ${enabledPacks.join(', ')}`);
+    console.log(`   Consider adding rule for: ${this.extractPotentialKeywords(description)}`);
+  }
+
+  private extractPotentialKeywords(description: string): string[] {
+    const words = description.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 3) // Filter out short words
+      .slice(0, 5); // Take first 5 potential keywords
+    
+    return words;
   }
 }
